@@ -1,0 +1,26 @@
+name = "mail-reineke-tech"
+main = "src/index.ts"
+compatibility_date = "2025-01-15"
+compatibility_flags = ["nodejs_compat"]
+
+# Static assets (frontend served from /public)
+[assets]
+directory = "./public"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+
+# Production environment with custom domain
+[env.production]
+name = "mail-reineke-tech"
+routes = [
+  { pattern = "mail.reineke.tech", custom_domain = true }
+]
+
+[env.production.assets]
+directory = "./public"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+
+# Observability
+[observability]
+enabled = true

@@ -1,0 +1,22 @@
+{
+  "name": "mail-reineke-tech",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Email authentication analyzer (DMARC, DKIM, SPF, MX) for Reineke Technik",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "deploy:prod": "wrangler deploy --env production",
+    "typecheck": "tsc --noEmit",
+    "cf-typegen": "wrangler types"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250121.0",
+    "typescript": "^5.7.3",
+    "wrangler": "^4.93.1"
+  },
+  "dependencies": {
+    "hono": "^4.6.17"
+  }
+}
