@@ -13,6 +13,7 @@ not_found_handling = "single-page-application"
 [env.production]
 name = "mail-reineke-tech"
 routes = [
+  { pattern = "sharp.reineke.tech", custom_domain = true },
   { pattern = "mail.reineke.tech", custom_domain = true }
 ]
 
