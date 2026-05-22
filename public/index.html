@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#003876" />
+    <meta
+      name="description"
+      content="DMARC, DKIM, SPF und MX-Records prüfen — kostenfreies E-Mail-Authentifizierungs-Analyse-Tool von Reineke Technik."
+    />
+    <title>E-Mail Authentifizierungs-Check · Reineke Technik</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="/" aria-label="Reineke Technik">
+          <img src="/assets/reineke-logo.svg" alt="Reineke Technik" class="brand-logo" />
+        </a>
+        <div class="header-meta">
+          <span class="badge badge-partner">
+            <img src="/assets/sharp-logo.svg" alt="Sharp" class="partner-logo" />
+            <span>Authorized Dealer</span>
+          </span>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="container">
+          <h1>E-Mail Authentifizierungs-Check</h1>
+          <p class="lead">
+            Prüft <strong>DMARC</strong>, <strong>DKIM</strong>, <strong>SPF</strong> und
+            <strong>MX-Records</strong> deiner Domain in Sekunden — direkt aus dem Browser.
+          </p>
+
+          <form id="check-form" class="check-form" autocomplete="off">
+            <label class="sr-only" for="domain">Domain</label>
+            <div class="input-group">
+              <input
+                id="domain"
+                name="domain"
+                type="text"
+                placeholder="reineke-technik.de"
+                spellcheck="false"
+                autocapitalize="off"
+                autocomplete="off"
+                inputmode="url"
+                required
+              />
+              <button type="submit" class="btn btn-primary">
+                <span class="btn-label">Prüfen</span>
+                <span class="spinner" aria-hidden="true"></span>
+              </button>
+            </div>
+            <details class="advanced">
+              <summary>Erweitert: DKIM-Selektoren</summary>
+              <label for="selectors">Zusätzliche Selektoren (komma-getrennt)</label>
+              <input
+                id="selectors"
+                name="selectors"
+                type="text"
+                placeholder="z.B. mailpoet1, custom-selector"
+                spellcheck="false"
+                autocapitalize="off"
+                autocomplete="off"
+              />
+              <p class="hint">
+                Wir probieren bereits ~40 gängige Selektoren automatisch (Google, Microsoft, SendGrid,
+                Mailgun, etc.). Eigene Selektoren hier ergänzen.
+              </p>
+            </details>
+          </form>
+
+          <div id="error" class="error-banner" hidden></div>
+        </div>
+      </section>
+
+      <section id="results" class="results" hidden>
+        <div class="container">
+          <div class="results-header">
+            <h2>
+              Ergebnisse für <span id="result-domain" class="mono"></span>
+            </h2>
+            <span id="result-timestamp" class="result-timestamp"></span>
+          </div>
+          <div class="cards">
+            <article class="card card-primary" id="card-dmarc" data-status="">
+              <header class="card-header">
+                <h3>DMARC</h3>
+                <span class="status-pill" data-pill></span>
+              </header>
+              <p class="card-summary" data-summary></p>
+              <div class="card-body" data-body></div>
+            </article>
+            <article class="card" id="card-spf" data-status="">
+              <header class="card-header">
+                <h3>SPF</h3>
+                <span class="status-pill" data-pill></span>
+              </header>
+              <p class="card-summary" data-summary></p>
+              <div class="card-body" data-body></div>
+            </article>
+            <article class="card" id="card-dkim" data-status="">
+              <header class="card-header">
+                <h3>DKIM</h3>
+                <span class="status-pill" data-pill></span>
+              </header>
+              <p class="card-summary" data-summary></p>
+              <div class="card-body" data-body></div>
+            </article>
+            <article class="card" id="card-mx" data-status="">
+              <header class="card-header">
+                <h3>MX</h3>
+                <span class="status-pill" data-pill></span>
+              </header>
+              <p class="card-summary" data-summary></p>
+              <div class="card-body" data-body></div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="info">
+        <div class="container info-grid">
+          <article>
+            <h4>Was ist DMARC?</h4>
+            <p>
+              DMARC (Domain-based Message Authentication, Reporting & Conformance) sagt
+              empfangenden Mailservern, was mit Mails passieren soll, die SPF oder DKIM nicht
+              bestehen. Ohne DMARC kann jeder deine Domain im Absender fälschen.
+            </p>
+          </article>
+          <article>
+            <h4>Warum ist das wichtig?</h4>
+            <p>
+              Google und Microsoft setzen DMARC seit Februar 2024 für Bulk-Sender verpflichtend
+              voraus. Ohne korrekte Authentifizierung landen Marketing- und Transaktionsmails im
+              Spam — oder werden komplett abgewiesen.
+            </p>
+          </article>
+          <article>
+            <h4>Was kann ich tun?</h4>
+            <p>
+              Starte mit <code>p=none</code> zur Beobachtung, werte die Reports 2–4 Wochen aus und
+              eskaliere zu <code>p=quarantine</code> bzw. <code>p=reject</code>. Reineke Technik
+              unterstützt dich gerne dabei.
+            </p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <div>
+          <strong>Reineke Technik</strong> — Authorized Sharp Dealer
+        </div>
+        <nav class="footer-nav">
+          <a href="https://www.reineke-technik.de" rel="noopener">Hauptseite</a>
+          <a href="https://www.reineke-technik.de/impressum/" rel="noopener">Impressum</a>
+          <a href="https://www.reineke-technik.de/datenschutz/" rel="noopener">Datenschutz</a>
+        </nav>
+      </div>
+    </footer>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>
