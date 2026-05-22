@@ -1,11 +1,14 @@
-# mail.reineke.tech
+# sharp.reineke.tech
 
 Kostenfreies E-Mail-Authentifizierungs-Analyse-Tool von **Reineke Technik**. Prüft
 **DMARC**, **DKIM**, **SPF** und **MX-Records** einer beliebigen Domain — vergleichbar
-mit MXToolbox, aber als schlanker Cloudflare Worker mit deutscher UI und Empfehlungen.
+mit MXToolbox, aber als schlanker Cloudflare Worker mit deutscher UI, Reineke-
+Technik-Branding und Empfehlungen.
 
 DMARC steht im Fokus, da Google und Microsoft seit Februar 2024 für Bulk-Sender
 DMARC-Compliance voraussetzen.
+
+**Live:** https://sharp.reineke.tech · https://mail.reineke.tech (Alt-Hostname)
 
 ## Stack
 
@@ -18,10 +21,10 @@ DMARC-Compliance voraussetzen.
 
 ```bash
 npm install
-npm run dev
+npm run dev        # Wrangler-Server auf http://localhost:8787
+npm test           # vitest — 28 Unit-Tests
+npm run typecheck  # tsc --noEmit
 ```
-
-Wrangler startet einen lokalen Server auf `http://localhost:8787`.
 
 ## Deployment
 
@@ -29,24 +32,26 @@ Wrangler startet einen lokalen Server auf `http://localhost:8787`.
 # Vorschau (Worker auf <name>.<account>.workers.dev)
 npm run deploy
 
-# Produktion mit Custom Domain mail.reineke.tech
+# Produktion mit Custom Domains sharp.reineke.tech & mail.reineke.tech
 npm run deploy:prod
 ```
 
 ### Custom Domain einrichten
 
-In `wrangler.toml` ist die Route bereits konfiguriert:
+In `wrangler.toml` sind die Routen bereits konfiguriert:
 
 ```toml
 [env.production]
 routes = [
-  { pattern = "mail.reineke.tech", custom_domain = true }
+  { pattern = "sharp.reineke.tech", custom_domain = true },
+  { pattern = "mail.reineke.tech",  custom_domain = true }
 ]
 ```
 
-**Voraussetzung:** Die Zone `reineke.tech` muss in deinem Cloudflare-Account aktiv sein.
-Beim ersten `deploy --env production` legt Wrangler die Custom-Domain-Zuordnung
-automatisch an (kein manuelles CNAME nötig).
+**Voraussetzung:** Die Zone `reineke.tech` muss im Cloudflare-Account aktiv sein.
+Beim Deploy legt Wrangler die Custom-Domain-Zuordnung automatisch an (kein
+manuelles CNAME nötig). Falls bereits ein konkurrierender DNS-Eintrag für den
+Hostnamen existiert, muss dieser zuerst entfernt werden.
 
 ## Architektur
 
@@ -62,9 +67,17 @@ src/
     └── mx.ts             # MX + A/AAAA Auflösung
 public/
 ├── index.html            # Single-page UI
-├── styles.css            # Reineke-Technik-Branding (#003876 / #e30613)
+├── styles.css            # Reineke-Technik-Branding (Rot #dc0d23 / Schwarz / Weiß)
 ├── app.js                # Fetch /api/analyze + Rendering
-└── assets/               # Logos & Favicon (SVG-Platzhalter, bitte austauschen)
+└── assets/
+    ├── reineke-logo.png  # Reineke Cyber Security Logo
+    ├── sharp-logo.png    # Sharp Partner-Logo
+    └── favicon.svg
+tests/
+├── dmarc.test.ts
+├── spf.test.ts
+├── dkim.test.ts
+└── dns.test.ts
 ```
 
 ## API
@@ -79,9 +92,9 @@ Liefert eine kombinierte Auswertung aller vier Checks zurück:
   "queriedAt": "2026-05-22T12:34:56.000Z",
   "dmarc": {
     "status": "warn",
-    "summary": "DMARC vorhanden, Verbesserungspotenzial (p=none).",
-    "issues": [{ "severity": "warn", "code": "DMARC_POLICY_NONE", "message": "...", "recommendation": "..." }],
-    "data": { "raw": "v=DMARC1; p=none; rua=mailto:...", "p": "none", "rua": ["mailto:..."], ... }
+    "summary": "DMARC vorhanden, Verbesserungspotenzial (p=quarantine).",
+    "issues": [{ "severity": "warn", "code": "DMARC_POLICY_QUARANTINE", "message": "...", "recommendation": "..." }],
+    "data": { "raw": "v=DMARC1; p=quarantine; rua=mailto:...", "p": "quarantine", ... }
   },
   "spf":  { ... },
   "dkim": { ... },
@@ -93,28 +106,37 @@ Liefert eine kombinierte Auswertung aller vier Checks zurück:
 
 ### `GET /api/health`
 
-Liefert `{ ok: true }` zurück.
+Liefert `{ ok: true, service: "mail.reineke.tech" }` zurück.
 
-## Logos austauschen
+## Branding
 
-Die SVGs unter [public/assets/](public/assets/) sind Platzhalter mit der Reineke-
-Brandfarbe. Für das finale Branding einfach die Dateien ersetzen:
+Die Farbpalette und Typografie sind aus der Live-CSS von
+[reineke-technik.de](https://www.reineke-technik.de) abgeleitet:
 
-- `reineke-logo.svg` — Hauptlogo im Header (Höhe ~40px)
-- `sharp-logo.svg` — Sharp-Partnerbadge (Höhe ~18px)
-- `favicon.svg` — Browser-Favicon
+| Token | Wert | Verwendung |
+|---|---|---|
+| `--rt-red` | `#dc0d23` | Primärfarbe, CTAs, Akzente |
+| `--rt-red-dark` | `#8a060e` | Hover, Fehler |
+| `--rt-black` | `#000000` | Text |
+| `--rt-gray` | `#5a5a5a` | Sekundärtext |
+| `--rt-border` | `#e6e7e6` | Trennlinien |
+| Font | `Frutiger`, fallback humanist sans | überall |
 
-Falls die offiziellen Logos als PNG/JPG vorliegen, einfach die Endung in
-[index.html](public/index.html) anpassen.
+Logos (Reineke-Fuchs, Sharp) liegen als PNG in [public/assets/](public/assets/).
 
 ## Workflow
 
 - `main` ist die deploybare Branch.
 - **Alle Änderungen via Pull Request** (Feature-Branches → PR → Review → Merge).
-- Cloudflare deployt Production automatisch beim Merge auf `main`, wenn der
-  [GitHub-Integration](https://developers.cloudflare.com/workers/ci-cd/builds/)
-  Trigger konfiguriert ist (optional).
+- Deploy ist aktuell manuell via `npm run deploy:prod`. Optional kann eine
+  GitHub-Actions-Pipeline auf Merge automatisch deployen (Cloudflare-Token als
+  Repo-Secret).
+
+## Sicherheit
+
+`.api-keys` enthält lokale Cloudflare-Tokens und ist via `.gitignore`
+ausgeschlossen — niemals committen.
 
 ## Lizenz
 
-Interne Nutzung Reineke Technik. Quellcode public auf GitHub für Transparenz.
+MIT. Siehe [LICENSE](LICENSE).
