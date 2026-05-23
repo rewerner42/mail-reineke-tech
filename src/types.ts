@@ -64,6 +64,28 @@ export interface DkimRecord {
   keySize?: number;
 }
 
+export interface MtaStsRecord {
+  dnsTxt: string | null;
+  id?: string;
+  policyFetched: boolean;
+  policyVersion?: string;
+  mode?: "none" | "testing" | "enforce";
+  maxAge?: number;
+  mx?: string[];
+}
+
+export interface TlsRptRecord {
+  raw: string | null;
+  version?: string;
+  rua: string[];
+}
+
+export interface DnssecResult {
+  signed: boolean;
+  authenticated: boolean;
+  dnskeyCount: number;
+}
+
 export interface AnalysisResponse {
   domain: string;
   queriedAt: string;
@@ -71,4 +93,7 @@ export interface AnalysisResponse {
   spf: CheckResult<SpfRecord | null>;
   dkim: CheckResult<DkimRecord[]>;
   mx: CheckResult<MxRecord[]>;
+  mtaSts: CheckResult<MtaStsRecord>;
+  tlsRpt: CheckResult<TlsRptRecord>;
+  dnssec: CheckResult<DnssecResult>;
 }

@@ -1,9 +1,9 @@
 # sharp.reineke.tech
 
 Kostenfreies E-Mail-Authentifizierungs-Analyse-Tool von **Reineke Technik**. Prüft
-**DMARC**, **DKIM**, **SPF** und **MX-Records** einer beliebigen Domain — vergleichbar
-mit MXToolbox, aber als schlanker Cloudflare Worker mit deutscher UI, Reineke-
-Technik-Branding und Empfehlungen.
+**DMARC**, **DKIM**, **SPF**, **MX**, **MTA-STS**, **TLS-RPT** und **DNSSEC** einer
+beliebigen Domain — vergleichbar mit MXToolbox, aber als schlanker Cloudflare Worker
+mit deutscher UI, Reineke-Technik-Branding und konkreten Empfehlungen.
 
 DMARC steht im Fokus, da Google und Microsoft seit Februar 2024 für Bulk-Sender
 DMARC-Compliance voraussetzen.
@@ -64,7 +64,10 @@ src/
     ├── dmarc.ts          # _dmarc.<domain> → Parser + Validator
     ├── spf.ts            # v=spf1 → Parser + rekursive Lookup-Zählung
     ├── dkim.ts           # Selektor-Probing (~40 gängige Selektoren)
-    └── mx.ts             # MX + A/AAAA Auflösung
+    ├── mx.ts             # MX + A/AAAA Auflösung
+    ├── mta-sts.ts        # _mta-sts TXT + Policy-Fetch (.well-known)
+    ├── tls-rpt.ts        # _smtp._tls TXT (RFC 8460)
+    └── dnssec.ts         # DNSKEY + AD-Flag aus DoH-Response
 public/
 ├── index.html            # Single-page UI
 ├── styles.css            # Reineke-Technik-Branding (Rot #dc0d23 / Schwarz / Weiß)
@@ -77,14 +80,17 @@ tests/
 ├── dmarc.test.ts
 ├── spf.test.ts
 ├── dkim.test.ts
-└── dns.test.ts
+├── dns.test.ts
+├── mta-sts.test.ts
+└── tls-rpt.test.ts
 ```
 
 ## API
 
 ### `GET /api/analyze?domain=<fqdn>&selectors=<csv>`
 
-Liefert eine kombinierte Auswertung aller vier Checks zurück:
+Liefert eine kombinierte Auswertung aller Checks (`dmarc`, `spf`, `dkim`, `mx`,
+`mtaSts`, `tlsRpt`, `dnssec`) zurück:
 
 ```jsonc
 {
@@ -96,9 +102,12 @@ Liefert eine kombinierte Auswertung aller vier Checks zurück:
     "issues": [{ "severity": "warn", "code": "DMARC_POLICY_QUARANTINE", "message": "...", "recommendation": "..." }],
     "data": { "raw": "v=DMARC1; p=quarantine; rua=mailto:...", "p": "quarantine", ... }
   },
-  "spf":  { ... },
-  "dkim": { ... },
-  "mx":   { ... }
+  "spf":    { ... },
+  "dkim":   { ... },
+  "mx":     { ... },
+  "mtaSts": { "status": "warn", "summary": "Kein MTA-STS", "data": { "dnsTxt": null, "policyFetched": false } },
+  "tlsRpt": { "status": "warn", "summary": "Kein TLS-RPT",  "data": { "raw": null, "rua": [] } },
+  "dnssec": { "status": "pass", "summary": "DNSSEC aktiv",  "data": { "signed": true, "authenticated": true, "dnskeyCount": 2 } }
 }
 ```
 

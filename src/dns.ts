@@ -5,7 +5,14 @@
 
 const DOH_ENDPOINT = "https://cloudflare-dns.com/dns-query";
 
-export type DnsRecordType = "A" | "AAAA" | "MX" | "TXT" | "CNAME" | "NS";
+export type DnsRecordType =
+  | "A"
+  | "AAAA"
+  | "MX"
+  | "TXT"
+  | "CNAME"
+  | "NS"
+  | "DNSKEY";
 
 export interface DohAnswer {
   name: string;
@@ -34,6 +41,7 @@ const TYPE_CODES: Record<DnsRecordType, number> = {
   TXT: 16,
   CNAME: 5,
   NS: 2,
+  DNSKEY: 48,
 };
 
 export async function dohQuery(
