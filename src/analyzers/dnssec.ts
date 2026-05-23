@@ -23,7 +23,12 @@ export interface DnssecClassification {
   summary: string;
   message: string;
   recommendation?: string;
-  /** 0–100 posture score; mapped to a letter grade (secure 100, unsigned 55, unanchored 35, broken 10). */
+  /**
+   * Posture score → letter grade. DNSSEC is binary: a zone either has a valid,
+   * validated chain of trust or it does not — there are no meaningful partial
+   * grades. So: secure = 100 (A+), every insecure state (unsigned, unanchored,
+   * broken) = 0 (F), distinguished only by message, not by grade.
+   */
   score: number;
   data: DnssecResult;
 }
@@ -68,7 +73,7 @@ export function classifyDnssec(s: DnssecSignals): DnssecClassification {
       message: `Beim Parent ist ein DS-Record hinterlegt (die Zone soll signiert sein), aber ${reason}. Das bricht die Mailzustellung und Auflösung bei validierenden Resolvern.`,
       recommendation:
         "Signaturen/Schlüssel der Zone prüfen (z.B. abgelaufene RRSIGs, DNSKEY/DS-Mismatch nach Key-Rollover). Detailanalyse der Kette über dnsviz.net. Im Zweifel DS beim Registrar entfernen, bis die Signierung wieder sauber ist.",
-      score: 10,
+      score: 0,
       data: {
         secure: false,
         authenticated: false,
@@ -83,13 +88,13 @@ export function classifyDnssec(s: DnssecSignals): DnssecClassification {
   //    treated as insecure by validators.
   if (s.dnskeyCount > 0) {
     return {
-      status: "warn",
+      status: "fail",
       code: "DNSSEC_UNANCHORED",
       summary: "DNSSEC nicht verankert",
-      message: `Die Zone veröffentlicht ${s.dnskeyCount} DNSKEY-Record(s), aber beim Parent fehlt der DS-Record. Ohne DS gilt die Zone für Resolver als unsigniert.`,
+      message: `Die Zone veröffentlicht ${s.dnskeyCount} DNSKEY-Record(s), aber beim Parent fehlt der DS-Record. Ohne DS gilt die Zone für Resolver als unsigniert — kein Schutz.`,
       recommendation:
         "DS-Record beim Domain-Registrar hinterlegen, um die Vertrauenskette zu schließen. Bei Cloudflare: DNS → Settings → DNSSEC aktivieren und den angezeigten DS-Record beim Registrar eintragen.",
-      score: 35,
+      score: 0,
       data: {
         secure: false,
         authenticated: false,
@@ -102,13 +107,14 @@ export function classifyDnssec(s: DnssecSignals): DnssecClassification {
 
   // 4) No DNSSEC at all.
   return {
-    status: "warn",
+    status: "fail",
     code: "DNSSEC_UNSIGNED",
     summary: "Kein DNSSEC",
-    message: "Zone ist nicht DNSSEC-signiert.",
+    message:
+      "Zone ist nicht DNSSEC-signiert — kein Schutz gegen DNS-Spoofing und Cache-Poisoning.",
     recommendation:
       "DNSSEC schützt vor DNS-Spoofing und Cache-Poisoning. Bei Cloudflare mit einem Klick aktivierbar (DNS → Settings → DNSSEC); danach den DS-Record bei der Registrar-Domain hinterlegen.",
-    score: 55,
+    score: 0,
     data: {
       secure: false,
       authenticated: false,
