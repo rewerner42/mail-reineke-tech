@@ -6,6 +6,11 @@ die Website-Security-Header via **MDN HTTP Observatory** — vergleichbar mit
 MXToolbox, aber als schlanker Cloudflare Worker mit deutscher UI,
 Reineke-Technik-Branding und konkreten Empfehlungen.
 
+**Noten:** DMARC, DNSSEC und das HTTP Observatory erhalten jeweils eine Schulnote
+(A+…F) auf einer gemeinsamen Skala ([src/grading.ts](src/grading.ts)). Die
+Observatory-Ergebnisse werden ins Deutsche übersetzt ([src/observatory-i18n.ts](src/observatory-i18n.ts),
+englischer Fallback) und gegen die globale MDN-Notenverteilung gebenchmarkt.
+
 DMARC steht im Fokus, da Google und Microsoft seit Februar 2024 für Bulk-Sender
 DMARC-Compliance voraussetzen.
 
@@ -58,36 +63,43 @@ Hostnamen existiert, muss dieser zuerst entfernt werden.
 
 ```
 src/
-├── index.ts              # Hono app, /api/analyze, /api/observatory, static fallback
+├── index.ts              # Hono app, API-Endpoints, static fallback
 ├── dns.ts                # DoH-Client (Cloudflare 1.1.1.1)
 ├── types.ts              # Shared types
-├── observatory.ts        # MDN HTTP Observatory v2 API client (Website-Header)
+├── grading.ts            # scoreToGrade (A+…F) + gradeToSeverity (gemeinsame Skala)
+├── observatory.ts        # MDN HTTP Observatory v2 client + Benchmark
+├── observatory-i18n.ts   # Deutsche Übersetzungen (Titel + Result-Codes)
 └── analyzers/
-    ├── dmarc.ts          # _dmarc.<domain> → Parser + Validator
+    ├── dmarc.ts          # _dmarc.<domain> → Parser + Note + Spoofing-Hinweis
     ├── spf.ts            # v=spf1 → Parser + rekursive Lookup-Zählung
     ├── dkim.ts           # Selektor-Probing (~40 gängige Selektoren)
     ├── mx.ts             # MX + A/AAAA Auflösung
     ├── mta-sts.ts        # _mta-sts TXT + Policy-Fetch (.well-known)
     ├── tls-rpt.ts        # _smtp._tls TXT (RFC 8460)
-    └── dnssec.ts         # DNSKEY + AD-Flag aus DoH-Response
+    └── dnssec.ts         # DNSKEY + DS + AD-Flag → Note
 public/
 ├── index.html            # 3-Tab SPA (E-Mail / Website / DNSSEC)
 ├── styles.css            # Reineke-Technik-Branding (Rot #dc0d23 / Schwarz / Weiß)
-├── app.js                # Tab-Routing, geteilter Domain-State, Per-Tab-Cache, Rendering
+├── app.js                # Tab-Routing, Domain-State, Per-Tab-Cache, Noten-Badges, Benchmark
 └── assets/
     ├── reineke-logo.png  # Reineke Cyber Security Logo
     ├── sharp-logo.png    # Sharp Partner-Logo
     └── favicon.png       # Reineke-Fuchs (aus reineke-logo.png zugeschnitten)
-tests/
-├── dmarc.test.ts
-├── spf.test.ts
-├── dkim.test.ts
-├── dns.test.ts
-├── mta-sts.test.ts
-├── tls-rpt.test.ts
-├── dnssec.test.ts
-└── observatory.test.ts
+tests/                    # 69 vitest-Tests (dmarc, spf, dkim, dns, mta-sts,
+                          # tls-rpt, dnssec, observatory, grading)
 ```
+
+## Noten-Konzept
+
+| Check | A+ | … | F |
+|---|---|---|---|
+| **DMARC** | `p=reject` + rua + pct=100 | `quarantine`→B, `none`→D+ | kein/ungültiges DMARC (+ Spoofing-Hinweis) |
+| **DNSSEC** | signiert & validiert | nicht signiert → C, DNSKEY ohne DS → D | DS vorhanden aber Validierung scheitert |
+| **Observatory** | MDN-Note (A+…F) übernommen | — | — |
+
+Alle nutzen `scoreToGrade` in [src/grading.ts](src/grading.ts). Bei unzureichendem
+DMARC (`none`/fehlend) weist das Tool explizit auf mögliches
+**E-Mail-Identitätsdiebstahl (Spoofing)** hin.
 
 ## Oberfläche
 
@@ -187,8 +199,16 @@ blockiert er die schnellen DNS-Checks oben nicht (Progressive Loading).
 
 Proxyt auf `GET https://observatory-api.mdn.mozilla.net/api/v2/analyze?host=<host>`
 (20 s Timeout) — dieser Endpoint liefert (anders als `/scan`) auch die
-**Per-Test-Details**. HTML in den MDN-Beschreibungen wird zu Klartext gestrippt,
-Tests worst-first sortiert. Note → Severity: A→pass, B/C→warn, D/E/F→fail.
+**Per-Test-Details**. HTML in den MDN-Beschreibungen wird zu Klartext gestrippt
+und ins Deutsche übersetzt, Tests worst-first sortiert.
+
+### `GET /api/grade-distribution`
+
+Globale Observatory-Notenverteilung für die Benchmark-Darstellung (Cache 1 Tag):
+
+```jsonc
+{ "distribution": [ { "grade": "A+", "count": 59156 }, … , { "grade": "F", "count": 954615 } ] }
+```
 
 ### `GET /api/health`
 

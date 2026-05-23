@@ -115,4 +115,45 @@ describe("normalizeObservatory", () => {
     expect(r.score).toBeNull();
     expect(r.tests).toEqual([]);
   });
+
+  it("uses German standard translations when a result code is known", () => {
+    const r = normalizeObservatory(
+      { grade: "C", score: 50 },
+      {
+        csp: {
+          name: "content-security-policy",
+          result: "csp-not-implemented",
+          pass: false,
+          score_modifier: -25,
+          score_description: "<p>Content Security Policy (CSP) header not implemented</p>",
+          recommendation: "<p>Implement one.</p>",
+          link: "/x",
+        },
+      },
+      "example.com",
+    );
+    const t = r.tests[0]!;
+    expect(t.title).toBe("Content Security Policy (CSP)");
+    expect(t.reason).toBe("Content-Security-Policy-Header nicht implementiert.");
+    expect(t.recommendation).toContain("CSP einführen");
+  });
+
+  it('treats MDN "None" recommendation as empty', () => {
+    const r = normalizeObservatory(
+      { grade: "A", score: 100 },
+      {
+        rp: {
+          name: "referrer-policy",
+          result: "some-unmapped-code",
+          pass: true,
+          score_modifier: 0,
+          score_description: "<p>fine</p>",
+          recommendation: "None",
+          link: null,
+        },
+      },
+      "example.com",
+    );
+    expect(r.tests[0]!.recommendation).toBe("");
+  });
 });

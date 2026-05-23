@@ -1,4 +1,5 @@
 import { dohQuery } from "../dns.js";
+import { gradeToSeverity, scoreToGrade } from "../grading.js";
 import type { CheckIssue, CheckResult, DnssecResult, Severity } from "../types.js";
 
 const TYPE_DNSKEY = 48;
@@ -22,6 +23,8 @@ export interface DnssecClassification {
   summary: string;
   message: string;
   recommendation?: string;
+  /** 0–100 posture score; mapped to a letter grade (secure 100, unsigned 55, unanchored 35, broken 10). */
+  score: number;
   data: DnssecResult;
 }
 
@@ -41,6 +44,7 @@ export function classifyDnssec(s: DnssecSignals): DnssecClassification {
       code: "DNSSEC_SECURE",
       summary: "DNSSEC aktiv",
       message: `Zone ist DNSSEC-signiert und validiert (AD-Flag gesetzt, ${s.dnskeyCount} DNSKEY${dsPresent ? ", DS beim Parent vorhanden" : ""}).`,
+      score: 100,
       data: {
         secure: true,
         authenticated: true,
@@ -64,6 +68,7 @@ export function classifyDnssec(s: DnssecSignals): DnssecClassification {
       message: `Beim Parent ist ein DS-Record hinterlegt (die Zone soll signiert sein), aber ${reason}. Das bricht die Mailzustellung und Auflösung bei validierenden Resolvern.`,
       recommendation:
         "Signaturen/Schlüssel der Zone prüfen (z.B. abgelaufene RRSIGs, DNSKEY/DS-Mismatch nach Key-Rollover). Detailanalyse der Kette über dnsviz.net. Im Zweifel DS beim Registrar entfernen, bis die Signierung wieder sauber ist.",
+      score: 10,
       data: {
         secure: false,
         authenticated: false,
@@ -84,6 +89,7 @@ export function classifyDnssec(s: DnssecSignals): DnssecClassification {
       message: `Die Zone veröffentlicht ${s.dnskeyCount} DNSKEY-Record(s), aber beim Parent fehlt der DS-Record. Ohne DS gilt die Zone für Resolver als unsigniert.`,
       recommendation:
         "DS-Record beim Domain-Registrar hinterlegen, um die Vertrauenskette zu schließen. Bei Cloudflare: DNS → Settings → DNSSEC aktivieren und den angezeigten DS-Record beim Registrar eintragen.",
+      score: 35,
       data: {
         secure: false,
         authenticated: false,
@@ -102,6 +108,7 @@ export function classifyDnssec(s: DnssecSignals): DnssecClassification {
     message: "Zone ist nicht DNSSEC-signiert.",
     recommendation:
       "DNSSEC schützt vor DNS-Spoofing und Cache-Poisoning. Bei Cloudflare mit einem Klick aktivierbar (DNS → Settings → DNSSEC); danach den DS-Record bei der Registrar-Domain hinterlegen.",
+    score: 55,
     data: {
       secure: false,
       authenticated: false,
@@ -149,16 +156,20 @@ export async function analyzeDnssec(
   }
 
   const c = classifyDnssec(signals);
+  const grade = scoreToGrade(c.score);
+  const status = gradeToSeverity(grade);
   const issue: CheckIssue = {
-    severity: c.status,
+    severity: status,
     code: c.code,
     message: c.message,
   };
   if (c.recommendation) issue.recommendation = c.recommendation;
 
   return {
-    status: c.status,
-    summary: c.summary,
+    status,
+    grade,
+    score: c.score,
+    summary: `${c.summary} (Note ${grade})`,
     issues: [issue],
     data: c.data,
   };

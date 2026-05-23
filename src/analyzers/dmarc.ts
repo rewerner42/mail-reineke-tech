@@ -1,5 +1,37 @@
 import { queryTxt } from "../dns.js";
+import { gradeToSeverity, scoreToGrade } from "../grading.js";
 import type { CheckIssue, CheckResult, DmarcRecord } from "../types.js";
+
+/**
+ * Grade the DMARC posture (0–100 → letter grade). Policy is the dominant factor:
+ * reject is full protection, quarantine partial, none is monitoring only (no
+ * protection — spoofing still possible), missing/invalid offers nothing.
+ */
+export function gradeDmarc(
+  record: DmarcRecord | null,
+  recordCount: number,
+): { score: number; grade: string } {
+  const policy = record?.p;
+  const valid = policy === "none" || policy === "quarantine" || policy === "reject";
+  if (!record || recordCount > 1 || !valid) {
+    return { score: 0, grade: scoreToGrade(0) };
+  }
+
+  let score = policy === "reject" ? 100 : policy === "quarantine" ? 75 : 40;
+  const enforcing = policy === "reject" || policy === "quarantine";
+
+  // Partial enforcement (pct < 100) weakens an otherwise enforcing policy.
+  if (enforcing && record.pct !== undefined && record.pct >= 0 && record.pct < 100) {
+    score -= Math.round((100 - record.pct) * 0.3); // up to −30
+  }
+  // No aggregate reporting → can't monitor alignment.
+  if (!record.rua || record.rua.length === 0) score -= 10;
+  // Subdomains left open while the main policy enforces.
+  if (enforcing && record.sp === "none") score -= 10;
+
+  score = Math.max(0, Math.min(100, score));
+  return { score, grade: scoreToGrade(score) };
+}
 
 /**
  * Parse a DMARC TXT record per RFC 7489.
@@ -93,6 +125,8 @@ export async function analyzeDmarc(
     return {
       status: "fail",
       summary: "Keine DMARC-Richtlinie veröffentlicht",
+      grade: "F",
+      score: 0,
       issues: [
         {
           severity: "fail",
@@ -100,6 +134,12 @@ export async function analyzeDmarc(
           message: `Kein DMARC-Eintrag unter ${target} gefunden.`,
           recommendation:
             "Veröffentliche einen DMARC-Eintrag. Empfehlung zum Start: \"v=DMARC1; p=none; rua=mailto:dmarc@deinedomain.de\" und nach Auswertung schrittweise auf p=quarantine bzw. p=reject erhöhen.",
+        },
+        {
+          severity: "fail",
+          code: "DMARC_SPOOFING_RISK",
+          message:
+            "Ohne DMARC ist E-Mail-Identitätsdiebstahl (Spoofing) möglich: Dritte können in Ihrem Namen täuschend echte E-Mails versenden, ohne dass empfangende Server sie abweisen.",
         },
       ],
       data: null,
@@ -129,9 +169,10 @@ export async function analyzeDmarc(
     switch (record.p) {
       case "none":
         issues.push({
-          severity: "warn",
+          severity: "fail",
           code: "DMARC_POLICY_NONE",
-          message: "Policy steht auf \"none\" — nur Monitoring, kein Schutz vor Spoofing.",
+          message:
+            "Policy steht auf \"none\" — nur Monitoring, kein Schutz. E-Mail-Identitätsdiebstahl (Spoofing) ist weiterhin möglich, da ungültige Mails nicht abgewiesen oder isoliert werden.",
           recommendation:
             "Nach 2–4 Wochen Auswertung der RUA-Reports auf p=quarantine und später p=reject erhöhen.",
         });
@@ -223,23 +264,19 @@ export async function analyzeDmarc(
     });
   }
 
-  const worst = worstSeverity(issues);
+  const { score, grade } = gradeDmarc(record, dmarcRecords.length);
+  const status = gradeToSeverity(grade);
   return {
-    status: worst,
+    status,
+    grade,
+    score,
     summary:
-      worst === "pass"
-        ? `DMARC ist aktiv (p=${record.p}).`
-        : worst === "warn"
-          ? `DMARC vorhanden, Verbesserungspotenzial (p=${record.p ?? "?"}).`
-          : `DMARC fehlerhaft (p=${record.p ?? "?"}).`,
+      status === "pass"
+        ? `DMARC aktiv (Note ${grade}, p=${record.p}).`
+        : status === "warn"
+          ? `DMARC vorhanden, Verbesserungspotenzial (Note ${grade}, p=${record.p ?? "?"}).`
+          : `DMARC unzureichend (Note ${grade}, p=${record.p ?? "?"}).`,
     issues,
     data: record,
   };
-}
-
-function worstSeverity(issues: CheckIssue[]): CheckResult["status"] {
-  if (issues.some((i) => i.severity === "fail")) return "fail";
-  if (issues.some((i) => i.severity === "warn")) return "warn";
-  if (issues.some((i) => i.severity === "pass")) return "pass";
-  return "info";
 }

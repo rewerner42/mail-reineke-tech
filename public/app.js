@@ -161,7 +161,12 @@ function renderCard(card, check, bodyRenderer) {
   pill.dataset.status = check.status ?? "info";
   pill.textContent = SEVERITY_LABEL[check.status] ?? "—";
   $("[data-summary]", card).textContent = check.summary ?? "";
-  $("[data-body]", card).innerHTML = bodyRenderer(check);
+  const inner = bodyRenderer(check);
+  // Checks that carry a letter grade (DMARC, DNSSEC) get an Observatory-style
+  // grade badge next to their details.
+  $("[data-body]", card).innerHTML = check.grade
+    ? `<div class="observatory-layout"><div class="grade-badge">${escapeHtml(check.grade)}</div><div class="grade-body">${inner}</div></div>`
+    : inner;
 }
 
 function renderEmailResults(view, data) {
@@ -205,6 +210,41 @@ function renderObservatoryResults(view, data) {
     body += `<a class="obs-link" href="${escapeHtml(d.detailsUrl)}" target="_blank" rel="noopener">Vollständigen MDN-Report öffnen →</a>`;
   }
   $("[data-body]", card).innerHTML = body;
+
+  // benchmark chart (loaded once, highlights the current grade)
+  if (d && d.grade) void loadBenchmark(view, d.grade);
+}
+
+let benchmarkData = null; // cached global grade distribution
+
+async function loadBenchmark(view, currentGrade) {
+  const wrap = $("[data-benchmark]", view);
+  const chart = $("[data-bench-chart]", view);
+  if (!wrap || !chart) return;
+  try {
+    if (!benchmarkData) {
+      const res = await fetch("/api/grade-distribution");
+      const json = await res.json();
+      benchmarkData = Array.isArray(json.distribution) ? json.distribution : [];
+    }
+    if (!benchmarkData.length) return;
+    const max = Math.max(...benchmarkData.map((b) => b.count), 1);
+    chart.innerHTML = benchmarkData
+      .map((b) => {
+        const h = Math.max(2, Math.round((b.count / max) * 100));
+        const cur = b.grade === currentGrade;
+        return `
+          <div class="bench-col${cur ? " is-current" : ""}">
+            ${cur ? '<span class="bench-current-tag">Ihre Note</span>' : ""}
+            <div class="bench-bar" style="height:${h}%" title="${escapeHtml(b.grade)}: ${b.count.toLocaleString("de-DE")} Websites"></div>
+            <span class="bench-label">${escapeHtml(b.grade)}</span>
+          </div>`;
+      })
+      .join("");
+    wrap.hidden = false;
+  } catch {
+    /* benchmark is optional — ignore failures */
+  }
 }
 
 function fmtScore(n) {
