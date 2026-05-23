@@ -93,6 +93,16 @@ export interface DnssecResult {
   validationFailed: boolean;
 }
 
+export interface ObservatoryTest {
+  name: string;
+  title: string;
+  pass: boolean | null;
+  scoreModifier: number;
+  reason: string;
+  recommendation: string;
+  link: string | null;
+}
+
 export interface ObservatoryResult {
   grade: string | null;
   score: number | null;
@@ -101,6 +111,7 @@ export interface ObservatoryResult {
   testsQuantity: number | null;
   scannedAt: string | null;
   detailsUrl: string | null;
+  tests: ObservatoryTest[];
 }
 
 export interface AnalysisResponse {

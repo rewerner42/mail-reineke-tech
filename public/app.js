@@ -198,10 +198,47 @@ function renderObservatoryResults(view, data) {
     ]);
   }
   body += renderIssues(check.issues);
+  if (d && d.tests && d.tests.length) {
+    body += renderObsTests(d.tests);
+  }
   if (d && d.detailsUrl) {
     body += `<a class="obs-link" href="${escapeHtml(d.detailsUrl)}" target="_blank" rel="noopener">Vollständigen MDN-Report öffnen →</a>`;
   }
   $("[data-body]", card).innerHTML = body;
+}
+
+function fmtScore(n) {
+  if (n > 0) return `+${n}`;
+  if (n < 0) return `−${Math.abs(n)}`; // proper minus sign
+  return "0";
+}
+
+function renderObsTests(tests) {
+  const rows = tests
+    .map((t) => {
+      const passClass = t.pass === true ? "pass" : t.pass === false ? "fail" : "info";
+      const icon = t.pass === true ? "✓" : t.pass === false ? "✕" : "–";
+      const scoreClass = t.scoreModifier < 0 ? "neg" : t.scoreModifier > 0 ? "pos" : "zero";
+      const rec =
+        t.recommendation && t.pass === false
+          ? `<p class="obs-test-rec">→ ${escapeHtml(t.recommendation)}</p>`
+          : "";
+      const link = t.link
+        ? ` <a href="${escapeHtml(t.link)}" target="_blank" rel="noopener">MDN ↗</a>`
+        : "";
+      return `
+        <li class="obs-test" data-pass="${passClass}">
+          <div class="obs-test-head">
+            <span class="obs-test-icon">${icon}</span>
+            <span class="obs-test-title">${escapeHtml(t.title)}</span>
+            <span class="obs-score obs-score-${scoreClass}">${escapeHtml(fmtScore(t.scoreModifier))}</span>
+          </div>
+          <p class="obs-test-reason">${escapeHtml(t.reason)}${link}</p>
+          ${rec}
+        </li>`;
+    })
+    .join("");
+  return `<h4 class="obs-tests-title">Scoring-Details</h4><ul class="obs-tests">${rows}</ul>`;
 }
 
 function setObservatoryLoading(view) {
