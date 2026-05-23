@@ -1,27 +1,47 @@
-import type { CheckIssue, CheckResult, ObservatoryResult, Severity } from "./types.js";
+import type {
+  CheckIssue,
+  CheckResult,
+  ObservatoryResult,
+  ObservatoryTest,
+  Severity,
+} from "./types.js";
 
-const OBSERVATORY_API = "https://observatory-api.mdn.mozilla.net/api/v2/scan";
+// The v2 "analyze" endpoint returns the per-test scoring breakdown (the POST
+// "scan" endpoint only returns the grade summary).
+const OBSERVATORY_API = "https://observatory-api.mdn.mozilla.net/api/v2/analyze";
+const MDN_BASE = "https://developer.mozilla.org";
 const SCAN_TIMEOUT_MS = 20000; // fresh scans take ~10s; allow headroom
 
-interface ObservatoryApiResponse {
-  id?: number;
-  details_url?: string;
-  algorithm_version?: number;
+interface ApiTest {
+  name?: string;
+  title?: string;
+  pass?: boolean | null;
+  score_modifier?: number;
+  score_description?: string;
+  recommendation?: string;
+  link?: string;
+}
+
+interface ApiScan {
   scanned_at?: string;
+  start_time?: string;
   error?: string | null;
-  message?: string;
   grade?: string | null;
   score?: number | null;
-  status_code?: number | null;
   tests_failed?: number;
   tests_passed?: number;
   tests_quantity?: number;
+  details_url?: string;
 }
 
-/**
- * Map an MDN Observatory letter grade to our severity scale.
- * A range → pass, B/C → warn, D/E/F → fail.
- */
+interface AnalyzeResponse {
+  scan?: ApiScan;
+  tests?: Record<string, ApiTest>;
+  error?: string | null;
+  message?: string;
+}
+
+/** Map an MDN Observatory letter grade to our severity scale. */
 export function gradeToSeverity(grade: string | null | undefined): Severity {
   if (!grade) return "info";
   const letter = grade.trim().charAt(0).toUpperCase();
@@ -40,29 +60,69 @@ export function gradeToSeverity(grade: string | null | undefined): Severity {
   }
 }
 
+/** Strip HTML tags + decode common entities so MDN's rich text renders as plain text. */
+export function stripHtml(html: string | undefined | null): string {
+  if (!html) return "";
+  return html
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/\s+/g, " ")
+    .replace(/\s+([.,;:!?])/g, "$1")
+    .trim();
+}
+
+function parseTests(tests: Record<string, ApiTest> | undefined): ObservatoryTest[] {
+  if (!tests || typeof tests !== "object") return [];
+  return Object.values(tests)
+    .map((t) => ({
+      name: t.name ?? "",
+      title: t.title ?? t.name ?? "",
+      pass: t.pass ?? null,
+      scoreModifier: t.score_modifier ?? 0,
+      reason: stripHtml(t.score_description),
+      recommendation: stripHtml(t.recommendation),
+      link: t.link ? (/^https?:/i.test(t.link) ? t.link : `${MDN_BASE}${t.link}`) : null,
+    }))
+    // worst (most negative score modifier) first, so failures surface at the top
+    .sort((a, b) => a.scoreModifier - b.scoreModifier);
+}
+
 export function normalizeObservatory(
-  res: ObservatoryApiResponse,
+  scan: ApiScan | undefined,
+  tests: Record<string, ApiTest> | undefined,
+  host: string,
 ): ObservatoryResult {
   return {
-    grade: res.grade ?? null,
-    score: res.score ?? null,
-    testsPassed: res.tests_passed ?? null,
-    testsFailed: res.tests_failed ?? null,
-    testsQuantity: res.tests_quantity ?? null,
-    scannedAt: res.scanned_at ?? null,
-    detailsUrl: res.details_url ?? null,
+    grade: scan?.grade ?? null,
+    score: scan?.score ?? null,
+    testsPassed: scan?.tests_passed ?? null,
+    testsFailed: scan?.tests_failed ?? null,
+    testsQuantity: scan?.tests_quantity ?? null,
+    scannedAt: scan?.scanned_at ?? scan?.start_time ?? null,
+    detailsUrl:
+      scan?.details_url ??
+      `${MDN_BASE}/en-US/observatory/analyze?host=${encodeURIComponent(host)}`,
+    tests: parseTests(tests),
   };
 }
 
-const EMPTY: ObservatoryResult = {
-  grade: null,
-  score: null,
-  testsPassed: null,
-  testsFailed: null,
-  testsQuantity: null,
-  scannedAt: null,
-  detailsUrl: null,
-};
+function emptyResult(host: string): ObservatoryResult {
+  return {
+    grade: null,
+    score: null,
+    testsPassed: null,
+    testsFailed: null,
+    testsQuantity: null,
+    scannedAt: null,
+    detailsUrl: `${MDN_BASE}/en-US/observatory/analyze?host=${encodeURIComponent(host)}`,
+    tests: [],
+  };
+}
 
 export async function analyzeObservatory(
   host: string,
@@ -73,15 +133,10 @@ export async function analyzeObservatory(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), SCAN_TIMEOUT_MS);
 
-  let res: ObservatoryApiResponse;
+  let body: AnalyzeResponse;
   try {
-    // The MDN v2 API rejects an "application/json" content-type with an empty
-    // body, so we POST with no content-type and no body.
-    const r = await fetch(url, {
-      method: "POST",
-      signal: controller.signal,
-    });
-    res = (await r.json()) as ObservatoryApiResponse;
+    const r = await fetch(url, { signal: controller.signal });
+    body = (await r.json()) as AnalyzeResponse;
   } catch (err) {
     const aborted = err instanceof Error && err.name === "AbortError";
     return {
@@ -96,16 +151,15 @@ export async function analyzeObservatory(
             : `MDN Observatory nicht erreichbar: ${err instanceof Error ? err.message : String(err)}`,
         },
       ],
-      data: EMPTY,
+      data: emptyResult(host),
     };
   } finally {
     clearTimeout(timer);
   }
 
-  if (res.error) {
-    const detail = res.message ?? res.error;
-    // MDN's scanner occasionally reports a transient "site seems to be down"
-    // even for reachable hosts — surface a retry hint in that case.
+  const scanError = body.error ?? body.scan?.error ?? null;
+  if (scanError || !body.scan) {
+    const detail = body.message ?? scanError ?? "kein Ergebnis";
     const transient = /down|timeout|timed out|unreachable/i.test(detail);
     return {
       status: "info",
@@ -116,17 +170,15 @@ export async function analyzeObservatory(
           code: "OBS_SCAN_ERROR",
           message: `MDN Observatory konnte ${host} nicht scannen: ${detail}.`,
           recommendation: transient
-            ? "Der MDN-Scanner hat die Website kurzzeitig nicht erreicht. Bitte die Analyse in einem Moment erneut starten. Falls es bestehen bleibt: erreichbare HTTPS-Website unter https://" +
-              host +
-              " vorhanden?"
+            ? `Der MDN-Scanner hat die Website kurzzeitig nicht erreicht. Bitte die Analyse in einem Moment erneut starten. Falls es bestehen bleibt: erreichbare HTTPS-Website unter https://${host} vorhanden?`
             : "Das HTTP Observatory prüft eine öffentlich erreichbare HTTPS-Website. Reine Sender- oder Mail-Domains ohne Website liefern hier kein Ergebnis.",
         },
       ],
-      data: EMPTY,
+      data: emptyResult(host),
     };
   }
 
-  const data = normalizeObservatory(res);
+  const data = normalizeObservatory(body.scan, body.tests, host);
   const severity = gradeToSeverity(data.grade);
 
   if (data.grade) {
@@ -138,18 +190,12 @@ export async function analyzeObservatory(
       severity,
       code: `OBS_GRADE_${data.grade.replace(/[^A-Z]/gi, "").toUpperCase() || "NA"}`,
       message: `MDN HTTP Observatory bewertet die Website mit Note ${data.grade} (Score ${data.score}).${failedNote}`,
-      recommendation:
-        severity === "pass"
-          ? undefined
-          : "Details und konkrete Header-Empfehlungen im verlinkten MDN-Report. Wichtige Header: Content-Security-Policy, Strict-Transport-Security (HSTS), X-Content-Type-Options, X-Frame-Options.",
     });
   }
 
   return {
     status: data.grade ? severity : "info",
-    summary: data.grade
-      ? `Note ${data.grade} (Score ${data.score})`
-      : "Kein Observatory-Ergebnis",
+    summary: data.grade ? `Note ${data.grade} (Score ${data.score})` : "Kein Observatory-Ergebnis",
     issues,
     data,
   };

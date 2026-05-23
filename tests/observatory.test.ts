@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { gradeToSeverity, normalizeObservatory } from "../src/observatory.js";
+import { gradeToSeverity, normalizeObservatory, stripHtml } from "../src/observatory.js";
 
 describe("gradeToSeverity", () => {
   it("maps A grades to pass", () => {
@@ -33,33 +33,86 @@ describe("gradeToSeverity", () => {
   });
 });
 
+describe("stripHtml", () => {
+  it("removes tags and decodes entities", () => {
+    expect(stripHtml("<p>Use <code>Secure</code> &amp; HSTS.</p>")).toBe("Use Secure & HSTS.");
+  });
+  it("collapses whitespace and handles empty input", () => {
+    expect(stripHtml("<p>\n   a   b\n</p>")).toBe("a b");
+    expect(stripHtml(undefined)).toBe("");
+    expect(stripHtml(null)).toBe("");
+  });
+});
+
 describe("normalizeObservatory", () => {
-  it("maps the MDN v2 response shape to our result", () => {
-    const r = normalizeObservatory({
-      id: 123,
-      details_url: "https://developer.mozilla.org/en-US/observatory/analyze?host=x",
-      scanned_at: "2026-05-23T05:59:32.767Z",
-      error: null,
-      grade: "B",
-      score: 75,
-      tests_failed: 2,
-      tests_passed: 8,
-      tests_quantity: 10,
-    });
+  const scan = {
+    scanned_at: "2026-05-23T05:59:32.767Z",
+    grade: "B",
+    score: 75,
+    tests_failed: 2,
+    tests_passed: 8,
+    tests_quantity: 10,
+  };
+  const tests = {
+    "content-security-policy": {
+      name: "content-security-policy",
+      title: "Content Security Policy (CSP)",
+      pass: false,
+      score_modifier: -25,
+      score_description: "<p>CSP reporting only.</p>",
+      recommendation: "<p>Implement an <a href='x'>enforced policy</a>.</p>",
+      link: "/en-US/docs/Web/HTTP/CSP",
+    },
+    "x-frame-options": {
+      name: "x-frame-options",
+      title: "X-Frame-Options",
+      pass: true,
+      score_modifier: 5,
+      score_description: "<p>XFO set.</p>",
+      recommendation: "",
+      link: "https://example.com/xfo",
+    },
+  };
+
+  it("maps scan summary fields", () => {
+    const r = normalizeObservatory(scan, tests, "example.com");
     expect(r.grade).toBe("B");
     expect(r.score).toBe(75);
     expect(r.testsPassed).toBe(8);
     expect(r.testsFailed).toBe(2);
     expect(r.testsQuantity).toBe(10);
-    expect(r.detailsUrl).toContain("observatory/analyze");
     expect(r.scannedAt).toBe("2026-05-23T05:59:32.767Z");
   });
 
-  it("fills nulls for missing fields", () => {
-    const r = normalizeObservatory({});
+  it("parses per-test details, strips HTML, sorts worst-first", () => {
+    const r = normalizeObservatory(scan, tests, "example.com");
+    expect(r.tests).toHaveLength(2);
+    // most negative score modifier comes first
+    expect(r.tests[0]!.name).toBe("content-security-policy");
+    expect(r.tests[0]!.scoreModifier).toBe(-25);
+    expect(r.tests[0]!.reason).toBe("CSP reporting only.");
+    expect(r.tests[0]!.recommendation).toBe("Implement an enforced policy.");
+    expect(r.tests[1]!.title).toBe("X-Frame-Options");
+    expect(r.tests[1]!.pass).toBe(true);
+  });
+
+  it("resolves relative MDN links to absolute, keeps absolute ones", () => {
+    const r = normalizeObservatory(scan, tests, "example.com");
+    expect(r.tests[0]!.link).toBe("https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP");
+    expect(r.tests[1]!.link).toBe("https://example.com/xfo");
+  });
+
+  it("builds a details URL from the host when none is provided", () => {
+    const r = normalizeObservatory(scan, tests, "example.com");
+    expect(r.detailsUrl).toBe(
+      "https://developer.mozilla.org/en-US/observatory/analyze?host=example.com",
+    );
+  });
+
+  it("fills nulls / empty tests for missing data", () => {
+    const r = normalizeObservatory(undefined, undefined, "x.de");
     expect(r.grade).toBeNull();
     expect(r.score).toBeNull();
-    expect(r.testsPassed).toBeNull();
-    expect(r.detailsUrl).toBeNull();
+    expect(r.tests).toEqual([]);
   });
 });

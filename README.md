@@ -77,7 +77,7 @@ public/
 └── assets/
     ├── reineke-logo.png  # Reineke Cyber Security Logo
     ├── sharp-logo.png    # Sharp Partner-Logo
-    └── favicon.svg
+    └── favicon.png       # Reineke-Fuchs (aus reineke-logo.png zugeschnitten)
 tests/
 ├── dmarc.test.ts
 ├── spf.test.ts
@@ -173,14 +173,22 @@ blockiert er die schnellen DNS-Checks oben nicht (Progressive Loading).
     "data": {
       "grade": "B", "score": 75,
       "testsPassed": 8, "testsFailed": 2, "testsQuantity": 10,
-      "scannedAt": "...", "detailsUrl": "https://developer.mozilla.org/en-US/observatory/analyze?host=..."
+      "scannedAt": "...", "detailsUrl": "https://developer.mozilla.org/en-US/observatory/analyze?host=...",
+      "tests": [
+        { "name": "content-security-policy", "title": "Content Security Policy (CSP)",
+          "pass": false, "scoreModifier": -25, "reason": "…", "recommendation": "…",
+          "link": "https://developer.mozilla.org/en-US/docs/…" },
+        { "name": "x-frame-options", "title": "X-Frame-Options", "pass": true, "scoreModifier": 5, ... }
+      ]
     }
   }
 }
 ```
 
-Proxyt auf `POST https://observatory-api.mdn.mozilla.net/api/v2/scan?host=<host>`
-(20 s Timeout). Note → Severity: A→pass, B/C→warn, D/E/F→fail.
+Proxyt auf `GET https://observatory-api.mdn.mozilla.net/api/v2/analyze?host=<host>`
+(20 s Timeout) — dieser Endpoint liefert (anders als `/scan`) auch die
+**Per-Test-Details**. HTML in den MDN-Beschreibungen wird zu Klartext gestrippt,
+Tests worst-first sortiert. Note → Severity: A→pass, B/C→warn, D/E/F→fail.
 
 ### `GET /api/health`
 
