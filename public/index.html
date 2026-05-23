@@ -18,19 +18,16 @@
         <a class="brand" href="/" data-tab-link="email" aria-label="Reineke Technik">
           <img src="/assets/reineke-logo.png" alt="Reineke Technik" class="brand-logo" />
         </a>
+        <nav class="header-tabs" aria-label="Analyse-Werkzeuge">
+          <a href="/" class="tab" data-tab-link="email">E-Mail</a>
+          <a href="/website" class="tab" data-tab-link="website">Website</a>
+          <a href="/dnssec" class="tab" data-tab-link="dnssec">DNSSEC</a>
+        </nav>
         <div class="header-meta">
           <img src="/assets/sharp-logo.png" alt="Sharp" class="partner-logo" />
         </div>
       </div>
     </header>
-
-    <nav class="tabs" aria-label="Analyse-Werkzeuge">
-      <div class="container tabs-inner">
-        <a href="/" class="tab" data-tab-link="email">E-Mail</a>
-        <a href="/website" class="tab" data-tab-link="website">Website</a>
-        <a href="/dnssec" class="tab" data-tab-link="dnssec">DNSSEC</a>
-      </div>
-    </nav>
 
     <main>
       <!-- ─────────── E-MAIL ─────────── -->
@@ -126,6 +123,38 @@
             </div>
           </div>
         </div>
+
+        <div class="info">
+          <div class="container">
+            <p class="section-eyebrow">Hintergrund</p>
+            <h2>Warum E-Mail-Authentifizierung <strong>geschäftskritisch</strong> ist.</h2>
+            <div class="info-grid">
+              <article>
+                <h4>Was ist DMARC?</h4>
+                <p>
+                  DMARC sagt empfangenden Mailservern, was mit Mails passieren soll, die SPF oder
+                  DKIM nicht bestehen. Ohne DMARC kann jeder Ihre Domain im Absender fälschen.
+                </p>
+              </article>
+              <article>
+                <h4>Warum ist das wichtig?</h4>
+                <p>
+                  Google und Microsoft setzen DMARC seit Februar 2024 für Bulk-Sender verpflichtend
+                  voraus. Ohne Authentifizierung landen Marketing- und Transaktionsmails im Spam —
+                  oder werden komplett abgewiesen.
+                </p>
+              </article>
+              <article>
+                <h4>Was sind Ihre nächsten Schritte?</h4>
+                <p>
+                  Starten Sie mit <code>p=none</code> zur Beobachtung, werten Sie die Reports 2–4
+                  Wochen aus und eskalieren Sie zu <code>p=quarantine</code> bzw.
+                  <code>p=reject</code>. Wir unterstützen Sie auf dem Weg dorthin.
+                </p>
+              </article>
+            </div>
+          </div>
+        </div>
       </section>
 
       <!-- ─────────── WEBSITE ─────────── -->
@@ -186,6 +215,39 @@
             </div>
           </div>
         </div>
+
+        <div class="info">
+          <div class="container">
+            <p class="section-eyebrow">Hintergrund</p>
+            <h2>Warum HTTP-Security-Header <strong>Ihre Besucher schützen</strong>.</h2>
+            <div class="info-grid">
+              <article>
+                <h4>Was prüft das Observatory?</h4>
+                <p>
+                  Das MDN HTTP Observatory bewertet die Security-Header Ihrer Website —
+                  Content-Security-Policy, HSTS, X-Content-Type-Options und mehr — und vergibt eine
+                  Schulnote von A+ bis F.
+                </p>
+              </article>
+              <article>
+                <h4>Warum ist das wichtig?</h4>
+                <p>
+                  Fehlende Header öffnen Tür und Tor für Cross-Site-Scripting, Clickjacking und
+                  Protokoll-Downgrades. Eine gute Note senkt die Angriffsfläche Ihrer Web-Präsenz
+                  spürbar.
+                </p>
+              </article>
+              <article>
+                <h4>Was sind Ihre nächsten Schritte?</h4>
+                <p>
+                  Beginnen Sie mit <code>HSTS</code> und <code>X-Content-Type-Options</code>,
+                  ergänzen Sie eine <code>Content-Security-Policy</code> und prüfen Sie erneut. Wir
+                  richten die Header gerne für Sie ein.
+                </p>
+              </article>
+            </div>
+          </div>
+        </div>
       </section>
 
       <!-- ─────────── DNSSEC ─────────── -->
@@ -239,6 +301,38 @@
             </div>
           </div>
         </div>
+
+        <div class="info">
+          <div class="container">
+            <p class="section-eyebrow">Hintergrund</p>
+            <h2>Warum DNSSEC <strong>Vertrauen schafft</strong>.</h2>
+            <div class="info-grid">
+              <article>
+                <h4>Was ist DNSSEC?</h4>
+                <p>
+                  DNSSEC signiert Ihre DNS-Einträge kryptografisch. Validierende Resolver erkennen
+                  so, ob eine Antwort echt ist oder unterwegs manipuliert wurde.
+                </p>
+              </article>
+              <article>
+                <h4>Warum ist das wichtig?</h4>
+                <p>
+                  Ohne DNSSEC können Angreifer per Cache-Poisoning oder Spoofing Besucher und
+                  E-Mails auf gefälschte Server umleiten. Mit Signatur und DS-Eintrag beim Parent ist
+                  die Vertrauenskette geschlossen.
+                </p>
+              </article>
+              <article>
+                <h4>Was sind Ihre nächsten Schritte?</h4>
+                <p>
+                  Aktivieren Sie DNSSEC bei Ihrem DNS-Anbieter (bei Cloudflare ein Klick) und
+                  hinterlegen Sie den <code>DS</code>-Record beim Registrar. Wir begleiten die
+                  Umstellung.
+                </p>
+              </article>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section class="cta-section">
@@ -257,7 +351,14 @@
 
     <footer class="site-footer">
       <div class="container footer-inner">
-        <div class="footer-brand"><strong>Reineke Technik</strong></div>
+        <div class="footer-brand">
+          <strong>Reineke Technik GmbH</strong>
+          <address class="footer-address">
+            Geseker Straße 26 · 33154 Salzkotten<br />
+            Tel. <a href="tel:+4952589878282">+49 (0) 5258 987-282</a> ·
+            <a href="mailto:info@reineke-technik.de">info@reineke-technik.de</a>
+          </address>
+        </div>
         <nav class="footer-nav">
           <a href="https://www.reineke-technik.de" rel="noopener">Hauptseite</a>
           <a href="https://www.reineke-technik.de/impressum/" rel="noopener">Impressum</a>
