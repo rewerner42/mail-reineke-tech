@@ -666,15 +666,29 @@ b, strong { font-weight: 700; }
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 0.85rem;
+  gap: 0.5rem 0.85rem;
   padding: 0.75rem 1rem;
   background: var(--rt-bg-soft);
   border-left: 3px solid var(--rt-border);
   font-family: var(--rt-mono);
   font-size: 0.88rem;
   flex-wrap: wrap;
+  overflow-wrap: anywhere;
+}
+.mx-item > div {
+  min-width: 0;
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.mx-item strong {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .mx-prio {
+  flex: 0 0 auto;
   background: var(--rt-black);
   color: #fff;
   padding: 0.15rem 0.6rem;
@@ -684,7 +698,7 @@ b, strong { font-weight: 700; }
   text-transform: uppercase;
   font-family: var(--rt-sans);
 }
-.mx-ips { color: var(--rt-gray); font-size: 0.8rem; }
+.mx-ips { color: var(--rt-gray); font-size: 0.8rem; overflow-wrap: anywhere; word-break: break-all; }
 
 .dkim-item {
   background: var(--rt-bg-soft);
