@@ -7,7 +7,7 @@ import { analyzeMx } from "./analyzers/mx.js";
 import { analyzeMtaSts } from "./analyzers/mta-sts.js";
 import { analyzeTlsRpt } from "./analyzers/tls-rpt.js";
 import { analyzeDnssec } from "./analyzers/dnssec.js";
-import { analyzeObservatory } from "./observatory.js";
+import { analyzeObservatory, fetchGradeDistribution } from "./observatory.js";
 import type { AnalysisResponse } from "./types.js";
 
 type Bindings = {
@@ -99,6 +99,12 @@ app.get("/api/observatory", async (c) => {
     200,
     { "Cache-Control": "public, max-age=300" },
   );
+});
+
+// Global Observatory grade distribution — powers the benchmark chart.
+app.get("/api/grade-distribution", async (c) => {
+  const distribution = await fetchGradeDistribution();
+  return c.json({ distribution }, 200, { "Cache-Control": "public, max-age=86400" });
 });
 
 // All-in-one endpoint (API consumers): every DNS-based check in one response.

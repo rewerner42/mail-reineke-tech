@@ -12,6 +12,10 @@ export interface CheckResult<T = unknown> {
   summary: string;
   issues: CheckIssue[];
   data: T;
+  /** Optional letter grade (A+…F) for checks that score a posture (DMARC, DNSSEC, Observatory). */
+  grade?: string;
+  /** Optional 0–100(+) score behind the grade. */
+  score?: number;
 }
 
 export interface MxRecord {

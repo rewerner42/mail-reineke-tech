@@ -390,7 +390,8 @@ b, strong { font-weight: 700; }
   gap: 2rem;
   align-items: flex-start;
 }
-.observatory-layout .card-body { flex: 1; }
+.observatory-layout .card-body,
+.observatory-layout .grade-body { flex: 1; min-width: 0; }
 .grade-badge {
   flex: 0 0 auto;
   width: 120px;
@@ -405,9 +406,9 @@ b, strong { font-weight: 700; }
   background: var(--rt-bg-soft);
   border: 2px solid var(--rt-border);
 }
-.card-observatory[data-status="pass"] .grade-badge { color: var(--pass); border-color: var(--pass); background: var(--pass-bg); }
-.card-observatory[data-status="warn"] .grade-badge { color: var(--warn); border-color: var(--warn); background: var(--warn-bg); }
-.card-observatory[data-status="fail"] .grade-badge { color: var(--fail); border-color: var(--fail); background: var(--fail-bg); }
+.card[data-status="pass"] .grade-badge { color: var(--pass); border-color: var(--pass); background: var(--pass-bg); }
+.card[data-status="warn"] .grade-badge { color: var(--warn); border-color: var(--warn); background: var(--warn-bg); }
+.card[data-status="fail"] .grade-badge { color: var(--fail); border-color: var(--fail); background: var(--fail-bg); }
 .card-observatory.is-loading .grade-badge { color: var(--rt-gray-light); }
 .obs-loading {
   display: flex;
@@ -497,6 +498,50 @@ b, strong { font-weight: 700; }
   margin: 0.3rem 0 0;
   font-size: 0.85rem;
   color: var(--rt-black);
+}
+
+/* Benchmark — grade distribution chart */
+.benchmark-card { margin-top: 1.5rem; }
+.benchmark-card h3 { margin: 0 0 0.4rem; color: var(--rt-black); font-size: 1.3rem; font-weight: 700; }
+.bench-caption { margin: 0 0 1.25rem; font-size: 0.85rem; color: var(--rt-gray); font-weight: 300; }
+.bench-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.3rem;
+  height: 180px;
+  padding-top: 1.5rem;
+  border-bottom: 2px solid var(--rt-border);
+}
+.bench-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  gap: 0.35rem;
+  min-width: 0;
+}
+.bench-bar {
+  width: 100%;
+  background: var(--rt-border);
+  min-height: 2px;
+  transition: var(--transition);
+}
+.bench-col.is-current .bench-bar { background: var(--rt-red); }
+.bench-label {
+  font-size: 0.7rem;
+  font-family: var(--rt-mono);
+  color: var(--rt-gray);
+  white-space: nowrap;
+}
+.bench-col.is-current .bench-label { color: var(--rt-red); font-weight: 700; }
+.bench-current-tag {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--rt-red);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 @media (max-width: 600px) {

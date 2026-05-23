@@ -1,20 +1,53 @@
+import { gradeToSeverity } from "./grading.js";
+import { RESULT_DE, TEST_TITLES_DE } from "./observatory-i18n.js";
 import type {
   CheckIssue,
   CheckResult,
   ObservatoryResult,
   ObservatoryTest,
-  Severity,
 } from "./types.js";
 
 // The v2 "analyze" endpoint returns the per-test scoring breakdown (the POST
 // "scan" endpoint only returns the grade summary).
 const OBSERVATORY_API = "https://observatory-api.mdn.mozilla.net/api/v2/analyze";
+const GRADE_DIST_API =
+  "https://observatory-api.mdn.mozilla.net/api/v2/grade_distribution";
 const MDN_BASE = "https://developer.mozilla.org";
 const SCAN_TIMEOUT_MS = 20000; // fresh scans take ~10s; allow headroom
+
+export interface GradeBucket {
+  grade: string;
+  count: number;
+}
+
+/** Global grade distribution across all sites MDN has scanned (for the benchmark chart). */
+export async function fetchGradeDistribution(): Promise<GradeBucket[]> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+  try {
+    const r = await fetch(GRADE_DIST_API, {
+      signal: controller.signal,
+      cf: { cacheTtl: 86400, cacheEverything: true },
+    } as RequestInit);
+    const data = (await r.json()) as unknown;
+    if (!Array.isArray(data)) return [];
+    return data
+      .filter(
+        (b): b is GradeBucket =>
+          typeof b === "object" && b !== null && "grade" in b && "count" in b,
+      )
+      .map((b) => ({ grade: String(b.grade), count: Number(b.count) || 0 }));
+  } catch {
+    return [];
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 interface ApiTest {
   name?: string;
   title?: string;
+  result?: string;
   pass?: boolean | null;
   score_modifier?: number;
   score_description?: string;
@@ -41,24 +74,8 @@ interface AnalyzeResponse {
   message?: string;
 }
 
-/** Map an MDN Observatory letter grade to our severity scale. */
-export function gradeToSeverity(grade: string | null | undefined): Severity {
-  if (!grade) return "info";
-  const letter = grade.trim().charAt(0).toUpperCase();
-  switch (letter) {
-    case "A":
-      return "pass";
-    case "B":
-    case "C":
-      return "warn";
-    case "D":
-    case "E":
-    case "F":
-      return "fail";
-    default:
-      return "info";
-  }
-}
+// Re-export so existing imports from "./observatory.js" keep working.
+export { gradeToSeverity } from "./grading.js";
 
 /** Strip HTML tags + decode common entities so MDN's rich text renders as plain text. */
 export function stripHtml(html: string | undefined | null): string {
@@ -76,18 +93,30 @@ export function stripHtml(html: string | undefined | null): string {
     .trim();
 }
 
+/** MDN sometimes returns "None" as a recommendation — treat that as no recommendation. */
+function cleanRecommendation(s: string): string {
+  return /^none$/i.test(s.trim()) ? "" : s;
+}
+
 function parseTests(tests: Record<string, ApiTest> | undefined): ObservatoryTest[] {
   if (!tests || typeof tests !== "object") return [];
   return Object.values(tests)
-    .map((t) => ({
-      name: t.name ?? "",
-      title: t.title ?? t.name ?? "",
-      pass: t.pass ?? null,
-      scoreModifier: t.score_modifier ?? 0,
-      reason: stripHtml(t.score_description),
-      recommendation: stripHtml(t.recommendation),
-      link: t.link ? (/^https?:/i.test(t.link) ? t.link : `${MDN_BASE}${t.link}`) : null,
-    }))
+    .map((t) => {
+      const de = t.result ? RESULT_DE[t.result] : undefined;
+      const reason = de?.reason ?? stripHtml(t.score_description);
+      const recommendation = de
+        ? de.recommendation ?? ""
+        : cleanRecommendation(stripHtml(t.recommendation));
+      return {
+        name: t.name ?? "",
+        title: (t.name && TEST_TITLES_DE[t.name]) ?? t.title ?? t.name ?? "",
+        pass: t.pass ?? null,
+        scoreModifier: t.score_modifier ?? 0,
+        reason,
+        recommendation,
+        link: t.link ? (/^https?:/i.test(t.link) ? t.link : `${MDN_BASE}${t.link}`) : null,
+      };
+    })
     // worst (most negative score modifier) first, so failures surface at the top
     .sort((a, b) => a.scoreModifier - b.scoreModifier);
 }
@@ -195,6 +224,8 @@ export async function analyzeObservatory(
 
   return {
     status: data.grade ? severity : "info",
+    grade: data.grade ?? undefined,
+    score: data.score ?? undefined,
     summary: data.grade ? `Note ${data.grade} (Score ${data.score})` : "Kein Observatory-Ergebnis",
     issues,
     data,
