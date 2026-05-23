@@ -35,68 +35,63 @@ function normalizeDomain(input: string): string | null {
   return d;
 }
 
-app.get("/api/health", (c) => c.json({ ok: true, service: "mail.reineke.tech" }));
+const INVALID_DOMAIN = {
+  error: "INVALID_DOMAIN",
+  message: "Bitte gib eine gültige Domain ein (z.B. reineke-technik.de).",
+} as const;
 
-app.get("/api/analyze", async (c) => {
-  const domainInput = c.req.query("domain");
-  const selectorParam = c.req.query("selectors");
-
-  const domain = normalizeDomain(domainInput ?? "");
-  if (!domain) {
-    return c.json(
-      {
-        error: "INVALID_DOMAIN",
-        message: "Bitte gib eine gültige Domain ein (z.B. reineke-technik.de).",
-      },
-      400,
-    );
-  }
-
-  const extraSelectors = selectorParam
-    ? selectorParam.split(",").map((s) => s.trim()).filter(Boolean)
+function parseSelectors(param: string | undefined): string[] {
+  return param
+    ? param.split(",").map((s) => s.trim()).filter(Boolean)
     : [];
+}
 
-  const queriedAt = new Date().toISOString();
-  const [dmarc, spf, dkim, mx, mtaSts, tlsRpt, dnssec] = await Promise.all([
+/** Run the e-mail authentication + transport checks (no DNSSEC, no Observatory). */
+async function runEmailChecks(domain: string, extraSelectors: string[]) {
+  const [dmarc, spf, dkim, mx, mtaSts, tlsRpt] = await Promise.all([
     analyzeDmarc(domain),
     analyzeSpf(domain),
     analyzeDkim(domain, extraSelectors),
     analyzeMx(domain),
     analyzeMtaSts(domain),
     analyzeTlsRpt(domain),
-    analyzeDnssec(domain),
   ]);
+  return { dmarc, spf, dkim, mx, mtaSts, tlsRpt };
+}
 
-  const response: AnalysisResponse = {
-    domain,
-    queriedAt,
-    dmarc,
-    spf,
-    dkim,
-    mx,
-    mtaSts,
-    tlsRpt,
-    dnssec,
-  };
-  return c.json(response, 200, {
-    "Cache-Control": "public, max-age=60",
-  });
+app.get("/api/health", (c) => c.json({ ok: true, service: "mail.reineke.tech" }));
+
+// E-mail tab: DMARC, SPF, DKIM, MX, MTA-STS, TLS-RPT.
+app.get("/api/email", async (c) => {
+  const domain = normalizeDomain(c.req.query("domain") ?? "");
+  if (!domain) return c.json(INVALID_DOMAIN, 400);
+
+  const email = await runEmailChecks(domain, parseSelectors(c.req.query("selectors")));
+  return c.json(
+    { domain, queriedAt: new Date().toISOString(), ...email },
+    200,
+    { "Cache-Control": "public, max-age=60" },
+  );
 });
 
-// Separate endpoint: MDN HTTP Observatory scan. Fresh scans take ~10s, so the
-// frontend calls this independently and fills the card in progressively rather
-// than blocking the fast DNS-based checks above.
+// DNSSEC tab: chain-of-trust validation only (fast).
+app.get("/api/dnssec", async (c) => {
+  const domain = normalizeDomain(c.req.query("domain") ?? "");
+  if (!domain) return c.json(INVALID_DOMAIN, 400);
+
+  const dnssec = await analyzeDnssec(domain);
+  return c.json(
+    { domain, queriedAt: new Date().toISOString(), dnssec },
+    200,
+    { "Cache-Control": "public, max-age=60" },
+  );
+});
+
+// Website tab: MDN HTTP Observatory scan. Fresh scans take ~10s, so this is its
+// own endpoint and the frontend loads it independently with a progress state.
 app.get("/api/observatory", async (c) => {
   const domain = normalizeDomain(c.req.query("domain") ?? "");
-  if (!domain) {
-    return c.json(
-      {
-        error: "INVALID_DOMAIN",
-        message: "Bitte gib eine gültige Domain ein (z.B. reineke-technik.de).",
-      },
-      400,
-    );
-  }
+  if (!domain) return c.json(INVALID_DOMAIN, 400);
 
   const result = await analyzeObservatory(domain);
   return c.json(
@@ -104,6 +99,25 @@ app.get("/api/observatory", async (c) => {
     200,
     { "Cache-Control": "public, max-age=300" },
   );
+});
+
+// All-in-one endpoint (API consumers): every DNS-based check in one response.
+app.get("/api/analyze", async (c) => {
+  const domain = normalizeDomain(c.req.query("domain") ?? "");
+  if (!domain) return c.json(INVALID_DOMAIN, 400);
+
+  const [email, dnssec] = await Promise.all([
+    runEmailChecks(domain, parseSelectors(c.req.query("selectors"))),
+    analyzeDnssec(domain),
+  ]);
+
+  const response: AnalysisResponse = {
+    domain,
+    queriedAt: new Date().toISOString(),
+    ...email,
+    dnssec,
+  };
+  return c.json(response, 200, { "Cache-Control": "public, max-age=60" });
 });
 
 // Static assets fallback (frontend)

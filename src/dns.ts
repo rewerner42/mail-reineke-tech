@@ -12,7 +12,8 @@ export type DnsRecordType =
   | "TXT"
   | "CNAME"
   | "NS"
-  | "DNSKEY";
+  | "DNSKEY"
+  | "DS";
 
 export interface DohAnswer {
   name: string;
@@ -42,6 +43,7 @@ const TYPE_CODES: Record<DnsRecordType, number> = {
   CNAME: 5,
   NS: 2,
   DNSKEY: 48,
+  DS: 43,
 };
 
 export async function dohQuery(

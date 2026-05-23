@@ -71,9 +71,9 @@ src/
     ├── tls-rpt.ts        # _smtp._tls TXT (RFC 8460)
     └── dnssec.ts         # DNSKEY + AD-Flag aus DoH-Response
 public/
-├── index.html            # Single-page UI
+├── index.html            # 3-Tab SPA (E-Mail / Website / DNSSEC)
 ├── styles.css            # Reineke-Technik-Branding (Rot #dc0d23 / Schwarz / Weiß)
-├── app.js                # Fetch /api/analyze + /api/observatory + Rendering
+├── app.js                # Tab-Routing, geteilter Domain-State, Per-Tab-Cache, Rendering
 └── assets/
     ├── reineke-logo.png  # Reineke Cyber Security Logo
     ├── sharp-logo.png    # Sharp Partner-Logo
@@ -85,15 +85,55 @@ tests/
 ├── dns.test.ts
 ├── mta-sts.test.ts
 ├── tls-rpt.test.ts
+├── dnssec.test.ts
 └── observatory.test.ts
 ```
 
+## Oberfläche
+
+Die UI ist in drei logisch getrennte Werkzeuge gegliedert (Tabs, je eigene URL):
+
+| Tab | Pfad | Checks | Endpoint |
+|---|---|---|---|
+| **E-Mail** (Start) | `/` | DMARC, SPF, DKIM, MX, MTA-STS, TLS-RPT | `/api/email` |
+| **Website** | `/website` | HTTP Observatory (Schulnote) | `/api/observatory` |
+| **DNSSEC** | `/dnssec` | DNSSEC-Vertrauenskette | `/api/dnssec` |
+
+Die Domain wird beim Tab-Wechsel übernommen und (sofern noch nicht im Session-Cache)
+automatisch neu gescannt. Shareable Links: `/dnssec?d=<domain>`, `/website?d=<domain>`,
+`/?d=<domain>&s=<selektoren>`.
+
 ## API
+
+### `GET /api/email?domain=<fqdn>&selectors=<csv>`
+
+E-Mail-Checks: `dmarc`, `spf`, `dkim`, `mx`, `mtaSts`, `tlsRpt`.
+
+### `GET /api/dnssec?domain=<fqdn>`
+
+DNSSEC-Vertrauenskette. Fragt `DNSKEY` und `DS` ab und wertet das `AD`-Flag von
+1.1.1.1 aus:
+
+```jsonc
+{
+  "domain": "dnssec-failed.org",
+  "queriedAt": "...",
+  "dnssec": {
+    "status": "fail",
+    "summary": "DNSSEC fehlerhaft",
+    "data": { "secure": false, "authenticated": false, "dnskeyCount": 0, "dsPresent": true, "validationFailed": true }
+  }
+}
+```
+
+Logik: `AD=true` → secure (**pass**); DS beim Parent vorhanden, aber Validierung
+schlägt fehl / SERVFAIL → **fail** (gebrochene Kette); DNSKEY ohne DS → **warn**
+(nicht verankert); nichts → **warn** (kein DNSSEC).
 
 ### `GET /api/analyze?domain=<fqdn>&selectors=<csv>`
 
-Liefert eine kombinierte Auswertung aller Checks (`dmarc`, `spf`, `dkim`, `mx`,
-`mtaSts`, `tlsRpt`, `dnssec`) zurück:
+All-in-one (für API-Consumer): kombinierte Auswertung aller DNS-basierten Checks
+(`dmarc`, `spf`, `dkim`, `mx`, `mtaSts`, `tlsRpt`, `dnssec`):
 
 ```jsonc
 {
@@ -110,7 +150,7 @@ Liefert eine kombinierte Auswertung aller Checks (`dmarc`, `spf`, `dkim`, `mx`,
   "mx":     { ... },
   "mtaSts": { "status": "warn", "summary": "Kein MTA-STS", "data": { "dnsTxt": null, "policyFetched": false } },
   "tlsRpt": { "status": "warn", "summary": "Kein TLS-RPT",  "data": { "raw": null, "rua": [] } },
-  "dnssec": { "status": "pass", "summary": "DNSSEC aktiv",  "data": { "signed": true, "authenticated": true, "dnskeyCount": 2 } }
+  "dnssec": { "status": "pass", "summary": "DNSSEC aktiv",  "data": { "secure": true, "authenticated": true, "dnskeyCount": 2, "dsPresent": true, "validationFailed": false } }
 }
 ```
 
