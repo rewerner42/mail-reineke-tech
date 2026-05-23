@@ -1,9 +1,10 @@
 # sharp.reineke.tech
 
-Kostenfreies E-Mail-Authentifizierungs-Analyse-Tool von **Reineke Technik**. Prüft
-**DMARC**, **DKIM**, **SPF**, **MX**, **MTA-STS**, **TLS-RPT** und **DNSSEC** einer
-beliebigen Domain — vergleichbar mit MXToolbox, aber als schlanker Cloudflare Worker
-mit deutscher UI, Reineke-Technik-Branding und konkreten Empfehlungen.
+Kostenfreies E-Mail- und Domain-Sicherheits-Analyse-Tool von **Reineke Technik**.
+Prüft **DMARC**, **DKIM**, **SPF**, **MX**, **MTA-STS**, **TLS-RPT**, **DNSSEC** und
+die Website-Security-Header via **MDN HTTP Observatory** — vergleichbar mit
+MXToolbox, aber als schlanker Cloudflare Worker mit deutscher UI,
+Reineke-Technik-Branding und konkreten Empfehlungen.
 
 DMARC steht im Fokus, da Google und Microsoft seit Februar 2024 für Bulk-Sender
 DMARC-Compliance voraussetzen.
@@ -57,9 +58,10 @@ Hostnamen existiert, muss dieser zuerst entfernt werden.
 
 ```
 src/
-├── index.ts              # Hono app, /api/analyze, static fallback
+├── index.ts              # Hono app, /api/analyze, /api/observatory, static fallback
 ├── dns.ts                # DoH-Client (Cloudflare 1.1.1.1)
 ├── types.ts              # Shared types
+├── observatory.ts        # MDN HTTP Observatory v2 API client (Website-Header)
 └── analyzers/
     ├── dmarc.ts          # _dmarc.<domain> → Parser + Validator
     ├── spf.ts            # v=spf1 → Parser + rekursive Lookup-Zählung
@@ -71,7 +73,7 @@ src/
 public/
 ├── index.html            # Single-page UI
 ├── styles.css            # Reineke-Technik-Branding (Rot #dc0d23 / Schwarz / Weiß)
-├── app.js                # Fetch /api/analyze + Rendering
+├── app.js                # Fetch /api/analyze + /api/observatory + Rendering
 └── assets/
     ├── reineke-logo.png  # Reineke Cyber Security Logo
     ├── sharp-logo.png    # Sharp Partner-Logo
@@ -82,7 +84,8 @@ tests/
 ├── dkim.test.ts
 ├── dns.test.ts
 ├── mta-sts.test.ts
-└── tls-rpt.test.ts
+├── tls-rpt.test.ts
+└── observatory.test.ts
 ```
 
 ## API
@@ -112,6 +115,32 @@ Liefert eine kombinierte Auswertung aller Checks (`dmarc`, `spf`, `dkim`, `mx`,
 ```
 
 `status` ist einer von `pass | warn | fail | info`.
+
+### `GET /api/observatory?domain=<fqdn>`
+
+Separater Endpoint für den **MDN HTTP Observatory** Website-Scan. Wird vom
+Frontend unabhängig aufgerufen, weil ein frischer Scan ~10 s dauert — so
+blockiert er die schnellen DNS-Checks oben nicht (Progressive Loading).
+
+```jsonc
+{
+  "domain": "reineke-technik.de",
+  "queriedAt": "2026-05-23T06:00:00.000Z",
+  "observatory": {
+    "status": "warn",
+    "summary": "Note B (Score 75)",
+    "issues": [ ... ],
+    "data": {
+      "grade": "B", "score": 75,
+      "testsPassed": 8, "testsFailed": 2, "testsQuantity": 10,
+      "scannedAt": "...", "detailsUrl": "https://developer.mozilla.org/en-US/observatory/analyze?host=..."
+    }
+  }
+}
+```
+
+Proxyt auf `POST https://observatory-api.mdn.mozilla.net/api/v2/scan?host=<host>`
+(20 s Timeout). Note → Severity: A→pass, B/C→warn, D/E/F→fail.
 
 ### `GET /api/health`
 

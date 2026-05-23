@@ -86,6 +86,16 @@ export interface DnssecResult {
   dnskeyCount: number;
 }
 
+export interface ObservatoryResult {
+  grade: string | null;
+  score: number | null;
+  testsPassed: number | null;
+  testsFailed: number | null;
+  testsQuantity: number | null;
+  scannedAt: string | null;
+  detailsUrl: string | null;
+}
+
 export interface AnalysisResponse {
   domain: string;
   queriedAt: string;
