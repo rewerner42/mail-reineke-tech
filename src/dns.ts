@@ -57,11 +57,16 @@ export async function dohQuery(
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
+    // NOTE: do NOT use `cf: { cacheEverything: true }` here. cloudflare-dns.com
+    // varies its body on the Accept header (JSON vs binary dns-message), but
+    // Cloudflare's edge cache keys only on the URL — so a cached non-JSON
+    // response poisons subsequent application/dns-json reads and Answer comes
+    // back empty (observed: MX hosts resolving to "keine IPs" in production
+    // while working locally). DoH is fast; skip the edge cache.
     const res = await fetch(url, {
       headers: { Accept: "application/dns-json" },
       signal: controller.signal,
-      cf: { cacheTtl: 60, cacheEverything: true },
-    } as RequestInit);
+    });
 
     if (!res.ok) {
       throw new Error(`DoH HTTP ${res.status} for ${name} ${type}`);

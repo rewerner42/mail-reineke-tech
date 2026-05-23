@@ -111,7 +111,7 @@ function renderMxBody(check) {
       return `
         <li class="mx-item">
           <div><span class="mx-prio">Pref ${escapeHtml(String(m.preference))}</span>
-            <strong style="margin-left:.5rem">${escapeHtml(m.exchange)}</strong></div>
+            <strong>${escapeHtml(m.exchange)}</strong></div>
           <span class="mx-ips">${ips.length ? escapeHtml(ips.join(", ")) : "keine IPs"}</span>
         </li>`;
     })
