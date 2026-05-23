@@ -2,54 +2,30 @@ import { queryTxt } from "../dns.js";
 import type { CheckIssue, CheckResult, DkimRecord } from "../types.js";
 
 /**
- * DKIM selectors are unknown to the public. We probe common selectors
- * used by major providers and Reineke Technik's likely setup.
+ * DKIM selectors are unknown to the public, so we probe common ones. Each probe
+ * is a DNS subrequest — Cloudflare Workers cap a single request at 50 subrequests
+ * (free plan), shared with DMARC/SPF/MX/MTA-STS/TLS-RPT in the same /api/email
+ * call. We therefore keep this to a curated high-coverage set (Google, Microsoft
+ * 365, the big ESPs, generic names) rather than an exhaustive list, so the MX
+ * A/AAAA lookups in the same request stay within budget.
  */
 const COMMON_SELECTORS = [
-  "default",
-  "google",
-  "selector1",
-  "selector2",
-  "k1",
+  "default", // generic
+  "google", // Google Workspace
+  "selector1", // Microsoft 365
+  "selector2", // Microsoft 365
+  "k1", // Mailchimp / Mandrill / Mailgun
   "k2",
-  "mail",
-  "smtp",
-  "dkim",
-  "s1",
+  "s1", // generic / SendGrid
   "s2",
-  "s1024",
-  "s2048",
-  "mxvault",
-  "sharp",
-  "reineke",
-  "rt",
-  "marketing",
-  "mandrill",
-  "sm",
-  "mailjet",
-  "mailgun",
-  "sendgrid",
-  "amazonses",
-  "scph0124",
-  "scph1023",
-  "fd",
-  "fd1",
-  "fd2",
-  "everlytickey1",
-  "everlytickey2",
-  "key1",
-  "key2",
-  "pmta1",
-  "pmta2",
-  "ses",
-  "litmus",
-  "zendesk1",
-  "zendesk2",
-  "hs1-domainkey",
-  "hs2-domainkey",
-  "protonmail",
-  "protonmail2",
-  "protonmail3",
+  "dkim", // generic
+  "mail", // generic
+  "smtp", // generic
+  "mxvault", // MXroute
+  "mandrill", // Mandrill
+  "mailjet", // Mailjet
+  "amazonses", // Amazon SES
+  "protonmail", // Proton Mail
 ];
 
 export function parseDkim(selector: string, raw: string): DkimRecord | null {
