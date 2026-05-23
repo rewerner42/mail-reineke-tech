@@ -94,12 +94,14 @@ tests/                    # 69 vitest-Tests (dmarc, spf, dkim, dns, mta-sts,
 | Check | A+ | … | F |
 |---|---|---|---|
 | **DMARC** | `p=reject` + rua + pct=100 | `quarantine`→B, `none`→D+ | kein/ungültiges DMARC (+ Spoofing-Hinweis) |
-| **DNSSEC** | signiert & validiert | nicht signiert → C, DNSKEY ohne DS → D | DS vorhanden aber Validierung scheitert |
+| **DNSSEC** | signiert & validiert | — *(binär, keine Zwischenstufen)* | kein DNSSEC / nicht verankert / kaputte Kette |
 | **Observatory** | MDN-Note (A+…F) übernommen | — | — |
 
-Alle nutzen `scoreToGrade` in [src/grading.ts](src/grading.ts). Bei unzureichendem
-DMARC (`none`/fehlend) weist das Tool explizit auf mögliches
-**E-Mail-Identitätsdiebstahl (Spoofing)** hin.
+Alle nutzen `scoreToGrade` in [src/grading.ts](src/grading.ts). **DNSSEC ist
+binär** — eine Zone hat entweder eine gültige, validierte Vertrauenskette (A+)
+oder nicht (F); die verschiedenen Fehlerzustände unterscheiden sich nur in der
+Begründung, nicht in der Note. Bei unzureichendem DMARC (`none`/fehlend) weist
+das Tool explizit auf mögliches **E-Mail-Identitätsdiebstahl (Spoofing)** hin.
 
 ## Oberfläche
 

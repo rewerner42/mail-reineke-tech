@@ -17,10 +17,11 @@ describe("classifyDnssec", () => {
     expect(c.data.validationFailed).toBe(false);
   });
 
-  it("classifies an unsigned zone (no keys, no DS) as warn", () => {
+  it("classifies an unsigned zone (no keys, no DS) as fail — F (binary)", () => {
     const c = classifyDnssec({ dnskeyAd: false, dnskeyCount: 0, dnskeyServfail: false, dsCount: 0 });
-    expect(c.status).toBe("warn");
+    expect(c.status).toBe("fail");
     expect(c.code).toBe("DNSSEC_UNSIGNED");
+    expect(c.score).toBe(0);
     expect(c.data.secure).toBe(false);
     expect(c.data.validationFailed).toBe(false);
   });
@@ -41,10 +42,11 @@ describe("classifyDnssec", () => {
     expect(c.data.validationFailed).toBe(true);
   });
 
-  it("classifies DNSKEY published but no DS at parent as warn (unanchored)", () => {
+  it("classifies DNSKEY published but no DS at parent as fail — F (unanchored)", () => {
     const c = classifyDnssec({ dnskeyAd: false, dnskeyCount: 2, dnskeyServfail: false, dsCount: 0 });
-    expect(c.status).toBe("warn");
+    expect(c.status).toBe("fail");
     expect(c.code).toBe("DNSSEC_UNANCHORED");
+    expect(c.score).toBe(0);
     expect(c.data.dnskeyCount).toBe(2);
     expect(c.data.dsPresent).toBe(false);
     expect(c.data.secure).toBe(false);
