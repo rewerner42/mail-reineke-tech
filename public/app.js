@@ -21,6 +21,8 @@ const cards = {
   dnssec: $("#card-dnssec"),
 };
 
+const observatoryCard = $("#card-observatory");
+
 const SEVERITY_LABEL = {
   pass: "OK",
   warn: "Hinweis",
@@ -212,6 +214,69 @@ async function runAnalysis(domain, selectors) {
   return data;
 }
 
+function setObservatoryLoading() {
+  observatoryCard.dataset.status = "info";
+  observatoryCard.classList.add("is-loading");
+  const pill = $("[data-pill]", observatoryCard);
+  pill.dataset.status = "info";
+  pill.textContent = "Scan …";
+  $("[data-grade]", observatoryCard).textContent = "…";
+  $("[data-summary]", observatoryCard).textContent =
+    "Website wird über das MDN HTTP Observatory geprüft.";
+  $("[data-body]", observatoryCard).innerHTML =
+    '<div class="obs-loading"><span class="spinner"></span><span>Scan läuft — frische Scans dauern bis zu ~10 Sekunden.</span></div>';
+}
+
+function renderObservatory(check) {
+  const status = check.status ?? "info";
+  observatoryCard.classList.remove("is-loading");
+  observatoryCard.dataset.status = status;
+  const pill = $("[data-pill]", observatoryCard);
+  pill.dataset.status = status;
+  pill.textContent = SEVERITY_LABEL[status] ?? "—";
+  $("[data-summary]", observatoryCard).textContent = check.summary ?? "";
+  $("[data-grade]", observatoryCard).textContent = check.data?.grade ?? "–";
+
+  let body = renderIssues(check.issues);
+  const d = check.data;
+  if (d && d.grade) {
+    const kv = [
+      ["Score", String(d.score)],
+      ["Tests bestanden", `${d.testsPassed}/${d.testsQuantity}`],
+    ];
+    body =
+      `<dl class="kv-grid">${kv
+        .map(([k, v]) => `<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd>`)
+        .join("")}</dl>` + body;
+  }
+  if (d && d.detailsUrl) {
+    body += `<a class="obs-link" href="${escapeHtml(d.detailsUrl)}" target="_blank" rel="noopener">Vollständigen MDN-Report öffnen →</a>`;
+  }
+  $("[data-body]", observatoryCard).innerHTML = body;
+}
+
+async function loadObservatory(domain) {
+  setObservatoryLoading();
+  try {
+    const res = await fetch(`/api/observatory?domain=${encodeURIComponent(domain)}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message ?? "Observatory-Scan fehlgeschlagen.");
+    renderObservatory(data.observatory);
+  } catch (err) {
+    renderObservatory({
+      status: "info",
+      summary: "Observatory nicht verfügbar",
+      issues: [
+        {
+          severity: "info",
+          message: err instanceof Error ? err.message : "Unbekannter Fehler.",
+        },
+      ],
+      data: null,
+    });
+  }
+}
+
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   clearError();
@@ -236,6 +301,10 @@ form.addEventListener("submit", async (e) => {
     renderCard(cards.dnssec, data.dnssec, renderDnssecBody);
     resultsSection.hidden = false;
     resultsSection.scrollIntoView({ behavior: "smooth", block: "start" });
+
+    // Observatory scan is slow (~10s) — load it independently so it doesn't
+    // block the fast DNS-based results above.
+    void loadObservatory(data.domain);
 
     // update URL for shareable link
     const url = new URL(window.location.href);

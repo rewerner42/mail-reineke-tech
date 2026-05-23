@@ -343,6 +343,73 @@ b, strong { font-weight: 700; }
 .card-primary h3 { font-size: 1.8rem; }
 .card-primary { padding: 2.5rem; }
 
+/* HTTP Observatory card */
+.card-tag {
+  display: inline-block;
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--rt-gray);
+  background: var(--rt-bg-soft);
+  border: 1px solid var(--rt-border);
+  padding: 0.15rem 0.5rem;
+  vertical-align: middle;
+  margin-left: 0.5rem;
+}
+.observatory-layout {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+}
+.observatory-layout .card-body { flex: 1; }
+.grade-badge {
+  flex: 0 0 auto;
+  width: 120px;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3.5rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--rt-gray-mid);
+  background: var(--rt-bg-soft);
+  border: 2px solid var(--rt-border);
+}
+.card-observatory[data-status="pass"] .grade-badge { color: var(--pass); border-color: var(--pass); background: var(--pass-bg); }
+.card-observatory[data-status="warn"] .grade-badge { color: var(--warn); border-color: var(--warn); background: var(--warn-bg); }
+.card-observatory[data-status="fail"] .grade-badge { color: var(--fail); border-color: var(--fail); background: var(--fail-bg); }
+.card-observatory.is-loading .grade-badge { color: var(--rt-gray-light); }
+.obs-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--rt-gray);
+  font-size: 0.95rem;
+}
+.obs-loading .spinner {
+  display: inline-block;
+  width: 16px; height: 16px;
+  border: 2px solid var(--rt-border);
+  border-top-color: var(--rt-red);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+.obs-link {
+  display: inline-block;
+  margin-top: 0.85rem;
+  color: var(--rt-red);
+  font-weight: 700;
+  font-size: 0.88rem;
+  text-decoration: none;
+}
+.obs-link:hover { color: var(--rt-red-dark); text-decoration: underline; }
+@media (max-width: 600px) {
+  .observatory-layout { flex-direction: column; gap: 1.25rem; }
+  .grade-badge { width: 100%; min-height: 90px; font-size: 3rem; }
+}
+
 .card-header {
   display: flex;
   justify-content: space-between;
