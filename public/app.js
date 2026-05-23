@@ -16,6 +16,9 @@ const cards = {
   spf: $("#card-spf"),
   dkim: $("#card-dkim"),
   mx: $("#card-mx"),
+  mtaSts: $("#card-mtaSts"),
+  tlsRpt: $("#card-tlsRpt"),
+  dnssec: $("#card-dnssec"),
 };
 
 const SEVERITY_LABEL = {
@@ -148,6 +151,47 @@ function renderMxBody(check) {
   return `<ul class="mx-list">${items}</ul>${issues}`;
 }
 
+function renderMtaStsBody(check) {
+  const issues = renderIssues(check.issues);
+  const r = check.data;
+  if (!r || (!r.dnsTxt && !r.policyFetched)) return issues;
+  const kv = [];
+  if (r.mode) kv.push(["Modus", r.mode]);
+  if (r.id) kv.push(["ID", r.id]);
+  if (r.maxAge !== undefined) kv.push(["max_age", `${r.maxAge}s`]);
+  if (r.mx?.length) kv.push(["MX", r.mx.join(", ")]);
+  const dl = kv.length
+    ? `<dl class="kv-grid">${kv
+        .map(([k, v]) => `<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd>`)
+        .join("")}</dl>`
+    : "";
+  const raw = r.dnsTxt ? `<pre class="record-block">${escapeHtml(r.dnsTxt)}</pre>` : "";
+  return `${dl}${raw}${issues}`;
+}
+
+function renderTlsRptBody(check) {
+  const issues = renderIssues(check.issues);
+  const r = check.data;
+  if (!r || !r.raw) return issues;
+  const raw = `<pre class="record-block">${escapeHtml(r.raw)}</pre>`;
+  return `${raw}${issues}`;
+}
+
+function renderDnssecBody(check) {
+  const issues = renderIssues(check.issues);
+  const r = check.data;
+  if (!r) return issues;
+  const kv = [
+    ["Signiert", r.signed ? "ja" : "nein"],
+    ["Validiert (AD)", r.authenticated ? "ja" : "nein"],
+    ["DNSKEY", String(r.dnskeyCount)],
+  ];
+  const dl = `<dl class="kv-grid">${kv
+    .map(([k, v]) => `<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd>`)
+    .join("")}</dl>`;
+  return `${dl}${issues}`;
+}
+
 function renderCard(card, check, bodyRenderer) {
   card.dataset.status = check.status ?? "info";
   const pill = $("[data-pill]", card);
@@ -187,6 +231,9 @@ form.addEventListener("submit", async (e) => {
     renderCard(cards.spf, data.spf, renderSpfBody);
     renderCard(cards.dkim, data.dkim, renderDkimBody);
     renderCard(cards.mx, data.mx, renderMxBody);
+    renderCard(cards.mtaSts, data.mtaSts, renderMtaStsBody);
+    renderCard(cards.tlsRpt, data.tlsRpt, renderTlsRptBody);
+    renderCard(cards.dnssec, data.dnssec, renderDnssecBody);
     resultsSection.hidden = false;
     resultsSection.scrollIntoView({ behavior: "smooth", block: "start" });
 

@@ -4,6 +4,9 @@ import { analyzeDmarc } from "./analyzers/dmarc.js";
 import { analyzeSpf } from "./analyzers/spf.js";
 import { analyzeDkim } from "./analyzers/dkim.js";
 import { analyzeMx } from "./analyzers/mx.js";
+import { analyzeMtaSts } from "./analyzers/mta-sts.js";
+import { analyzeTlsRpt } from "./analyzers/tls-rpt.js";
+import { analyzeDnssec } from "./analyzers/dnssec.js";
 import type { AnalysisResponse } from "./types.js";
 
 type Bindings = {
@@ -53,14 +56,27 @@ app.get("/api/analyze", async (c) => {
     : [];
 
   const queriedAt = new Date().toISOString();
-  const [dmarc, spf, dkim, mx] = await Promise.all([
+  const [dmarc, spf, dkim, mx, mtaSts, tlsRpt, dnssec] = await Promise.all([
     analyzeDmarc(domain),
     analyzeSpf(domain),
     analyzeDkim(domain, extraSelectors),
     analyzeMx(domain),
+    analyzeMtaSts(domain),
+    analyzeTlsRpt(domain),
+    analyzeDnssec(domain),
   ]);
 
-  const response: AnalysisResponse = { domain, queriedAt, dmarc, spf, dkim, mx };
+  const response: AnalysisResponse = {
+    domain,
+    queriedAt,
+    dmarc,
+    spf,
+    dkim,
+    mx,
+    mtaSts,
+    tlsRpt,
+    dnssec,
+  };
   return c.json(response, 200, {
     "Cache-Control": "public, max-age=60",
   });
