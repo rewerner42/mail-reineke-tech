@@ -7,6 +7,7 @@ import { analyzeMx } from "./analyzers/mx.js";
 import { analyzeMtaSts } from "./analyzers/mta-sts.js";
 import { analyzeTlsRpt } from "./analyzers/tls-rpt.js";
 import { analyzeDnssec } from "./analyzers/dnssec.js";
+import { analyzeObservatory } from "./observatory.js";
 import type { AnalysisResponse } from "./types.js";
 
 type Bindings = {
@@ -80,6 +81,29 @@ app.get("/api/analyze", async (c) => {
   return c.json(response, 200, {
     "Cache-Control": "public, max-age=60",
   });
+});
+
+// Separate endpoint: MDN HTTP Observatory scan. Fresh scans take ~10s, so the
+// frontend calls this independently and fills the card in progressively rather
+// than blocking the fast DNS-based checks above.
+app.get("/api/observatory", async (c) => {
+  const domain = normalizeDomain(c.req.query("domain") ?? "");
+  if (!domain) {
+    return c.json(
+      {
+        error: "INVALID_DOMAIN",
+        message: "Bitte gib eine gültige Domain ein (z.B. reineke-technik.de).",
+      },
+      400,
+    );
+  }
+
+  const result = await analyzeObservatory(domain);
+  return c.json(
+    { domain, queriedAt: new Date().toISOString(), observatory: result },
+    200,
+    { "Cache-Control": "public, max-age=300" },
+  );
 });
 
 // Static assets fallback (frontend)
