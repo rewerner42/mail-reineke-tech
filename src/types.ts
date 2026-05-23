@@ -81,9 +81,16 @@ export interface TlsRptRecord {
 }
 
 export interface DnssecResult {
-  signed: boolean;
+  /** Chain of trust is intact and the resolver validated the answer. */
+  secure: boolean;
+  /** AD (Authenticated Data) flag from the validating resolver. */
   authenticated: boolean;
+  /** Number of DNSKEY records published by the zone. */
   dnskeyCount: number;
+  /** Parent zone publishes a DS record (delegation is signed). */
+  dsPresent: boolean;
+  /** Parent says signed (DS) but validation fails (SERVFAIL / no AD) → broken. */
+  validationFailed: boolean;
 }
 
 export interface ObservatoryResult {

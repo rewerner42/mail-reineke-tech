@@ -6,16 +6,16 @@
     <meta name="theme-color" content="#dc0d23" />
     <meta
       name="description"
-      content="DMARC, DKIM, SPF und MX-Records prüfen — kostenfreies E-Mail-Authentifizierungs-Analyse-Tool von Reineke Technik."
+      content="E-Mail- und Domain-Sicherheit prüfen — DMARC, DKIM, SPF, MX, MTA-STS, TLS-RPT, DNSSEC und Website-Security-Header. Kostenfreies Tool von Reineke Technik."
     />
-    <title>E-Mail Authentifizierungs-Check · Reineke Technik</title>
+    <title>Domain-Sicherheits-Check · Reineke Technik</title>
     <link rel="stylesheet" href="/styles.css" />
     <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
   </head>
   <body>
     <header class="site-header">
       <div class="container header-inner">
-        <a class="brand" href="/" aria-label="Reineke Technik">
+        <a class="brand" href="/" data-tab-link="email" aria-label="Reineke Technik">
           <img src="/assets/reineke-logo.png" alt="Reineke Technik" class="brand-logo" />
         </a>
         <div class="header-meta">
@@ -24,177 +24,232 @@
       </div>
     </header>
 
+    <nav class="tabs" aria-label="Analyse-Werkzeuge">
+      <div class="container tabs-inner">
+        <a href="/" class="tab" data-tab-link="email">E-Mail</a>
+        <a href="/website" class="tab" data-tab-link="website">Website</a>
+        <a href="/dnssec" class="tab" data-tab-link="dnssec">DNSSEC</a>
+      </div>
+    </nav>
+
     <main>
-      <section class="hero">
-        <div class="container hero-inner">
-          <p class="eyebrow">E-Mail Security</p>
-          <h1>
-            Wie <strong>sicher</strong> ist Ihre<br />
-            E-Mail-Domain?
-          </h1>
-          <p class="lead">
-            Prüft <strong>DMARC</strong>, <strong>DKIM</strong>, <strong>SPF</strong> und
-            <strong>MX-Records</strong> Ihrer Domain — direkt aus dem Browser, ohne Anmeldung.
-          </p>
+      <!-- ─────────── E-MAIL ─────────── -->
+      <section class="view" id="view-email" data-view="email">
+        <div class="hero">
+          <div class="container hero-inner">
+            <p class="eyebrow">E-Mail Security</p>
+            <h1>Wie <strong>sicher</strong> ist Ihre<br />E-Mail-Domain?</h1>
+            <p class="lead">
+              Prüft <strong>DMARC</strong>, <strong>DKIM</strong>, <strong>SPF</strong>,
+              <strong>MX</strong>, <strong>MTA-STS</strong> und <strong>TLS-RPT</strong> Ihrer
+              Domain — direkt aus dem Browser, ohne Anmeldung.
+            </p>
 
-          <form id="check-form" class="check-form" autocomplete="off">
-            <label class="sr-only" for="domain">Domain</label>
-            <div class="input-group">
-              <input
-                id="domain"
-                name="domain"
-                type="text"
-                placeholder="ihre-domain.de"
-                spellcheck="false"
-                autocapitalize="off"
-                autocomplete="off"
-                inputmode="url"
-                required
-              />
-              <button type="submit" class="btn btn-primary">
-                <span class="btn-label">Analyse starten</span>
-                <span class="spinner" aria-hidden="true"></span>
-              </button>
-            </div>
-            <details class="advanced">
-              <summary>Erweitert: zusätzliche DKIM-Selektoren</summary>
-              <label for="selectors">Selektoren (komma-getrennt)</label>
-              <input
-                id="selectors"
-                name="selectors"
-                type="text"
-                placeholder="z.B. mailpoet1, custom-selector"
-                spellcheck="false"
-                autocapitalize="off"
-                autocomplete="off"
-              />
-              <p class="hint">
-                Wir prüfen automatisch ~40 gängige Selektoren (Google, Microsoft 365, SendGrid,
-                Mailgun, ProtonMail, …). Eigene Selektoren hier ergänzen.
-              </p>
-            </details>
-          </form>
-
-          <div id="error" class="error-banner" hidden></div>
-        </div>
-      </section>
-
-      <section id="results" class="results" hidden>
-        <div class="container">
-          <div class="results-header">
-            <h2>
-              Ergebnisse für <span id="result-domain" class="mono"></span>
-            </h2>
-            <span id="result-timestamp" class="result-timestamp"></span>
-          </div>
-          <div class="cards">
-            <article class="card card-primary" id="card-dmarc" data-status="">
-              <header class="card-header">
-                <h3>DMARC</h3>
-                <span class="status-pill" data-pill></span>
-              </header>
-              <p class="card-summary" data-summary></p>
-              <div class="card-body" data-body></div>
-            </article>
-            <article class="card" id="card-spf" data-status="">
-              <header class="card-header">
-                <h3>SPF</h3>
-                <span class="status-pill" data-pill></span>
-              </header>
-              <p class="card-summary" data-summary></p>
-              <div class="card-body" data-body></div>
-            </article>
-            <article class="card" id="card-dkim" data-status="">
-              <header class="card-header">
-                <h3>DKIM</h3>
-                <span class="status-pill" data-pill></span>
-              </header>
-              <p class="card-summary" data-summary></p>
-              <div class="card-body" data-body></div>
-            </article>
-            <article class="card" id="card-mx" data-status="">
-              <header class="card-header">
-                <h3>MX</h3>
-                <span class="status-pill" data-pill></span>
-              </header>
-              <p class="card-summary" data-summary></p>
-              <div class="card-body" data-body></div>
-            </article>
-            <article class="card" id="card-mtaSts" data-status="">
-              <header class="card-header">
-                <h3>MTA-STS</h3>
-                <span class="status-pill" data-pill></span>
-              </header>
-              <p class="card-summary" data-summary></p>
-              <div class="card-body" data-body></div>
-            </article>
-            <article class="card" id="card-tlsRpt" data-status="">
-              <header class="card-header">
-                <h3>TLS-RPT</h3>
-                <span class="status-pill" data-pill></span>
-              </header>
-              <p class="card-summary" data-summary></p>
-              <div class="card-body" data-body></div>
-            </article>
-            <article class="card" id="card-dnssec" data-status="">
-              <header class="card-header">
-                <h3>DNSSEC</h3>
-                <span class="status-pill" data-pill></span>
-              </header>
-              <p class="card-summary" data-summary></p>
-              <div class="card-body" data-body></div>
-            </article>
-            <article class="card card-primary card-observatory" id="card-observatory" data-status="">
-              <header class="card-header">
-                <h3>HTTP Observatory <span class="card-tag">Website</span></h3>
-                <span class="status-pill" data-pill></span>
-              </header>
-              <p class="card-summary" data-summary></p>
-              <div class="observatory-layout">
-                <div class="grade-badge" data-grade aria-hidden="true">–</div>
-                <div class="card-body" data-body></div>
+            <form class="check-form" data-form="email" autocomplete="off">
+              <label class="sr-only" for="domain-email">Domain</label>
+              <div class="input-group">
+                <input
+                  id="domain-email"
+                  data-domain-input
+                  type="text"
+                  placeholder="ihre-domain.de"
+                  spellcheck="false"
+                  autocapitalize="off"
+                  autocomplete="off"
+                  inputmode="url"
+                  required
+                />
+                <button type="submit" class="btn btn-primary">
+                  <span class="btn-label">Analyse starten</span>
+                  <span class="spinner" aria-hidden="true"></span>
+                </button>
               </div>
-            </article>
+              <details class="advanced">
+                <summary>Erweitert: zusätzliche DKIM-Selektoren</summary>
+                <label for="selectors">Selektoren (komma-getrennt)</label>
+                <input
+                  id="selectors"
+                  name="selectors"
+                  type="text"
+                  placeholder="z.B. mailpoet1, custom-selector"
+                  spellcheck="false"
+                  autocapitalize="off"
+                  autocomplete="off"
+                />
+                <p class="hint">
+                  Wir prüfen automatisch ~40 gängige Selektoren (Google, Microsoft 365, SendGrid,
+                  Mailgun, ProtonMail, …). Eigene Selektoren hier ergänzen.
+                </p>
+              </details>
+            </form>
+            <div class="error-banner" data-error hidden></div>
+          </div>
+        </div>
+
+        <div class="results" data-results hidden>
+          <div class="container">
+            <div class="results-header">
+              <h2>Ergebnisse für <span class="mono" data-result-domain></span></h2>
+              <span class="result-timestamp" data-result-timestamp></span>
+            </div>
+            <div class="cards">
+              <article class="card card-primary" id="card-dmarc" data-status="">
+                <header class="card-header"><h3>DMARC</h3><span class="status-pill" data-pill></span></header>
+                <p class="card-summary" data-summary></p>
+                <div class="card-body" data-body></div>
+              </article>
+              <article class="card" id="card-spf" data-status="">
+                <header class="card-header"><h3>SPF</h3><span class="status-pill" data-pill></span></header>
+                <p class="card-summary" data-summary></p>
+                <div class="card-body" data-body></div>
+              </article>
+              <article class="card" id="card-dkim" data-status="">
+                <header class="card-header"><h3>DKIM</h3><span class="status-pill" data-pill></span></header>
+                <p class="card-summary" data-summary></p>
+                <div class="card-body" data-body></div>
+              </article>
+              <article class="card" id="card-mx" data-status="">
+                <header class="card-header"><h3>MX</h3><span class="status-pill" data-pill></span></header>
+                <p class="card-summary" data-summary></p>
+                <div class="card-body" data-body></div>
+              </article>
+              <article class="card" id="card-mtaSts" data-status="">
+                <header class="card-header"><h3>MTA-STS</h3><span class="status-pill" data-pill></span></header>
+                <p class="card-summary" data-summary></p>
+                <div class="card-body" data-body></div>
+              </article>
+              <article class="card" id="card-tlsRpt" data-status="">
+                <header class="card-header"><h3>TLS-RPT</h3><span class="status-pill" data-pill></span></header>
+                <p class="card-summary" data-summary></p>
+                <div class="card-body" data-body></div>
+              </article>
+            </div>
           </div>
         </div>
       </section>
 
-      <section class="info">
-        <div class="container">
-          <p class="section-eyebrow">Hintergrund</p>
-          <h2>Warum E-Mail-Authentifizierung <strong>geschäftskritisch</strong> ist.</h2>
-          <div class="info-grid">
-            <article>
-              <h4>Was ist DMARC?</h4>
-              <p>
-                DMARC sagt empfangenden Mailservern, was mit Mails passieren soll, die SPF oder
-                DKIM nicht bestehen. Ohne DMARC kann jeder Ihre Domain im Absender fälschen.
-              </p>
-            </article>
-            <article>
-              <h4>Warum ist das wichtig?</h4>
-              <p>
-                Google und Microsoft setzen DMARC seit Februar 2024 für Bulk-Sender verpflichtend
-                voraus. Ohne Authentifizierung landen Marketing- und Transaktionsmails im Spam —
-                oder werden komplett abgewiesen.
-              </p>
-            </article>
-            <article>
-              <h4>Was sind Ihre nächsten Schritte?</h4>
-              <p>
-                Starten Sie mit <code>p=none</code> zur Beobachtung, werten Sie die Reports 2–4
-                Wochen aus und eskalieren Sie zu <code>p=quarantine</code> bzw.
-                <code>p=reject</code>. Wir unterstützen Sie auf dem Weg dorthin.
-              </p>
-            </article>
+      <!-- ─────────── WEBSITE ─────────── -->
+      <section class="view" id="view-website" data-view="website" hidden>
+        <div class="hero">
+          <div class="container hero-inner">
+            <p class="eyebrow">Web Security</p>
+            <h1>Wie <strong>sicher</strong> ist Ihre<br />Website?</h1>
+            <p class="lead">
+              Bewertet die HTTP-Security-Header Ihrer Website über das
+              <strong>MDN HTTP Observatory</strong> — Content-Security-Policy, HSTS,
+              X-Content-Type-Options und mehr. Ergebnis als Schulnote A+ bis F.
+            </p>
+
+            <form class="check-form" data-form="website" autocomplete="off">
+              <label class="sr-only" for="domain-website">Domain</label>
+              <div class="input-group">
+                <input
+                  id="domain-website"
+                  data-domain-input
+                  type="text"
+                  placeholder="ihre-domain.de"
+                  spellcheck="false"
+                  autocapitalize="off"
+                  autocomplete="off"
+                  inputmode="url"
+                  required
+                />
+                <button type="submit" class="btn btn-primary">
+                  <span class="btn-label">Website prüfen</span>
+                  <span class="spinner" aria-hidden="true"></span>
+                </button>
+              </div>
+              <p class="hint">Ein frischer Scan dauert bis zu ~10 Sekunden.</p>
+            </form>
+            <div class="error-banner" data-error hidden></div>
+          </div>
+        </div>
+
+        <div class="results" data-results hidden>
+          <div class="container">
+            <div class="results-header">
+              <h2>Ergebnis für <span class="mono" data-result-domain></span></h2>
+              <span class="result-timestamp" data-result-timestamp></span>
+            </div>
+            <div class="cards">
+              <article class="card card-primary card-observatory" id="card-observatory" data-status="">
+                <header class="card-header">
+                  <h3>HTTP Observatory <span class="card-tag">Website</span></h3>
+                  <span class="status-pill" data-pill></span>
+                </header>
+                <p class="card-summary" data-summary></p>
+                <div class="observatory-layout">
+                  <div class="grade-badge" data-grade aria-hidden="true">–</div>
+                  <div class="card-body" data-body></div>
+                </div>
+              </article>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─────────── DNSSEC ─────────── -->
+      <section class="view" id="view-dnssec" data-view="dnssec" hidden>
+        <div class="hero">
+          <div class="container hero-inner">
+            <p class="eyebrow">DNS Integrity</p>
+            <h1>Ist Ihre DNS-Zone <strong>signiert</strong>?</h1>
+            <p class="lead">
+              Prüft die <strong>DNSSEC</strong>-Vertrauenskette Ihrer Domain: ob die Zone signiert,
+              beim Parent verankert (DS-Record) und durch validierende Resolver bestätigt ist.
+              Erkennt auch gebrochene Signaturketten.
+            </p>
+
+            <form class="check-form" data-form="dnssec" autocomplete="off">
+              <label class="sr-only" for="domain-dnssec">Domain</label>
+              <div class="input-group">
+                <input
+                  id="domain-dnssec"
+                  data-domain-input
+                  type="text"
+                  placeholder="ihre-domain.de"
+                  spellcheck="false"
+                  autocapitalize="off"
+                  autocomplete="off"
+                  inputmode="url"
+                  required
+                />
+                <button type="submit" class="btn btn-primary">
+                  <span class="btn-label">DNSSEC prüfen</span>
+                  <span class="spinner" aria-hidden="true"></span>
+                </button>
+              </div>
+            </form>
+            <div class="error-banner" data-error hidden></div>
+          </div>
+        </div>
+
+        <div class="results" data-results hidden>
+          <div class="container">
+            <div class="results-header">
+              <h2>Ergebnis für <span class="mono" data-result-domain></span></h2>
+              <span class="result-timestamp" data-result-timestamp></span>
+            </div>
+            <div class="cards">
+              <article class="card card-primary" id="card-dnssec" data-status="">
+                <header class="card-header"><h3>DNSSEC</h3><span class="status-pill" data-pill></span></header>
+                <p class="card-summary" data-summary></p>
+                <div class="card-body" data-body></div>
+              </article>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="cta-section">
+        <div class="container cta-inner">
+          <div>
+            <p class="section-eyebrow">Reineke Technik</p>
+            <h2>Unterstützung bei der <strong>Absicherung</strong>?</h2>
           </div>
           <div class="cta-row">
-            <a href="https://www.reineke-technik.de/kontakt/" class="btn btn-primary" rel="noopener">
-              Beratung anfragen
-            </a>
-            <a href="https://www.reineke-technik.de" class="btn btn-secondary" rel="noopener">
-              Mehr über Reineke Technik
-            </a>
+            <a href="https://www.reineke-technik.de/kontakt/" class="btn btn-primary" rel="noopener">Beratung anfragen</a>
+            <a href="https://www.reineke-technik.de" class="btn btn-secondary" rel="noopener">Mehr über Reineke Technik</a>
           </div>
         </div>
       </section>
@@ -202,9 +257,7 @@
 
     <footer class="site-footer">
       <div class="container footer-inner">
-        <div class="footer-brand">
-          <strong>Reineke Technik</strong>
-        </div>
+        <div class="footer-brand"><strong>Reineke Technik</strong></div>
         <nav class="footer-nav">
           <a href="https://www.reineke-technik.de" rel="noopener">Hauptseite</a>
           <a href="https://www.reineke-technik.de/impressum/" rel="noopener">Impressum</a>

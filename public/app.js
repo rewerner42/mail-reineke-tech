@@ -1,64 +1,34 @@
-// mail.reineke.tech — frontend
+// sharp.reineke.tech — frontend (3 tools: E-Mail / Website / DNSSEC)
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
-const form = $("#check-form");
-const domainInput = $("#domain");
-const selectorsInput = $("#selectors");
-const submitBtn = form.querySelector("button[type=submit]");
-const errorBanner = $("#error");
-const resultsSection = $("#results");
-const resultDomain = $("#result-domain");
-const resultTimestamp = $("#result-timestamp");
+const TAB_PATH = { email: "/", website: "/website", dnssec: "/dnssec" };
+const PATH_TAB = { "/": "email", "/website": "website", "/dnssec": "dnssec" };
+const TABS = ["email", "website", "dnssec"];
 
-const cards = {
-  dmarc: $("#card-dmarc"),
-  spf: $("#card-spf"),
-  dkim: $("#card-dkim"),
-  mx: $("#card-mx"),
-  mtaSts: $("#card-mtaSts"),
-  tlsRpt: $("#card-tlsRpt"),
-  dnssec: $("#card-dnssec"),
+const SEVERITY_LABEL = { pass: "OK", warn: "Hinweis", fail: "Fehler", info: "Info" };
+const SEVERITY_ICON = { pass: "✓", warn: "!", fail: "✕", info: "i" };
+
+const views = {
+  email: $('[data-view="email"]'),
+  website: $('[data-view="website"]'),
+  dnssec: $('[data-view="dnssec"]'),
 };
+const tabLinks = $$("[data-tab-link]");
 
-const observatoryCard = $("#card-observatory");
+let currentTab = "email";
+let currentDomain = "";
+let currentSelectors = "";
+const cache = { email: {}, website: {}, dnssec: {} };
 
-const SEVERITY_LABEL = {
-  pass: "OK",
-  warn: "Hinweis",
-  fail: "Fehler",
-  info: "Info",
-};
-
-const SEVERITY_ICON = {
-  pass: "✓",
-  warn: "!",
-  fail: "✕",
-  info: "i",
-};
-
-function showError(msg) {
-  errorBanner.textContent = msg;
-  errorBanner.hidden = false;
-}
-
-function clearError() {
-  errorBanner.hidden = true;
-  errorBanner.textContent = "";
-}
-
-function setLoading(loading) {
-  submitBtn.disabled = loading;
-  submitBtn.classList.toggle("loading", loading);
-}
-
+/* ─────────────── helpers ─────────────── */
 function escapeHtml(str) {
   if (str === null || str === undefined) return "";
   return String(str)
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
-    .replaceAll("\"", "&quot;")
+    .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
 }
 
@@ -78,6 +48,13 @@ function renderIssues(issues) {
     .join("")}</ul>`;
 }
 
+function kvGrid(pairs) {
+  return `<dl class="kv-grid">${pairs
+    .map(([k, v]) => `<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd>`)
+    .join("")}</dl>`;
+}
+
+/* ─────────────── body renderers ─────────────── */
 function renderDmarcBody(check) {
   const issues = renderIssues(check.issues);
   if (!check.data) return issues;
@@ -91,29 +68,20 @@ function renderDmarcBody(check) {
   if (r.rua?.length) kv.push(["RUA", r.rua.join(", ")]);
   if (r.ruf?.length) kv.push(["RUF", r.ruf.join(", ")]);
   if (r.fo?.length) kv.push(["FO", r.fo.join(":")]);
-  const dl = `<dl class="kv-grid">${kv
-    .map(([k, v]) => `<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd>`)
-    .join("")}</dl>`;
-  const raw = `<pre class="record-block">${escapeHtml(r.raw)}</pre>`;
-  return `${dl}${raw}${issues}`;
+  return `${kvGrid(kv)}<pre class="record-block">${escapeHtml(r.raw)}</pre>${issues}`;
 }
 
 function renderSpfBody(check) {
   const issues = renderIssues(check.issues);
   if (!check.data) return issues;
   const r = check.data;
-  const kv = [];
-  kv.push(["DNS-Lookups", `${r.dnsLookupCount}/10`]);
+  const kv = [["DNS-Lookups", `${r.dnsLookupCount}/10`]];
   if (r.all) {
     const allMap = { "+": "+all (gefährlich)", "-": "-all (hard fail)", "~": "~all (soft fail)", "?": "?all (neutral)" };
     kv.push(["All-Mechanismus", allMap[r.all] ?? r.all]);
   }
   kv.push(["Mechanismen", String(r.mechanisms.length)]);
-  const dl = `<dl class="kv-grid">${kv
-    .map(([k, v]) => `<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd>`)
-    .join("")}</dl>`;
-  const raw = `<pre class="record-block">${escapeHtml(r.raw)}</pre>`;
-  return `${dl}${raw}${issues}`;
+  return `${kvGrid(kv)}<pre class="record-block">${escapeHtml(r.raw)}</pre>${issues}`;
 }
 
 function renderDkimBody(check) {
@@ -142,10 +110,8 @@ function renderMxBody(check) {
       if (m.ips?.aaaa?.length) ips.push(...m.ips.aaaa);
       return `
         <li class="mx-item">
-          <div>
-            <span class="mx-prio">Pref ${escapeHtml(String(m.preference))}</span>
-            <strong style="margin-left:.5rem">${escapeHtml(m.exchange)}</strong>
-          </div>
+          <div><span class="mx-prio">Pref ${escapeHtml(String(m.preference))}</span>
+            <strong style="margin-left:.5rem">${escapeHtml(m.exchange)}</strong></div>
           <span class="mx-ips">${ips.length ? escapeHtml(ips.join(", ")) : "keine IPs"}</span>
         </li>`;
     })
@@ -162,11 +128,7 @@ function renderMtaStsBody(check) {
   if (r.id) kv.push(["ID", r.id]);
   if (r.maxAge !== undefined) kv.push(["max_age", `${r.maxAge}s`]);
   if (r.mx?.length) kv.push(["MX", r.mx.join(", ")]);
-  const dl = kv.length
-    ? `<dl class="kv-grid">${kv
-        .map(([k, v]) => `<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd>`)
-        .join("")}</dl>`
-    : "";
+  const dl = kv.length ? kvGrid(kv) : "";
   const raw = r.dnsTxt ? `<pre class="record-block">${escapeHtml(r.dnsTxt)}</pre>` : "";
   return `${dl}${raw}${issues}`;
 }
@@ -175,8 +137,7 @@ function renderTlsRptBody(check) {
   const issues = renderIssues(check.issues);
   const r = check.data;
   if (!r || !r.raw) return issues;
-  const raw = `<pre class="record-block">${escapeHtml(r.raw)}</pre>`;
-  return `${raw}${issues}`;
+  return `<pre class="record-block">${escapeHtml(r.raw)}</pre>${issues}`;
 }
 
 function renderDnssecBody(check) {
@@ -184,17 +145,17 @@ function renderDnssecBody(check) {
   const r = check.data;
   if (!r) return issues;
   const kv = [
-    ["Signiert", r.signed ? "ja" : "nein"],
-    ["Validiert (AD)", r.authenticated ? "ja" : "nein"],
-    ["DNSKEY", String(r.dnskeyCount)],
+    ["Signiert & validiert", r.secure ? "ja" : "nein"],
+    ["AD-Flag (Resolver)", r.authenticated ? "ja" : "nein"],
+    ["DNSKEY-Records", String(r.dnskeyCount)],
+    ["DS beim Parent", r.dsPresent ? "ja" : "nein"],
   ];
-  const dl = `<dl class="kv-grid">${kv
-    .map(([k, v]) => `<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd>`)
-    .join("")}</dl>`;
-  return `${dl}${issues}`;
+  return `${kvGrid(kv)}${issues}`;
 }
 
+/* ─────────────── card rendering ─────────────── */
 function renderCard(card, check, bodyRenderer) {
+  if (!card) return;
   card.dataset.status = check.status ?? "info";
   const pill = $("[data-pill]", card);
   pill.dataset.status = check.status ?? "info";
@@ -203,130 +164,238 @@ function renderCard(card, check, bodyRenderer) {
   $("[data-body]", card).innerHTML = bodyRenderer(check);
 }
 
-async function runAnalysis(domain, selectors) {
-  const params = new URLSearchParams({ domain });
-  if (selectors) params.set("selectors", selectors);
-  const res = await fetch(`/api/analyze?${params.toString()}`);
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.message ?? "Analyse fehlgeschlagen.");
-  }
-  return data;
+function renderEmailResults(view, data) {
+  renderCard($("#card-dmarc", view), data.dmarc, renderDmarcBody);
+  renderCard($("#card-spf", view), data.spf, renderSpfBody);
+  renderCard($("#card-dkim", view), data.dkim, renderDkimBody);
+  renderCard($("#card-mx", view), data.mx, renderMxBody);
+  renderCard($("#card-mtaSts", view), data.mtaSts, renderMtaStsBody);
+  renderCard($("#card-tlsRpt", view), data.tlsRpt, renderTlsRptBody);
 }
 
-function setObservatoryLoading() {
-  observatoryCard.dataset.status = "info";
-  observatoryCard.classList.add("is-loading");
-  const pill = $("[data-pill]", observatoryCard);
-  pill.dataset.status = "info";
-  pill.textContent = "Scan …";
-  $("[data-grade]", observatoryCard).textContent = "…";
-  $("[data-summary]", observatoryCard).textContent =
-    "Website wird über das MDN HTTP Observatory geprüft.";
-  $("[data-body]", observatoryCard).innerHTML =
-    '<div class="obs-loading"><span class="spinner"></span><span>Scan läuft — frische Scans dauern bis zu ~10 Sekunden.</span></div>';
+function renderDnssecResults(view, data) {
+  renderCard($("#card-dnssec", view), data.dnssec, renderDnssecBody);
 }
 
-function renderObservatory(check) {
+function renderObservatoryResults(view, data) {
+  const card = $("#card-observatory", view);
+  const check = data.observatory;
   const status = check.status ?? "info";
-  observatoryCard.classList.remove("is-loading");
-  observatoryCard.dataset.status = status;
-  const pill = $("[data-pill]", observatoryCard);
+  card.classList.remove("is-loading");
+  card.dataset.status = status;
+  const pill = $("[data-pill]", card);
   pill.dataset.status = status;
   pill.textContent = SEVERITY_LABEL[status] ?? "—";
-  $("[data-summary]", observatoryCard).textContent = check.summary ?? "";
-  $("[data-grade]", observatoryCard).textContent = check.data?.grade ?? "–";
+  $("[data-summary]", card).textContent = check.summary ?? "";
+  $("[data-grade]", card).textContent = check.data?.grade ?? "–";
 
-  let body = renderIssues(check.issues);
+  let body = "";
   const d = check.data;
   if (d && d.grade) {
-    const kv = [
+    body += kvGrid([
       ["Score", String(d.score)],
       ["Tests bestanden", `${d.testsPassed}/${d.testsQuantity}`],
-    ];
-    body =
-      `<dl class="kv-grid">${kv
-        .map(([k, v]) => `<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd>`)
-        .join("")}</dl>` + body;
+    ]);
   }
+  body += renderIssues(check.issues);
   if (d && d.detailsUrl) {
     body += `<a class="obs-link" href="${escapeHtml(d.detailsUrl)}" target="_blank" rel="noopener">Vollständigen MDN-Report öffnen →</a>`;
   }
-  $("[data-body]", observatoryCard).innerHTML = body;
+  $("[data-body]", card).innerHTML = body;
 }
 
-async function loadObservatory(domain) {
-  setObservatoryLoading();
-  try {
-    const res = await fetch(`/api/observatory?domain=${encodeURIComponent(domain)}`);
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message ?? "Observatory-Scan fehlgeschlagen.");
-    renderObservatory(data.observatory);
-  } catch (err) {
-    renderObservatory({
-      status: "info",
-      summary: "Observatory nicht verfügbar",
-      issues: [
-        {
-          severity: "info",
-          message: err instanceof Error ? err.message : "Unbekannter Fehler.",
-        },
-      ],
-      data: null,
-    });
+function setObservatoryLoading(view) {
+  const card = $("#card-observatory", view);
+  card.classList.add("is-loading");
+  card.dataset.status = "info";
+  const pill = $("[data-pill]", card);
+  pill.dataset.status = "info";
+  pill.textContent = "Scan …";
+  $("[data-grade]", card).textContent = "…";
+  $("[data-summary]", card).textContent = "Website wird über das MDN HTTP Observatory geprüft.";
+  $("[data-body]", card).innerHTML =
+    '<div class="obs-loading"><span class="spinner"></span><span>Scan läuft — frische Scans dauern bis zu ~10 Sekunden.</span></div>';
+}
+
+const RENDERERS = {
+  email: renderEmailResults,
+  website: renderObservatoryResults,
+  dnssec: renderDnssecResults,
+};
+
+/* ─────────────── per-view UI state ─────────────── */
+function viewParts(tab) {
+  const v = views[tab];
+  return {
+    view: v,
+    form: $("[data-form]", v),
+    btn: $("button[type=submit]", v),
+    results: $("[data-results]", v),
+    error: $("[data-error]", v),
+  };
+}
+
+function setError(tab, msg) {
+  const { error } = viewParts(tab);
+  error.textContent = msg;
+  error.hidden = false;
+}
+function clearError(tab) {
+  const { error } = viewParts(tab);
+  error.hidden = true;
+  error.textContent = "";
+}
+function setLoading(tab, loading) {
+  const { btn } = viewParts(tab);
+  btn.disabled = loading;
+  btn.classList.toggle("loading", loading);
+}
+
+function showResults(tab, data) {
+  const { view, results } = viewParts(tab);
+  $("[data-result-domain]", view).textContent = data.domain;
+  $("[data-result-timestamp]", view).textContent = data.queriedAt
+    ? `geprüft am ${new Date(data.queriedAt).toLocaleString("de-DE")}`
+    : "";
+  RENDERERS[tab](view, data);
+  results.hidden = false;
+}
+
+/* ─────────────── scanning ─────────────── */
+async function fetchJson(url) {
+  const res = await fetch(url);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message ?? "Anfrage fehlgeschlagen.");
+  return data;
+}
+
+function endpointFor(tab, domain) {
+  const d = encodeURIComponent(domain);
+  if (tab === "email") {
+    return `/api/email?domain=${d}${currentSelectors ? `&selectors=${encodeURIComponent(currentSelectors)}` : ""}`;
   }
+  if (tab === "website") return `/api/observatory?domain=${d}`;
+  return `/api/dnssec?domain=${d}`;
 }
 
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  clearError();
-  const domain = domainInput.value.trim();
-  const selectors = selectorsInput.value.trim();
-  if (!domain) {
-    showError("Bitte gib eine Domain ein.");
+async function runScan(tab, domain, { force = false } = {}) {
+  clearError(tab);
+  if (!force && cache[tab][domain]) {
+    showResults(tab, cache[tab][domain]);
     return;
   }
 
-  setLoading(true);
-  try {
-    const data = await runAnalysis(domain, selectors);
-    resultDomain.textContent = data.domain;
-    resultTimestamp.textContent = `geprüft am ${new Date(data.queriedAt).toLocaleString("de-DE")}`;
-    renderCard(cards.dmarc, data.dmarc, renderDmarcBody);
-    renderCard(cards.spf, data.spf, renderSpfBody);
-    renderCard(cards.dkim, data.dkim, renderDkimBody);
-    renderCard(cards.mx, data.mx, renderMxBody);
-    renderCard(cards.mtaSts, data.mtaSts, renderMtaStsBody);
-    renderCard(cards.tlsRpt, data.tlsRpt, renderTlsRptBody);
-    renderCard(cards.dnssec, data.dnssec, renderDnssecBody);
-    resultsSection.hidden = false;
-    resultsSection.scrollIntoView({ behavior: "smooth", block: "start" });
-
-    // Observatory scan is slow (~10s) — load it independently so it doesn't
-    // block the fast DNS-based results above.
-    void loadObservatory(data.domain);
-
-    // update URL for shareable link
-    const url = new URL(window.location.href);
-    url.searchParams.set("d", data.domain);
-    if (selectors) url.searchParams.set("s", selectors);
-    else url.searchParams.delete("s");
-    window.history.replaceState({}, "", url);
-  } catch (err) {
-    showError(err instanceof Error ? err.message : "Unbekannter Fehler.");
-  } finally {
-    setLoading(false);
+  if (tab === "website") {
+    // show the slow-scan placeholder immediately
+    const { view, results } = viewParts(tab);
+    results.hidden = false;
+    $("[data-result-domain]", view).textContent = domain;
+    $("[data-result-timestamp]", view).textContent = "";
+    setObservatoryLoading(view);
   }
+
+  setLoading(tab, true);
+  try {
+    const data = await fetchJson(endpointFor(tab, domain));
+    cache[tab][domain] = data;
+    showResults(tab, data);
+  } catch (err) {
+    setError(tab, err instanceof Error ? err.message : "Unbekannter Fehler.");
+    if (tab !== "website") viewParts(tab).results.hidden = true;
+  } finally {
+    setLoading(tab, false);
+  }
+}
+
+/* ─────────────── tabs + routing ─────────────── */
+function syncDomainInputs(value) {
+  $$("[data-domain-input]").forEach((inp) => {
+    inp.value = value;
+  });
+}
+
+function updateUrl(tab, domain, { push = false } = {}) {
+  const url = new URL(window.location.href);
+  url.pathname = TAB_PATH[tab];
+  if (domain) url.searchParams.set("d", domain);
+  else url.searchParams.delete("d");
+  if (tab === "email" && currentSelectors) url.searchParams.set("s", currentSelectors);
+  else url.searchParams.delete("s");
+  if (push) window.history.pushState({}, "", url);
+  else window.history.replaceState({}, "", url);
+}
+
+function setActiveTab(tab) {
+  currentTab = tab;
+  TABS.forEach((t) => {
+    views[t].hidden = t !== tab;
+  });
+  tabLinks.forEach((a) => {
+    a.classList.toggle("is-active", a.dataset.tabLink === tab);
+  });
+}
+
+function switchTab(tab) {
+  setActiveTab(tab);
+  syncDomainInputs(currentDomain);
+  updateUrl(tab, currentDomain, { push: true });
+  if (currentDomain) runScan(tab, currentDomain);
+}
+
+/* ─────────────── wire up ─────────────── */
+TABS.forEach((tab) => {
+  const { form } = viewParts(tab);
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const input = $("[data-domain-input]", views[tab]);
+    const domain = input.value.trim();
+    if (!domain) {
+      setError(tab, "Bitte gib eine Domain ein.");
+      return;
+    }
+    currentDomain = domain;
+    if (tab === "email") {
+      currentSelectors = ($("#selectors", views.email)?.value ?? "").trim();
+    }
+    syncDomainInputs(domain);
+    updateUrl(tab, domain);
+    runScan(tab, domain, { force: true });
+  });
 });
 
-// auto-run from query params (shareable links)
-(function init() {
+tabLinks.forEach((a) => {
+  a.addEventListener("click", (e) => {
+    e.preventDefault();
+    const tab = a.dataset.tabLink;
+    if (tab && tab !== currentTab) switchTab(tab);
+  });
+});
+
+window.addEventListener("popstate", () => {
+  const tab = PATH_TAB[window.location.pathname] ?? "email";
   const url = new URL(window.location.href);
   const d = url.searchParams.get("d");
+  if (d) currentDomain = d;
+  setActiveTab(tab);
+  syncDomainInputs(currentDomain);
+  if (currentDomain) runScan(tab, currentDomain);
+});
+
+/* ─────────────── init (shareable links) ─────────────── */
+(function init() {
+  const url = new URL(window.location.href);
+  const tab = PATH_TAB[url.pathname] ?? "email";
+  const d = url.searchParams.get("d");
   const s = url.searchParams.get("s");
+  if (s) currentSelectors = s;
   if (d) {
-    domainInput.value = d;
-    if (s) selectorsInput.value = s;
-    form.dispatchEvent(new Event("submit"));
+    currentDomain = d;
+    syncDomainInputs(d);
+    if (currentSelectors) {
+      const selInput = $("#selectors", views.email);
+      if (selInput) selInput.value = currentSelectors;
+    }
   }
+  setActiveTab(tab);
+  if (currentDomain) runScan(tab, currentDomain);
 })();
