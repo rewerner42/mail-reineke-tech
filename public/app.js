@@ -9,6 +9,33 @@ const TABS = ["email", "website", "dnssec"];
 const SEVERITY_LABEL = { pass: "OK", warn: "Hinweis", fail: "Fehler", info: "Info" };
 const SEVERITY_ICON = { pass: "✓", warn: "!", fail: "✕", info: "i" };
 
+const CHECK_LABELS = {
+  dmarc: "DMARC",
+  spf: "SPF",
+  dkim: "DKIM",
+  mx: "MX",
+  mtaSts: "MTA-STS",
+  tlsRpt: "TLS-RPT",
+  dnssec: "DNSSEC",
+  observatory: "Website-Security (HTTP Observatory)",
+};
+
+// Letterhead for the exported cybersecurity reports.
+const REPORT_CONTACT = {
+  company: "Reineke Technik GmbH",
+  name: "Werner Francis Reineke",
+  street: "Geseker Straße 26",
+  city: "33154 Salzkotten",
+  phone: "+49 (0) 5258 987-282",
+  email: "wf.reineke@reineke-technik.de",
+};
+
+function reportLink(domain, check) {
+  const p = new URLSearchParams({ d: domain });
+  if (check) p.set("check", check);
+  return `/report?${p.toString()}`;
+}
+
 const views = {
   email: $('[data-view="email"]'),
   website: $('[data-view="website"]'),
@@ -167,6 +194,21 @@ function renderCard(card, check, bodyRenderer) {
   $("[data-body]", card).innerHTML = check.grade
     ? `<div class="observatory-layout"><div class="grade-badge">${escapeHtml(check.grade)}</div><div class="grade-body">${inner}</div></div>`
     : inner;
+  addCardExport(card);
+}
+
+/** Append a "single finding → PDF" export link to a result card. */
+function addCardExport(card) {
+  const checkId = card.id.replace(/^card-/, "");
+  let actions = card.querySelector(".card-actions");
+  if (!actions) {
+    actions = document.createElement("div");
+    actions.className = "card-actions";
+    card.appendChild(actions);
+  }
+  actions.innerHTML = currentDomain
+    ? `<a class="card-export" href="${reportLink(currentDomain, checkId)}">Befund als PDF exportieren →</a>`
+    : "";
 }
 
 function renderEmailResults(view, data) {
@@ -210,6 +252,7 @@ function renderObservatoryResults(view, data) {
     body += `<a class="obs-link" href="${escapeHtml(d.detailsUrl)}" target="_blank" rel="noopener">Vollständigen MDN-Report öffnen →</a>`;
   }
   $("[data-body]", card).innerHTML = body;
+  addCardExport(card);
 
   // benchmark chart (loaded once, highlights the current grade)
   if (d && d.grade) void loadBenchmark(view, d.grade);
@@ -335,7 +378,23 @@ function showResults(tab, data) {
     ? `geprüft am ${new Date(data.queriedAt).toLocaleString("de-DE")}`
     : "";
   RENDERERS[tab](view, data);
+  ensureReportButton(view, data.domain);
   results.hidden = false;
+}
+
+/** Add a "full cybersecurity report → PDF" button to a tab's results header. */
+function ensureReportButton(view, domain) {
+  const header = $(".results-header", view);
+  if (!header) return;
+  let btn = header.querySelector("[data-report-link]");
+  if (!btn) {
+    btn = document.createElement("a");
+    btn.className = "btn btn-secondary btn-sm";
+    btn.dataset.reportLink = "";
+    btn.textContent = "Gesamtbericht (PDF)";
+    header.appendChild(btn);
+  }
+  btn.href = reportLink(domain, "");
 }
 
 /* ─────────────── scanning ─────────────── */
@@ -419,7 +478,164 @@ function switchTab(tab) {
   if (currentDomain) runScan(tab, currentDomain);
 }
 
+/* ─────────────── cybersecurity report (PDF export) ─────────────── */
+function reportFindingHtml(key, c) {
+  const label = CHECK_LABELS[key] ?? key;
+  const status = c.status ?? "info";
+  const grade = c.grade
+    ? `<span class="report-grade" data-status="${status}">${escapeHtml(c.grade)}</span>`
+    : `<span class="report-grade report-grade-text" data-status="${status}">${escapeHtml(SEVERITY_LABEL[status] ?? "—")}</span>`;
+  let extra = "";
+  if (key === "observatory" && Array.isArray(c.data?.tests)) {
+    const failed = c.data.tests.filter((t) => t.pass === false);
+    if (failed.length) {
+      extra =
+        `<ul class="report-subfindings">` +
+        failed
+          .map(
+            (t) =>
+              `<li><strong>${escapeHtml(t.title)}</strong> (${escapeHtml(fmtScore(t.scoreModifier))})${t.recommendation ? ` — ${escapeHtml(t.recommendation)}` : ""}</li>`,
+          )
+          .join("") +
+        `</ul>`;
+    }
+  }
+  return `
+    <section class="report-finding" data-status="${status}">
+      <div class="report-finding-head">
+        ${grade}
+        <div class="report-finding-meta">
+          <h3>${escapeHtml(label)}</h3>
+          <p class="report-finding-summary">${escapeHtml(c.summary ?? "")}</p>
+        </div>
+      </div>
+      ${renderIssues(c.issues)}
+      ${extra}
+    </section>`;
+}
+
+function reportSummaryHtml(findings) {
+  const rows = findings
+    .map(([key, c]) => {
+      const status = c.status ?? "info";
+      const verdict = c.grade ? c.grade : SEVERITY_LABEL[status] ?? "—";
+      return `<tr>
+        <td>${escapeHtml(CHECK_LABELS[key] ?? key)}</td>
+        <td><span class="report-status" data-status="${status}">${escapeHtml(verdict)}</span></td>
+        <td>${escapeHtml(c.summary ?? "")}</td>
+      </tr>`;
+    })
+    .join("");
+  return `<table class="report-summary-table">
+    <thead><tr><th>Prüfung</th><th>Bewertung</th><th>Befund</th></tr></thead>
+    <tbody>${rows}</tbody></table>`;
+}
+
+function buildReportHtml(domain, isSingle, singleLabel, findings) {
+  const now = new Date().toLocaleDateString("de-DE", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+  const c = REPORT_CONTACT;
+  const kind = isSingle ? `Einzelbefund: ${singleLabel}` : "Cybersecurity-Report";
+  const letterhead = `
+    <header class="report-letterhead">
+      <img src="/assets/reineke-logo.png" alt="Reineke Technik" class="report-logo" />
+      <address class="report-contact">
+        <strong>${c.company}</strong><br />
+        ${c.name}<br />
+        ${c.street} · ${c.city}<br />
+        Tel. ${c.phone}<br />
+        <a href="mailto:${c.email}">${c.email}</a>
+      </address>
+    </header>`;
+  const titleBlock = `
+    <div class="report-title-block">
+      <p class="eyebrow">${escapeHtml(kind)}</p>
+      <h1>Sicherheitsanalyse für <span class="mono">${escapeHtml(domain)}</span></h1>
+      <p class="report-date">Erstellt am ${now}</p>
+    </div>`;
+  const summary = isSingle
+    ? ""
+    : `<section class="report-section"><h2>Zusammenfassung</h2>${reportSummaryHtml(findings)}</section>`;
+  const findingsHtml = findings.map(([k, c2]) => reportFindingHtml(k, c2)).join("");
+  const footer = `<footer class="report-footer">
+      Automatisch erstellt mit sharp.reineke.tech am ${now}. Die Analyse basiert auf
+      öffentlich abfragbaren DNS- und HTTP-Daten zum Abrufzeitpunkt. © ${c.company}.
+    </footer>`;
+  return (
+    letterhead +
+    titleBlock +
+    summary +
+    `<section class="report-section report-findings">${findingsHtml}</section>` +
+    footer
+  );
+}
+
+async function renderReport() {
+  const url = new URL(window.location.href);
+  const domain = (url.searchParams.get("d") || "").trim();
+  const check = url.searchParams.get("check") || "";
+  const doc = $("[data-report-doc]");
+  if (!doc) return;
+  if (!domain) {
+    doc.innerHTML = '<p class="report-loading">Keine Domain angegeben.</p>';
+    return;
+  }
+  doc.innerHTML =
+    '<p class="report-loading">Bericht wird erstellt … (Website-Scan kann bis ~10 Sekunden dauern)</p>';
+  const enc = encodeURIComponent(domain);
+  try {
+    let findings;
+    const isSingle = !!check;
+    if (check === "observatory") {
+      const o = await fetchJson(`/api/observatory?domain=${enc}`);
+      findings = [["observatory", o.observatory]];
+    } else if (isSingle) {
+      const e = await fetchJson(`/api/analyze?domain=${enc}`);
+      if (!e[check]) throw new Error(`Unbekannter Befund: ${check}`);
+      findings = [[check, e[check]]];
+    } else {
+      const [e, o] = await Promise.all([
+        fetchJson(`/api/analyze?domain=${enc}`),
+        fetchJson(`/api/observatory?domain=${enc}`).catch(() => null),
+      ]);
+      findings = [
+        ["dmarc", e.dmarc],
+        ["spf", e.spf],
+        ["dkim", e.dkim],
+        ["mx", e.mx],
+        ["mtaSts", e.mtaSts],
+        ["tlsRpt", e.tlsRpt],
+        ["dnssec", e.dnssec],
+      ];
+      if (o?.observatory) findings.push(["observatory", o.observatory]);
+    }
+    doc.innerHTML = buildReportHtml(
+      domain,
+      isSingle,
+      isSingle ? CHECK_LABELS[check] ?? check : "",
+      findings,
+    );
+  } catch (err) {
+    doc.innerHTML = `<p class="report-loading">Bericht konnte nicht erstellt werden: ${escapeHtml(
+      err instanceof Error ? err.message : String(err),
+    )}</p>`;
+  }
+}
+
+function showReportView() {
+  document.body.classList.add("is-report");
+  TABS.forEach((t) => {
+    views[t].hidden = true;
+  });
+  $("#view-report").hidden = false;
+}
+
 /* ─────────────── wire up ─────────────── */
+const printBtn = $("#report-print");
+if (printBtn) printBtn.addEventListener("click", () => window.print());
 TABS.forEach((tab) => {
   const { form } = viewParts(tab);
   form.addEventListener("submit", (e) => {
@@ -449,6 +665,11 @@ tabLinks.forEach((a) => {
 });
 
 window.addEventListener("popstate", () => {
+  if (window.location.pathname === "/report") {
+    showReportView();
+    void renderReport();
+    return;
+  }
   const tab = PATH_TAB[window.location.pathname] ?? "email";
   const url = new URL(window.location.href);
   const d = url.searchParams.get("d");
@@ -461,6 +682,11 @@ window.addEventListener("popstate", () => {
 /* ─────────────── init (shareable links) ─────────────── */
 (function init() {
   const url = new URL(window.location.href);
+  if (url.pathname === "/report") {
+    showReportView();
+    void renderReport();
+    return;
+  }
   const tab = PATH_TAB[url.pathname] ?? "email";
   const d = url.searchParams.get("d");
   const s = url.searchParams.get("s");
