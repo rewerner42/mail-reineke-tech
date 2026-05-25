@@ -965,6 +965,54 @@ body.is-report .site-footer { display: none; }
 }
 .lead-submit { width: 100%; }
 .lead-note { margin: 0.25rem 0 0; font-size: 0.78rem; color: var(--rt-gray-mid); line-height: 1.5; }
+
+/* ─── Cookie-Hinweis (unaufdringlich, unten links) ───────── */
+.cookie-banner {
+  position: fixed;
+  left: 1rem;
+  bottom: 1rem;
+  z-index: 50;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.85rem 1rem;
+  background: #fff;
+  border: 1px solid var(--rt-border);
+  border-left: 3px solid var(--rt-red);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+}
+/* Higher specificity than the rule above, so [hidden] actually hides it. */
+.cookie-banner[hidden] { display: none; }
+.cookie-text { margin: 0; font-size: 0.8rem; line-height: 1.45; color: var(--rt-gray); }
+.cookie-text a { color: var(--rt-red); }
+.cookie-actions { display: flex; gap: 0.5rem; align-items: center; }
+.cookie-accept {
+  border: 0;
+  background: var(--rt-red);
+  color: #fff;
+  font-family: var(--rt-sans);
+  font-weight: 700;
+  font-size: 0.78rem;
+  padding: 0.45rem 0.9rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.cookie-accept:hover { background: var(--rt-red-dark); }
+.cookie-reject {
+  border: 0;
+  background: transparent;
+  color: var(--rt-gray-mid);
+  font-family: var(--rt-sans);
+  font-size: 0.78rem;
+  padding: 0.45rem 0.4rem;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.cookie-reject:hover { color: var(--rt-gray); }
+@media (max-width: 860px) {
+  .cookie-banner { left: 0.75rem; right: 0.75rem; bottom: 0.75rem; max-width: none; }
+}
 .report-progress { padding: 2.5rem 0; }
 .report-progress-track {
   height: 8px;
@@ -1222,6 +1270,7 @@ body.is-report .site-footer { display: none; }
   @page { margin: 14mm; }
   body { background: #fff; }
   .report-toolbar { display: none !important; }
+  .cookie-banner { display: none !important; }
   .report-view { padding: 0; background: #fff; min-height: 0; }
   .report-doc { max-width: none; margin: 0; border: 0; padding: 0; }
   /* one page per analysis area */

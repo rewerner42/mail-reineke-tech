@@ -390,27 +390,20 @@
       </div>
     </footer>
 
-    <script src="/app.js" type="module"></script>
+    <!-- Cookie-Hinweis (Opt-out: Tracking läuft, kann abgelehnt werden).
+         Wiring + Leadfeeder-Laden erfolgt in app.js (consent-gesteuert). -->
+    <div class="cookie-banner" data-cookie-banner hidden role="dialog" aria-live="polite"
+         aria-label="Cookie-Hinweis">
+      <p class="cookie-text">
+        Wir nutzen Cookies &amp; Analyse-Tools, um unser Angebot zu verbessern.
+        <a href="https://www.reineke-technik.de/datenschutz/" target="_blank" rel="noopener">Datenschutz</a>
+      </p>
+      <div class="cookie-actions">
+        <button type="button" class="cookie-accept" data-cookie-accept>Einverstanden</button>
+        <button type="button" class="cookie-reject" data-cookie-reject>Ablehnen</button>
+      </div>
+    </div>
 
-    <!-- Leadfeeder / Dealfront visitor tracking -->
-    <script>
-      (function (ss, ex) {
-        window.ldfdr =
-          window.ldfdr ||
-          function () {
-            (ldfdr._q = ldfdr._q || []).push([].slice.call(arguments));
-          };
-        (function (d, s) {
-          fs = d.getElementsByTagName(s)[0];
-          function ce(src) {
-            var cs = d.createElement(s);
-            cs.src = src;
-            cs.async = 1;
-            fs.parentNode.insertBefore(cs, fs);
-          }
-          ce("https://sc.lfeeder.com/lftracker_v1_" + ss + (ex ? "_" + ex : "") + ".js");
-        })(document, "script");
-      })("bElvO732oZG8ZMqj");
-    </script>
+    <script src="/app.js" type="module"></script>
   </body>
 </html>

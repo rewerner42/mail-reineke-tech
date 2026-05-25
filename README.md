@@ -83,7 +83,10 @@ Worker-Logs (`wrangler tail`) protokolliert und der Nutzer **trotzdem** zum
 Bericht durchgelassen — kein Lead geht verloren, keine Sackgasse für den Nutzer.
 
 > Besucher-Identifikation (Firmen-Ebene) erfolgt zusätzlich über den
-> Leadfeeder/Dealfront-Tracker in `public/index.html`.
+> Leadfeeder/Dealfront-Tracker. Dieser wird **consent-gesteuert** in
+> `public/app.js` geladen (Opt-out: läuft, sofern der Nutzer im unauffälligen
+> Cookie-Banner nicht „Ablehnen" wählt; bei Ablehnung wird der `_lfa`-Cookie
+> entfernt und die Wahl in `localStorage` gemerkt).
 
 ## Architektur
 
@@ -106,9 +109,9 @@ src/
     ├── tls-rpt.ts        # _smtp._tls TXT (RFC 8460)
     └── dnssec.ts         # DNSKEY + DS + AD-Flag → Note
 public/
-├── index.html            # 3-Tab SPA (E-Mail / Website / DNSSEC) + Leadfeeder-Tracker
+├── index.html            # 3-Tab SPA (E-Mail / Website / DNSSEC) + Cookie-Banner
 ├── styles.css            # Reineke-Technik-Branding (Rot #dc0d23 / Schwarz / Weiß)
-├── app.js                # Tab-Routing, Domain-State, Per-Tab-Cache, Noten-Badges, Report + Lead-Gate
+├── app.js                # Tab-Routing, Domain-State, Cache, Report + Lead-Gate, Consent + Leadfeeder
 └── assets/
     ├── reineke-logo.png  # Reineke Cyber Security Logo
     ├── sharp-logo.png    # Sharp Partner-Logo
