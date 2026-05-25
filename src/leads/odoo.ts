@@ -70,15 +70,20 @@ export function buildLeadValues(
     (domain ? `Analysierte Domain: ${domain}\n` : "") +
     `E-Mail: ${email}\n` +
     `DSGVO-Einwilligung erteilt: ${stamp}`;
-  return {
+  const values: Record<string, unknown> = {
     name,
     contact_name: email,
     email_from: email,
-    type: "lead",
+    // "opportunity" → erscheint direkt in der CRM-Pipeline (ohne dass die
+    // separate "Leads"-Funktion in Odoo aktiviert sein muss).
+    type: "opportunity",
     description,
     // Free-text channel marker; avoids depending on specific source_id records.
     referred: "sharp.reineke.tech",
   };
+  // Store the analysed domain in the structured Website field, too.
+  if (domain) values.website = domain;
+  return values;
 }
 
 interface JsonRpcResponse<T> {

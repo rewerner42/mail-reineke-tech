@@ -63,7 +63,11 @@ Hostnamen existiert, muss dieser zuerst entfernt werden.
 ### Lead-Erfassung (Odoo CRM)
 
 Der Report-Download ist hinter einem **E-Mail-Feld + DSGVO-Einwilligung** (`POST
-/api/lead`). Bestätigte Leads werden per Odoo-JSON-RPC als `crm.lead` angelegt.
+/api/lead`). Bestätigte Leads werden per Odoo-JSON-RPC als `crm.lead` mit
+`type=opportunity` angelegt — sie erscheinen damit direkt in der **CRM-Pipeline**
+(ohne dass die separate „Leads"-Funktion aktiviert sein muss). Die analysierte
+Domain wird im **Website-Feld** des Datensatzes gespeichert; Marker „Empfohlen
+von / Referred By" = `sharp.reineke.tech`.
 
 **1. API-Key in Odoo erzeugen:** in Odoo unter _Einstellungen → Benutzer →
 (dein API-Benutzer) → Konto-Sicherheit → Neuer API-Schlüssel_. Der Benutzer
