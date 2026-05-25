@@ -482,9 +482,11 @@ function switchTab(tab) {
 function reportFindingHtml(key, c) {
   const label = CHECK_LABELS[key] ?? key;
   const status = c.status ?? "info";
+  // Letter-grade checks (DMARC/DNSSEC/Observatory) show the grade; the rest show
+  // the severity icon — a long word like "HINWEIS" overflows the square badge.
   const grade = c.grade
     ? `<span class="report-grade" data-status="${status}">${escapeHtml(c.grade)}</span>`
-    : `<span class="report-grade report-grade-text" data-status="${status}">${escapeHtml(SEVERITY_LABEL[status] ?? "—")}</span>`;
+    : `<span class="report-grade report-grade-icon" data-status="${status}">${SEVERITY_ICON[status] ?? "•"}</span>`;
   let extra = "";
   if (key === "observatory" && Array.isArray(c.data?.tests)) {
     const failed = c.data.tests.filter((t) => t.pass === false);
@@ -573,6 +575,33 @@ function buildReportHtml(domain, isSingle, singleLabel, findings) {
   );
 }
 
+function startReportProgress(doc, estMs) {
+  doc.innerHTML = `
+    <div class="report-progress">
+      <p class="report-loading">Bericht wird erstellt … der Website-Scan (MDN HTTP Observatory) kann bis zu ~25 Sekunden dauern.</p>
+      <div class="report-progress-track"><div class="report-progress-bar"></div></div>
+    </div>`;
+  const bar = doc.querySelector(".report-progress-bar");
+  // Animate toward 92% over the estimate; the final 8% is filled when data lands.
+  requestAnimationFrame(() => {
+    bar.style.transition = `width ${estMs}ms cubic-bezier(.15,.75,.3,1)`;
+    bar.style.width = "92%";
+  });
+  return bar;
+}
+
+function finishReportProgress(doc, bar, html) {
+  if (!bar) {
+    doc.innerHTML = html;
+    return;
+  }
+  bar.style.transition = "width .35s ease-out";
+  bar.style.width = "100%";
+  setTimeout(() => {
+    doc.innerHTML = html;
+  }, 380);
+}
+
 async function renderReport() {
   const url = new URL(window.location.href);
   const domain = (url.searchParams.get("d") || "").trim();
@@ -583,12 +612,12 @@ async function renderReport() {
     doc.innerHTML = '<p class="report-loading">Keine Domain angegeben.</p>';
     return;
   }
-  doc.innerHTML =
-    '<p class="report-loading">Bericht wird erstellt … (Website-Scan kann bis ~10 Sekunden dauern)</p>';
   const enc = encodeURIComponent(domain);
+  const isSingle = !!check;
+  const slow = !isSingle || check === "observatory"; // Observatory is the slow part
+  const bar = startReportProgress(doc, slow ? 25000 : 3500);
   try {
     let findings;
-    const isSingle = !!check;
     if (check === "observatory") {
       const o = await fetchJson(`/api/observatory?domain=${enc}`);
       findings = [["observatory", o.observatory]];
@@ -612,12 +641,13 @@ async function renderReport() {
       ];
       if (o?.observatory) findings.push(["observatory", o.observatory]);
     }
-    doc.innerHTML = buildReportHtml(
+    const html = buildReportHtml(
       domain,
       isSingle,
       isSingle ? CHECK_LABELS[check] ?? check : "",
       findings,
     );
+    finishReportProgress(doc, bar, html);
   } catch (err) {
     doc.innerHTML = `<p class="report-loading">Bericht konnte nicht erstellt werden: ${escapeHtml(
       err instanceof Error ? err.message : String(err),
