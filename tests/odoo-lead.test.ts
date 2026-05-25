@@ -49,13 +49,15 @@ describe("buildLeadValues", () => {
     const v = buildLeadValues({ email: "a@b.de", domain: "reineke.tech", consent: true }, now);
     expect(v.name).toBe("Sicherheits-Check: reineke.tech");
     expect(v.email_from).toBe("a@b.de");
-    expect(v.type).toBe("lead");
+    expect(v.type).toBe("opportunity");
+    expect(v.website).toBe("reineke.tech");
     expect(String(v.description)).toContain("reineke.tech");
     expect(String(v.description)).toContain("2026-05-25T10:00:00.000Z");
   });
-  it("falls back to the e-mail when no domain", () => {
+  it("falls back to the e-mail when no domain (no website field)", () => {
     const v = buildLeadValues({ email: "a@b.de", consent: true }, now);
     expect(v.name).toBe("Sicherheits-Check Anfrage: a@b.de");
+    expect(v.website).toBeUndefined();
   });
 });
 

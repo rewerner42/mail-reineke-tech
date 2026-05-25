@@ -746,7 +746,7 @@ function buildReportHtml(domain, isSingle, singleLabel, findings) {
 function startReportProgress(doc, estMs) {
   doc.innerHTML = `
     <div class="report-progress">
-      <p class="report-loading">Bericht wird erstellt … der Website-Scan (MDN HTTP Observatory) kann bis zu ~25 Sekunden dauern.</p>
+      <p class="report-loading">Bericht wird erstellt … Analyse, Website-Scan (MDN HTTP Observatory) und das PDF werden vorbereitet. Das kann ~30 Sekunden dauern.</p>
       <div class="report-progress-track"><div class="report-progress-bar"></div></div>
     </div>`;
   const bar = doc.querySelector(".report-progress-bar");
@@ -887,7 +887,8 @@ async function buildAndShowReport(doc, domain, check) {
   const enc = encodeURIComponent(domain);
   const isSingle = !!check;
   const slow = !isSingle || check === "observatory"; // Observatory is the slow part
-  const bar = startReportProgress(doc, slow ? 25000 : 3500);
+  // Estimate covers the scan AND the PDF render — the bar is coupled to both.
+  const bar = startReportProgress(doc, slow ? 30000 : 9000);
   try {
     let findings;
     if (check === "observatory") {
@@ -919,9 +920,15 @@ async function buildAndShowReport(doc, domain, check) {
       isSingle ? CHECK_LABELS[check] ?? check : "",
       findings,
     );
-    finishReportProgress(doc, bar, html);
-    // Pre-generate the PDF in the background so the download button is instant.
+    // Couple the progress bar to the PDF creation: generate it now (while the bar
+    // still runs) so that when the report appears the PDF is ready for instant
+    // download. Capped by a timeout so a slow/failed render never blocks the report.
     prefetchReportPdf(html, domain, check);
+    await Promise.race([
+      reportPdfCache.promise.catch(() => {}),
+      new Promise((resolve) => setTimeout(resolve, 25000)),
+    ]);
+    finishReportProgress(doc, bar, html);
   } catch (err) {
     doc.innerHTML = `<p class="report-loading">Bericht konnte nicht erstellt werden: ${escapeHtml(
       err instanceof Error ? err.message : String(err),
