@@ -83,9 +83,9 @@ Ist Odoo nicht konfiguriert oder schlägt der Push fehl, wird der Lead in den
 Worker-Logs (`wrangler tail`) protokolliert und der Nutzer **trotzdem** zum
 Bericht durchgelassen — kein Lead geht verloren, keine Sackgasse für den Nutzer.
 
-> Besucher-Identifikation (Firmen-Ebene) erfolgt zusätzlich über den
-> Leadfeeder/Dealfront-Tracker. Dieser wird **consent-gesteuert** in
-> `public/app.js` geladen (Opt-out: läuft, sofern der Nutzer im unauffälligen
+> Analytics: **Leadfeeder/Dealfront** (Firmen-Identifikation) + **Umami**
+> (cookieloses Page-Tracking). Beide werden **consent-gesteuert** in
+> `public/app.js` geladen (Opt-out: laufen, sofern der Nutzer im unauffälligen
 > Cookie-Banner nicht „Ablehnen" wählt; bei Ablehnung wird der `_lfa`-Cookie
 > entfernt und die Wahl in `localStorage` gemerkt).
 
