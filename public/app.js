@@ -920,6 +920,8 @@ async function buildAndShowReport(doc, domain, check) {
       findings,
     );
     finishReportProgress(doc, bar, html);
+    // Pre-generate the PDF in the background so the download button is instant.
+    prefetchReportPdf(html, domain, check);
   } catch (err) {
     doc.innerHTML = `<p class="report-loading">Bericht konnte nicht erstellt werden: ${escapeHtml(
       err instanceof Error ? err.message : String(err),
@@ -935,34 +937,65 @@ function showReportView() {
   $("#view-report").hidden = false;
 }
 
-// Server-side PDF download (Browser Rendering). Posts the already-built report
-// HTML and saves the returned PDF. Falls back to the browser print dialog if the
-// PDF service is unavailable (e.g. daily Browser-Rendering limit reached).
+// Server-side PDF (Browser Rendering). The PDF is pre-generated in the background
+// as soon as the report renders (prefetchReportPdf), so the download click is
+// instant. Falls back to the browser print dialog if the PDF service is
+// unavailable (e.g. daily Browser-Rendering limit reached).
+let reportPdfCache = null; // { key, promise<Blob> }
+
+const reportPdfKey = (domain, check) => `${domain}|${check}`;
+
+async function fetchReportPdfBlob(html, domain, check) {
+  const r = await fetch("/api/report-pdf", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ html, domain, check }),
+  });
+  if (!r.ok) throw new Error("PDF-Service nicht verfügbar");
+  return r.blob();
+}
+
+// Kick off PDF generation in the background while the user reads the report.
+function prefetchReportPdf(html, domain, check) {
+  const key = reportPdfKey(domain, check);
+  const promise = fetchReportPdfBlob(html, domain, check);
+  promise.catch(() => {}); // mark handled; downloadReportPdf re-handles on await
+  reportPdfCache = { key, promise };
+}
+
+function triggerBlobDownload(blob, domain, check) {
+  const objUrl = URL.createObjectURL(blob);
+  const safe = domain.replace(/[^a-z0-9.-]/gi, "_");
+  const a = document.createElement("a");
+  a.href = objUrl;
+  a.download = `${check ? `Befund-${check}-${safe}` : `Sicherheitsbericht-${safe}`}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(objUrl), 4000);
+}
+
 async function downloadReportPdf(btn) {
   const doc = $("[data-report-doc]");
   if (!doc || doc.querySelector(".lead-gate, .report-progress")) return; // not ready
   const url = new URL(window.location.href);
   const domain = (url.searchParams.get("d") || "report").trim();
   const check = url.searchParams.get("check") || "";
+  const key = reportPdfKey(domain, check);
   btn.classList.add("loading");
   btn.disabled = true;
   try {
-    const r = await fetch("/api/report-pdf", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ html: doc.innerHTML, domain, check }),
-    });
-    if (!r.ok) throw new Error("PDF-Service nicht verfügbar");
-    const blob = await r.blob();
-    const objUrl = URL.createObjectURL(blob);
-    const safe = domain.replace(/[^a-z0-9.-]/gi, "_");
-    const a = document.createElement("a");
-    a.href = objUrl;
-    a.download = `${check ? `Befund-${check}-${safe}` : `Sicherheitsbericht-${safe}`}.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(objUrl), 4000);
+    let blob = null;
+    // Use the background-generated PDF if it's for this exact report.
+    if (reportPdfCache && reportPdfCache.key === key) {
+      try {
+        blob = await reportPdfCache.promise;
+      } catch {
+        blob = null; // prefetch failed → retry fresh below
+      }
+    }
+    if (!blob) blob = await fetchReportPdfBlob(doc.innerHTML, domain, check);
+    triggerBlobDownload(blob, domain, check);
   } catch {
     window.print(); // graceful fallback
   } finally {
