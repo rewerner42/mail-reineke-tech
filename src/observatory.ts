@@ -13,7 +13,7 @@ const OBSERVATORY_API = "https://observatory-api.mdn.mozilla.net/api/v2/analyze"
 const GRADE_DIST_API =
   "https://observatory-api.mdn.mozilla.net/api/v2/grade_distribution";
 const MDN_BASE = "https://developer.mozilla.org";
-const SCAN_TIMEOUT_MS = 20000; // fresh scans take ~10s; allow headroom
+const SCAN_TIMEOUT_MS = 28000; // fresh scans take ~10s but MDN can be slow under load
 
 export interface GradeBucket {
   grade: string;

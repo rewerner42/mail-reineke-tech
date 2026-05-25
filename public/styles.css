@@ -880,7 +880,19 @@ body.is-report .site-footer { display: none; }
   border: 1px solid var(--rt-border);
   padding: 3rem 3.25rem;
 }
-.report-loading { color: var(--rt-gray); font-weight: 300; padding: 2rem 0; }
+.report-loading { color: var(--rt-gray); font-weight: 300; padding: 0 0 1rem; }
+.report-progress { padding: 2.5rem 0; }
+.report-progress-track {
+  height: 8px;
+  background: var(--rt-bg-soft);
+  border: 1px solid var(--rt-border);
+  overflow: hidden;
+}
+.report-progress-bar {
+  width: 0;
+  height: 100%;
+  background: var(--rt-red);
+}
 
 .report-letterhead {
   display: flex;
@@ -974,7 +986,7 @@ body.is-report .site-footer { display: none; }
   border: 2px solid var(--rt-border);
   background: var(--rt-bg-soft);
 }
-.report-grade.report-grade-text { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.report-grade.report-grade-icon { font-size: 1.7rem; font-family: var(--rt-mono); }
 .report-grade[data-status="pass"] { color: var(--pass); border-color: var(--pass); background: var(--pass-bg); }
 .report-grade[data-status="warn"] { color: var(--warn); border-color: var(--warn); background: var(--warn-bg); }
 .report-grade[data-status="fail"] { color: var(--fail); border-color: var(--fail); background: var(--fail-bg); }
