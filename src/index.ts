@@ -9,6 +9,8 @@ import { analyzeTlsRpt } from "./analyzers/tls-rpt.js";
 import { analyzeDnssec } from "./analyzers/dnssec.js";
 import { analyzeObservatory, fetchGradeDistribution } from "./observatory.js";
 import { createLead, odooConfigFromEnv, validateEmail } from "./leads/odoo.js";
+import { MAX_HTML_BYTES, renderReportPdf } from "./pdf/render.js";
+import type { BrowserWorker } from "@cloudflare/puppeteer";
 import type { AnalysisResponse } from "./types.js";
 
 type Bindings = {
@@ -18,6 +20,8 @@ type Bindings = {
   ODOO_DB?: string;
   ODOO_USERNAME?: string;
   ODOO_API_KEY?: string;
+  // Browser Rendering binding for server-side PDF export.
+  BROWSER?: BrowserWorker;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -184,6 +188,85 @@ app.post("/api/lead", async (c) => {
     return c.json({ ok: true, code: result.code, message: "Bericht wird erstellt." });
   }
   return c.json({ ok: true, code: "OK", message: "Bericht wird erstellt.", leadId: result.leadId });
+});
+
+// Server-side PDF export: the client posts the already-built report HTML and we
+// render it to a real PDF (Browser Rendering) for a true one-click download.
+// On any failure the frontend falls back to the browser print dialog.
+app.post("/api/report-pdf", async (c) => {
+  if (!c.env.BROWSER) {
+    return c.json(
+      { ok: false, code: "NO_BROWSER", message: "PDF-Rendering nicht verfügbar." },
+      503,
+    );
+  }
+
+  let body: { html?: unknown; domain?: unknown; check?: unknown };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ ok: false, code: "BAD_REQUEST", message: "Ungültige Anfrage." }, 400);
+  }
+
+  const html = typeof body.html === "string" ? body.html : "";
+  if (!html || html.length > MAX_HTML_BYTES) {
+    return c.json(
+      { ok: false, code: "BAD_HTML", message: "Report-Inhalt fehlt oder ist zu groß." },
+      400,
+    );
+  }
+  // Sanity check: only render our own report markup.
+  if (!html.includes("report-letterhead")) {
+    return c.json(
+      { ok: false, code: "UNEXPECTED_HTML", message: "Unerwarteter Report-Inhalt." },
+      400,
+    );
+  }
+
+  const origin = new URL(c.req.url).origin;
+  const domain =
+    typeof body.domain === "string" ? (normalizeDomain(body.domain) ?? "report") : "report";
+  const check = typeof body.check === "string" ? body.check.replace(/[^a-z0-9]/gi, "") : "";
+
+  // Inline the stylesheet + logo (served via the ASSETS binding) so the headless
+  // browser needs no external fetches — fully self-contained, fast, env-agnostic.
+  let css = "";
+  let inlineHtml = html;
+  try {
+    const [cssResp, logoResp] = await Promise.all([
+      c.env.ASSETS.fetch(new Request(`${origin}/styles.css`)),
+      c.env.ASSETS.fetch(new Request(`${origin}/assets/reineke-logo.png`)),
+    ]);
+    if (cssResp.ok) css = await cssResp.text();
+    if (logoResp.ok) {
+      const buf = new Uint8Array(await logoResp.arrayBuffer());
+      let bin = "";
+      for (let i = 0; i < buf.length; i += 0x8000) {
+        bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+      }
+      inlineHtml = html.replaceAll("/assets/reineke-logo.png", `data:image/png;base64,${btoa(bin)}`);
+    }
+  } catch {
+    /* fall back to linked stylesheet / external logo */
+  }
+
+  try {
+    const pdf = await renderReportPdf(c.env.BROWSER, { html: inlineHtml, origin, css });
+    const base = check ? `Befund-${check}-${domain}` : `Sicherheitsbericht-${domain}`;
+    return new Response(pdf, {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="${base}.pdf"`,
+        "Cache-Control": "no-store",
+      },
+    });
+  } catch (err) {
+    console.error("PDF render failed:", err instanceof Error ? err.message : String(err));
+    return c.json(
+      { ok: false, code: "RENDER_FAILED", message: "PDF konnte nicht erstellt werden." },
+      502,
+    );
+  }
 });
 
 // Static assets fallback (frontend)

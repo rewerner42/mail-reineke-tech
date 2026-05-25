@@ -21,6 +21,7 @@ DMARC-Compliance voraussetzen.
 - **Cloudflare Worker** (TypeScript, [Hono](https://hono.dev/))
 - **DNS-Abfragen** via Cloudflare DNS-over-HTTPS (`1.1.1.1`) — keine Drittanbieter
 - **Static Assets** über `[assets]` Binding (kein extra Pages-Projekt nötig)
+- **PDF-Export** via Cloudflare Browser Rendering (`@cloudflare/puppeteer`)
 - Keine Build-Pipeline für das Frontend (Vanilla HTML/CSS/JS)
 
 ## Lokale Entwicklung
@@ -100,6 +101,8 @@ src/
 ├── observatory-i18n.ts   # Deutsche Übersetzungen (Titel + Result-Codes)
 ├── leads/
 │   └── odoo.ts           # Lead-Capture → Odoo CRM (JSON-RPC crm.lead)
+├── pdf/
+│   └── render.ts         # Report-HTML → PDF (Cloudflare Browser Rendering)
 └── analyzers/
     ├── dmarc.ts          # _dmarc.<domain> → Parser + Note + Spoofing-Hinweis
     ├── spf.ts            # v=spf1 → Parser + rekursive Lookup-Zählung
@@ -150,8 +153,10 @@ automatisch neu gescannt. Shareable Links: `/dnssec?d=<domain>`, `/website?d=<do
 
 ### Report-Export (PDF)
 
-Branded **Cybersecurity-Report** unter `/report`, exportierbar als PDF über den
-Browser-Druck (`window.print()`, Print-Stylesheet blendet die Bedienelemente aus):
+Branded **Cybersecurity-Report** unter `/report`, als echter **Ein-Klick-PDF-Download**
+(`POST /api/report-pdf` → Cloudflare Browser Rendering rendert die Report-HTML
+serverseitig zu einem PDF). Fällt der PDF-Dienst aus (z.B. Tageslimit erreicht),
+greift automatisch der Browser-Druck (`window.print()`) als Fallback:
 
 - **Gesamtbericht:** `/report?d=<domain>` — paginiert: Seite 1 = Zusammenfassung
   mit drei Bereichs-Blöcken (E-Mail / Website / DNSSEC), danach je eine Seite pro
@@ -268,6 +273,16 @@ Lead-Erfassung vor dem Report-Download. Body: `{ "email": "…", "domain": "…"
 "consent": true }`. Erzwingt gültige E-Mail + Einwilligung (sonst `400`
 `INVALID_EMAIL` / `NO_CONSENT`), legt anschließend best-effort einen `crm.lead`
 in Odoo an. Antwort: `{ ok, code, message, leadId? }`.
+
+### `POST /api/report-pdf`
+
+Erzeugt den Report serverseitig als PDF (Cloudflare Browser Rendering). Body:
+`{ "html": "<die gebaute Report-HTML>", "domain": "…", "check": "…" }`. Antwort:
+`application/pdf` mit `Content-Disposition: attachment`. Schutz: HTML-Größenlimit,
+`<script>`/`<iframe>` werden entfernt, der Headless-Browser darf nur unsere eigene
+Origin laden (Request-Interception). Stylesheet + Logo werden inline eingebettet,
+sodass keine externen Fetches nötig sind. Erfordert die `BROWSER`-Bindung (Browser
+Rendering: Free-Plan 10 Min/Tag, darüber Workers Paid).
 
 ### `GET /api/health`
 

@@ -3,6 +3,10 @@ main = "src/index.ts"
 compatibility_date = "2025-01-15"
 compatibility_flags = ["nodejs_compat"]
 
+# Browser Rendering — headless Chrome for the server-side PDF export.
+# (Top-level key: must precede any [table] header.)
+browser = { binding = "BROWSER" }
+
 # Static assets (frontend served from /public)
 [assets]
 directory = "./public"
@@ -16,6 +20,7 @@ routes = [
   { pattern = "sharp.reineke.tech", custom_domain = true },
   { pattern = "mail.reineke.tech", custom_domain = true }
 ]
+browser = { binding = "BROWSER" }
 
 [env.production.assets]
 directory = "./public"
