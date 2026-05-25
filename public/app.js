@@ -770,6 +770,99 @@ function finishReportProgress(doc, bar, html) {
   }, 380);
 }
 
+const LEAD_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+function leadCaptured() {
+  try {
+    return sessionStorage.getItem("rt-lead") === "1";
+  } catch {
+    return false;
+  }
+}
+function markLeadCaptured(email) {
+  try {
+    sessionStorage.setItem("rt-lead", "1");
+    if (email) sessionStorage.setItem("rt-lead-email", email);
+  } catch {
+    /* storage unavailable — gate will simply show again */
+  }
+}
+
+// E-mail + DSGVO consent gate shown before a report is generated/downloaded.
+function renderLeadGate(doc, domain, onProceed) {
+  const printBtn = $("#report-print");
+  // Inline display beats the `.btn { display: inline-flex }` rule (which would
+  // otherwise override the [hidden] attribute). Nothing to print until the report exists.
+  if (printBtn) printBtn.style.display = "none";
+  doc.innerHTML = `
+    <div class="lead-gate">
+      <p class="eyebrow">Cybersecurity-Report</p>
+      <h2>Bericht anfordern</h2>
+      <p class="lead-intro">Gib deine E-Mail-Adresse ein, um den Sicherheitsbericht${
+        domain ? ` für <span class="mono">${escapeHtml(domain)}</span>` : ""
+      } zu erstellen und herunterzuladen.</p>
+      <form class="lead-form" novalidate>
+        <label class="lead-field">
+          <span class="lead-label">E-Mail-Adresse</span>
+          <input type="email" name="email" required autocomplete="email" inputmode="email"
+                 placeholder="name@unternehmen.de" />
+        </label>
+        <label class="lead-consent">
+          <input type="checkbox" name="consent" required />
+          <span>Ich willige ein, dass die <strong>Reineke Technik GmbH</strong> meine
+            E-Mail-Adresse zur Bereitstellung des Berichts und zur Kontaktaufnahme
+            verarbeitet. Die <a href="https://www.reineke-technik.de/datenschutz/"
+            target="_blank" rel="noopener">Datenschutzerklärung</a> habe ich zur Kenntnis
+            genommen. Diese Einwilligung kann ich jederzeit mit Wirkung für die Zukunft
+            widerrufen.</span>
+        </label>
+        <p class="lead-error" data-lead-error hidden></p>
+        <button type="submit" class="btn btn-primary lead-submit">
+          <span class="btn-label">Bericht erstellen</span><span class="spinner"></span>
+        </button>
+        <p class="lead-note">Wir verwenden deine E-Mail-Adresse ausschließlich für den
+          angeforderten Bericht und eine etwaige Rückfrage. Keine Weitergabe an Dritte.</p>
+      </form>
+    </div>`;
+
+  const form = doc.querySelector(".lead-form");
+  const errEl = form.querySelector("[data-lead-error]");
+  const btn = form.querySelector(".lead-submit");
+  const showErr = (m) => {
+    errEl.textContent = m;
+    errEl.hidden = false;
+  };
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    errEl.hidden = true;
+    const email = form.email.value.trim();
+    const consent = form.consent.checked;
+    if (!consent) return showErr("Bitte stimme der Verarbeitung deiner E-Mail-Adresse zu.");
+    if (!LEAD_EMAIL_RE.test(email)) return showErr("Bitte gib eine gültige E-Mail-Adresse ein.");
+    btn.classList.add("loading");
+    btn.disabled = true;
+    try {
+      const r = await fetch("/api/lead", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, domain, consent: true }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || !data.ok) {
+        btn.classList.remove("loading");
+        btn.disabled = false;
+        return showErr(data.message || "Es ist ein Fehler aufgetreten. Bitte erneut versuchen.");
+      }
+      markLeadCaptured(email);
+      onProceed();
+    } catch {
+      btn.classList.remove("loading");
+      btn.disabled = false;
+      showErr("Verbindungsfehler. Bitte erneut versuchen.");
+    }
+  });
+}
+
 async function renderReport() {
   const url = new URL(window.location.href);
   const domain = (url.searchParams.get("d") || "").trim();
@@ -780,6 +873,17 @@ async function renderReport() {
     doc.innerHTML = '<p class="report-loading">Keine Domain angegeben.</p>';
     return;
   }
+  // Gate: capture an e-mail + consent (once per session) before building the report.
+  if (!leadCaptured()) {
+    renderLeadGate(doc, domain, () => buildAndShowReport(doc, domain, check));
+    return;
+  }
+  buildAndShowReport(doc, domain, check);
+}
+
+async function buildAndShowReport(doc, domain, check) {
+  const printBtn = $("#report-print");
+  if (printBtn) printBtn.style.display = "";
   const enc = encodeURIComponent(domain);
   const isSingle = !!check;
   const slow = !isSingle || check === "observatory"; // Observatory is the slow part

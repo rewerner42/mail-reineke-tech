@@ -907,6 +907,64 @@ body.is-report .site-footer { display: none; }
   padding: 3rem 3.25rem;
 }
 .report-loading { color: var(--rt-gray); font-weight: 300; padding: 0 0 1rem; }
+
+/* ─── Lead gate (e-mail + DSGVO consent before the report) ─── */
+.lead-gate { max-width: 520px; margin: 0 auto; }
+.lead-gate .eyebrow { margin: 0 0 0.75rem; }
+.lead-gate h2 {
+  font-size: clamp(1.6rem, 2.5vw + 0.5rem, 2.1rem);
+  font-weight: 300;
+  margin: 0 0 0.75rem;
+  color: var(--rt-black);
+  letter-spacing: -0.01em;
+}
+.lead-intro { margin: 0 0 1.75rem; color: var(--rt-gray); line-height: 1.55; }
+.lead-form { display: flex; flex-direction: column; gap: 1.1rem; }
+.lead-field { display: flex; flex-direction: column; gap: 0.4rem; }
+.lead-label { font-size: 0.85rem; font-weight: 700; color: var(--rt-gray); }
+.lead-field input {
+  width: 100%;
+  border: 1px solid var(--rt-border);
+  border-radius: 0;
+  padding: 0.9rem 1rem;
+  font-family: var(--rt-mono);
+  font-size: 1rem;
+  background: #fff;
+  color: var(--rt-black);
+  transition: var(--transition);
+}
+.lead-field input:focus {
+  border-color: var(--rt-red);
+  outline: none;
+  box-shadow: 0 0 0 1px var(--rt-red);
+}
+.lead-consent {
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--rt-gray);
+}
+.lead-consent input[type="checkbox"] {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin-top: 0.15rem;
+  accent-color: var(--rt-red);
+}
+.lead-consent a { color: var(--rt-red); }
+.lead-consent strong { color: var(--rt-black); }
+.lead-error {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  background: var(--rt-red-soft);
+  color: var(--rt-red-dark);
+  border-left: 3px solid var(--rt-red);
+  font-size: 0.9rem;
+}
+.lead-submit { width: 100%; }
+.lead-note { margin: 0.25rem 0 0; font-size: 0.78rem; color: var(--rt-gray-mid); line-height: 1.5; }
 .report-progress { padding: 2.5rem 0; }
 .report-progress-track {
   height: 8px;
