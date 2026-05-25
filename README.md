@@ -122,11 +122,15 @@ automatisch neu gescannt. Shareable Links: `/dnssec?d=<domain>`, `/website?d=<do
 Branded **Cybersecurity-Report** unter `/report`, exportierbar als PDF über den
 Browser-Druck (`window.print()`, Print-Stylesheet blendet die Bedienelemente aus):
 
-- **Gesamtbericht:** `/report?d=<domain>` — alle Checks, Zusammenfassungstabelle +
-  Befunde. Button „Gesamtbericht (PDF)" in jeder Ergebnis-Leiste.
+- **Gesamtbericht:** `/report?d=<domain>` — paginiert: Seite 1 = Zusammenfassung
+  mit drei Bereichs-Blöcken (E-Mail / Website / DNSSEC), danach je eine Seite pro
+  Bereich (`break-before: page`) mit Kurzüberblick + technischen Details. Button
+  „Gesamtbericht (PDF)" in jeder Ergebnis-Leiste.
 - **Einzelbefund:** `/report?d=<domain>&check=<id>` (`id` = `dmarc`, `spf`, `dkim`,
   `mx`, `mtaSts`, `tlsRpt`, `dnssec`, `observatory`). Button „Befund als PDF
   exportieren" auf jeder Ergebnis-Karte.
+- Während der Erstellung läuft ein Ladebalken (Website-Scan bis ~25 s); der
+  Report erscheint, sobald die Daten da sind.
 
 Briefkopf: **Reineke Technik GmbH · Werner Francis Reineke · Geseker Straße 26,
 33154 Salzkotten · Tel. +49 (0) 5258 987-282 · wf.reineke@reineke-technik.de**

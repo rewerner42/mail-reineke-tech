@@ -1026,6 +1026,53 @@ body.is-report .site-footer { display: none; }
   line-height: 1.5;
 }
 .report-subfindings strong { color: var(--rt-black); }
+
+/* Summary page: three area overview blocks */
+.report-areas { display: flex; flex-direction: column; gap: 1rem; }
+.report-area-card {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.1rem 1.25rem;
+  border: 1px solid var(--rt-border);
+  border-left: 4px solid var(--rt-border);
+}
+.report-area-card[data-status="pass"] { border-left-color: var(--pass); }
+.report-area-card[data-status="warn"] { border-left-color: var(--warn); }
+.report-area-card[data-status="fail"] { border-left-color: var(--fail); }
+.report-area-card[data-status="info"] { border-left-color: var(--info); }
+.report-area-card-body { min-width: 0; }
+.report-area-card-body h3 { margin: 0 0 0.5rem; font-size: 1.15rem; color: var(--rt-black); }
+.report-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.report-chip {
+  font-size: 0.74rem;
+  font-family: var(--rt-mono);
+  padding: 0.14rem 0.5rem;
+  background: var(--rt-bg-soft);
+  border: 1px solid var(--rt-border);
+  white-space: nowrap;
+}
+.report-chip[data-status="pass"] { color: var(--pass); border-color: var(--pass); background: var(--pass-bg); }
+.report-chip[data-status="warn"] { color: var(--warn); border-color: var(--warn); background: var(--warn-bg); }
+.report-chip[data-status="fail"] { color: var(--fail); border-color: var(--fail); background: var(--fail-bg); }
+.report-chip[data-status="info"] { color: var(--info); border-color: var(--info); background: var(--info-bg); }
+
+/* Per-area pages (one per analysis part) */
+.report-page {
+  margin-top: 2.5rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--rt-border);
+}
+.report-area-title {
+  font-size: clamp(1.5rem, 2.5vw + 0.5rem, 2rem);
+  font-weight: 300;
+  color: var(--rt-black);
+  margin: 0 0 0.5rem;
+  letter-spacing: -0.01em;
+}
+.report-area-intro { margin: 0 0 1.75rem; color: var(--rt-gray); max-width: 64ch; line-height: 1.55; }
+.report-finding-detail { margin-top: 0.5rem; }
+
 .report-footer {
   margin-top: 2.5rem;
   padding-top: 1rem;
@@ -1041,8 +1088,10 @@ body.is-report .site-footer { display: none; }
   .report-toolbar { display: none !important; }
   .report-view { padding: 0; background: #fff; min-height: 0; }
   .report-doc { max-width: none; margin: 0; border: 0; padding: 0; }
-  .report-finding, .report-summary-table tr { break-inside: avoid; }
-  .report-section { break-inside: avoid-page; }
+  /* one page per analysis area */
+  .report-page { break-before: page; border-top: 0; margin-top: 0; padding-top: 0; }
+  .report-finding { break-inside: avoid; }
+  .report-area-card { break-inside: avoid; }
   a[href]::after { content: ""; } /* no URL noise */
 }
 
