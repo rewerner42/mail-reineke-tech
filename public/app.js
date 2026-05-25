@@ -1041,7 +1041,7 @@ window.addEventListener("popstate", () => {
   if (currentDomain) runScan(tab, currentDomain);
 })();
 
-/* ─────────────── Cookie-Consent + Leadfeeder ───────────────
+/* ─────────────── Cookie-Consent + Tracker (Leadfeeder + Umami) ───────────────
  * Opt-out-Modell: Tracking läuft, sofern der Nutzer es nicht ablehnt. Der
  * Banner erscheint nur, solange noch keine Wahl getroffen wurde. */
 const CONSENT_KEY = "rt-consent"; // "accepted" | "rejected"
@@ -1068,6 +1068,22 @@ function loadLeadfeeder() {
   })("bElvO732oZG8ZMqj");
 }
 
+// Umami — cookieless, privacy-friendly page analytics.
+function loadUmami() {
+  if (window.__umamiLoaded) return;
+  window.__umamiLoaded = true;
+  const s = document.createElement("script");
+  s.defer = true;
+  s.src = "https://cloud.umami.is/script.js";
+  s.setAttribute("data-website-id", "705faf06-6f2a-4905-8605-1fee670f68b1");
+  document.head.appendChild(s);
+}
+
+function loadTrackers() {
+  loadLeadfeeder();
+  loadUmami();
+}
+
 function readConsent() {
   try {
     return localStorage.getItem(CONSENT_KEY);
@@ -1079,7 +1095,7 @@ function readConsent() {
 (function initConsent() {
   const consent = readConsent();
   // Assume consent unless explicitly rejected.
-  if (consent !== "rejected") loadLeadfeeder();
+  if (consent !== "rejected") loadTrackers();
   if (consent) return; // choice already made → no banner
 
   const banner = $("[data-cookie-banner]");
