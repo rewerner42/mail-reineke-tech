@@ -509,32 +509,6 @@ const REPORT_AREAS = [
   },
 ];
 
-function renderObservatoryReportBody(c) {
-  let body = "";
-  const d = c.data;
-  if (d && d.grade) {
-    body += kvGrid([
-      ["Score", String(d.score)],
-      ["Tests bestanden", `${d.testsPassed}/${d.testsQuantity}`],
-    ]);
-  }
-  body += renderIssues(c.issues);
-  if (d && Array.isArray(d.tests) && d.tests.length) body += renderObsTests(d.tests);
-  return body;
-}
-
-// Technical-detail renderer per check — reuses the same bodies as the live cards.
-const REPORT_DETAIL = {
-  dmarc: renderDmarcBody,
-  spf: renderSpfBody,
-  dkim: renderDkimBody,
-  mx: renderMxBody,
-  mtaSts: renderMtaStsBody,
-  tlsRpt: renderTlsRptBody,
-  dnssec: renderDnssecBody,
-  observatory: renderObservatoryReportBody,
-};
-
 function reportBadge(c) {
   const status = c?.status ?? "info";
   return c?.grade
@@ -542,10 +516,78 @@ function reportBadge(c) {
     : `<span class="report-grade report-grade-icon" data-status="${status}">${SEVERITY_ICON[status] ?? "•"}</span>`;
 }
 
+// Compact technical facts per check — kept short so each area fits one print page.
+function reportFacts(key, c) {
+  const d = c.data;
+  const f = [];
+  if (key === "dmarc" && d) {
+    f.push(`Policy: ${d.p ?? "—"}`);
+    if (d.pct !== undefined && d.pct !== 100) f.push(`pct=${d.pct}`);
+    f.push(`Reporting: ${d.rua?.length ? "aktiv" : "fehlt"}`);
+    if (d.adkim || d.aspf)
+      f.push(`Alignment: dkim=${d.adkim ?? "r"} / spf=${d.aspf ?? "r"}`);
+  } else if (key === "spf" && d) {
+    f.push(`${d.dnsLookupCount}/10 DNS-Lookups`);
+    if (d.all) f.push(`${d.all}all`);
+    f.push(`${d.mechanisms?.length ?? 0} Mechanismen`);
+  } else if (key === "dkim" && Array.isArray(d)) {
+    if (d.length === 0) f.push("keine Selektoren gefunden");
+    d.forEach((s) => f.push(`${s.selector}${s.keySize ? ` (${s.keySize}-Bit)` : ""}`));
+  } else if (key === "mx" && Array.isArray(d)) {
+    d.forEach((m) => {
+      const ips = [...(m.ips?.a ?? []), ...(m.ips?.aaaa ?? [])];
+      f.push(`${m.exchange}${ips.length ? ` → ${ips.join(", ")}` : ""}`);
+    });
+  } else if (key === "mtaSts" && d) {
+    f.push(d.mode ? `Modus: ${d.mode}` : "nicht konfiguriert");
+  } else if (key === "tlsRpt" && d) {
+    f.push(d.rua?.length ? `Reports an: ${d.rua.join(", ")}` : "nicht konfiguriert");
+  } else if (key === "dnssec" && d) {
+    f.push(`Signiert & validiert: ${d.secure ? "ja" : "nein"}`);
+    f.push(`DNSKEY: ${d.dnskeyCount}`);
+    f.push(`DS beim Parent: ${d.dsPresent ? "ja" : "nein"}`);
+  } else if (key === "observatory" && d && d.grade) {
+    f.push(`Score: ${d.score}`);
+    f.push(`${d.testsPassed}/${d.testsQuantity} Tests bestanden`);
+  }
+  return f;
+}
+
+// Compact issue list for the report: only actionable items (skip plain "OK"),
+// capped, and recommendations shown only for failures to keep each area ≤ 1 page.
+function reportIssues(issues) {
+  const items = (issues || []).filter((i) => i.severity !== "pass").slice(0, 3);
+  if (!items.length) return "";
+  return `<ul class="report-issues">${items
+    .map((i) => {
+      const rec =
+        i.severity === "fail" && i.recommendation
+          ? `<span class="rec">${escapeHtml(i.recommendation)}</span>`
+          : "";
+      return `<li data-severity="${i.severity}"><strong>${escapeHtml(i.message)}</strong>${rec}</li>`;
+    })
+    .join("")}</ul>`;
+}
+
 function reportFindingHtml(key, c) {
   const label = CHECK_LABELS[key] ?? key;
   const status = c.status ?? "info";
-  const detail = (REPORT_DETAIL[key] || ((x) => renderIssues(x.issues)))(c);
+  const facts = reportFacts(key, c);
+  const factsHtml = facts.length
+    ? `<p class="report-facts">${facts.map((x) => `<span>${escapeHtml(x)}</span>`).join("")}</p>`
+    : "";
+  let obsTests = "";
+  if (key === "observatory" && Array.isArray(c.data?.tests)) {
+    const failed = c.data.tests.filter((t) => t.pass === false);
+    if (failed.length) {
+      obsTests = `<ul class="report-issues">${failed
+        .map(
+          (t) =>
+            `<li data-severity="fail"><strong>${escapeHtml(t.title)} (${escapeHtml(fmtScore(t.scoreModifier))})</strong>${t.recommendation ? `<span class="rec">${escapeHtml(t.recommendation)}</span>` : ""}</li>`,
+        )
+        .join("")}</ul>`;
+    }
+  }
   return `
     <section class="report-finding" data-status="${status}">
       <div class="report-finding-head">
@@ -555,7 +597,7 @@ function reportFindingHtml(key, c) {
           <p class="report-finding-summary">${escapeHtml(c.summary ?? "")}</p>
         </div>
       </div>
-      <div class="report-finding-detail">${detail}</div>
+      ${factsHtml}${reportIssues(c.issues)}${obsTests}
     </section>`;
 }
 
@@ -579,6 +621,75 @@ function reportAreaOverview(area, F) {
         <div class="report-chips">${chips}</div>
       </div>
     </div>`;
+}
+
+// Collect the actionable recommendations for an area (deduped, fail before warn).
+function reportAreaRecs(area, F) {
+  const recs = [];
+  for (const k of area.checks) {
+    const c = F[k];
+    if (!c) continue;
+    const label = CHECK_LABELS[k] ?? k;
+    for (const i of c.issues || []) {
+      if (i.severity === "fail" || i.severity === "warn") {
+        recs.push({ sev: i.severity, label, text: i.recommendation || i.message });
+      }
+    }
+    if (k === "observatory" && Array.isArray(c.data?.tests)) {
+      for (const t of c.data.tests.filter((x) => x.pass === false)) {
+        recs.push({ sev: "fail", label: t.title, text: t.recommendation || t.reason });
+      }
+    }
+  }
+  recs.sort((a, b) => (a.sev === "fail" ? -1 : 1) - (b.sev === "fail" ? -1 : 1));
+  return recs;
+}
+
+// Trim a recommendation to ~2 printed lines, breaking on a word boundary.
+function truncateRec(text, max = 165) {
+  if (!text || text.length <= max) return text || "";
+  const cut = text.slice(0, max);
+  const lastSpace = cut.lastIndexOf(" ");
+  return `${(lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).trimEnd()} …`;
+}
+
+// One print page per area: short intro + compact verdict table + recommendations.
+function reportAreaPage(area, F) {
+  const rows = area.checks
+    .filter((k) => F[k])
+    .map((k) => {
+      const c = F[k];
+      const status = c.status ?? "info";
+      const verdict = c.grade ?? SEVERITY_LABEL[status] ?? "—";
+      const facts = reportFacts(k, c).join(" · ");
+      return `<tr>
+        <td class="rt-check">${escapeHtml(CHECK_LABELS[k] ?? k)}</td>
+        <td><span class="report-status" data-status="${status}">${escapeHtml(verdict)}</span></td>
+        <td><span class="rt-summary">${escapeHtml(c.summary ?? "")}</span>${facts ? `<span class="rt-facts">${escapeHtml(facts)}</span>` : ""}</td>
+      </tr>`;
+    })
+    .join("");
+  const recs = reportAreaRecs(area, F);
+  const recList = recs.length
+    ? `<h3 class="rt-rec-title">Empfehlungen</h3>
+       <ul class="report-issues">${recs
+         .slice(0, 5)
+         .map(
+           (r) =>
+             `<li data-severity="${r.sev}"><strong>${escapeHtml(r.label)}:</strong> ${escapeHtml(truncateRec(r.text))}</li>`,
+         )
+         .join("")}</ul>`
+    : `<p class="rt-allgood">Keine offenen Punkte in diesem Bereich.</p>`;
+  return `
+    <section class="report-page">
+      <h2 class="report-area-title">${escapeHtml(area.title)}</h2>
+      <p class="report-area-intro">${escapeHtml(area.intro)}</p>
+      <table class="report-detail-table">
+        <thead><tr><th>Prüfung</th><th>Bewertung</th><th>Befund</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      ${recList}
+    </section>`;
 }
 
 function buildReportHtml(domain, isSingle, singleLabel, findings) {
@@ -607,8 +718,8 @@ function buildReportHtml(domain, isSingle, singleLabel, findings) {
       <p class="report-date">Erstellt am ${now}</p>
     </div>`;
   const footer = `<footer class="report-footer">
-      Automatisch erstellt mit sharp.reineke.tech am ${now}. Die Analyse basiert auf
-      öffentlich abfragbaren DNS- und HTTP-Daten zum Abrufzeitpunkt. © ${c.company}.
+      Erstellt am ${now}. Die Analyse basiert auf öffentlich abfragbaren DNS- und
+      HTTP-Daten zum Abrufzeitpunkt. © ${c.company}.
     </footer>`;
 
   if (isSingle) {
@@ -628,18 +739,7 @@ function buildReportHtml(domain, isSingle, singleLabel, findings) {
       <h2>Zusammenfassung</h2>
       <div class="report-areas">${REPORT_AREAS.map((a) => reportAreaOverview(a, F)).join("")}</div>
     </section>`;
-  const areaPages = REPORT_AREAS.map((a) => {
-    const findingsHtml = a.checks
-      .filter((k) => F[k])
-      .map((k) => reportFindingHtml(k, F[k]))
-      .join("");
-    return `
-      <section class="report-page">
-        <h2 class="report-area-title">${escapeHtml(a.title)}</h2>
-        <p class="report-area-intro">${escapeHtml(a.intro)}</p>
-        ${findingsHtml}
-      </section>`;
-  }).join("");
+  const areaPages = REPORT_AREAS.map((a) => reportAreaPage(a, F)).join("");
   return letterhead + titleBlock + overview + areaPages + footer;
 }
 
