@@ -28,7 +28,7 @@ DMARC-Compliance voraussetzen.
 ```bash
 npm install
 npm run dev        # Wrangler-Server auf http://localhost:8787
-npm test           # vitest — 28 Unit-Tests
+npm test           # vitest — 79 Unit-Tests
 npm run typecheck  # tsc --noEmit
 ```
 
@@ -59,6 +59,32 @@ Beim Deploy legt Wrangler die Custom-Domain-Zuordnung automatisch an (kein
 manuelles CNAME nötig). Falls bereits ein konkurrierender DNS-Eintrag für den
 Hostnamen existiert, muss dieser zuerst entfernt werden.
 
+### Lead-Erfassung (Odoo CRM)
+
+Der Report-Download ist hinter einem **E-Mail-Feld + DSGVO-Einwilligung** (`POST
+/api/lead`). Bestätigte Leads werden per Odoo-JSON-RPC als `crm.lead` angelegt.
+
+**1. API-Key in Odoo erzeugen:** in Odoo unter _Einstellungen → Benutzer →
+(dein API-Benutzer) → Konto-Sicherheit → Neuer API-Schlüssel_. Der Benutzer
+braucht Schreibrechte auf das CRM (`crm.lead`).
+
+**2. Worker-Secrets setzen** (nie committen — `.dev.vars` lokal ist gitignored):
+
+```bash
+wrangler secret put ODOO_URL      --env production   # z.B. https://firma.odoo.com
+wrangler secret put ODOO_DB       --env production   # Datenbankname
+wrangler secret put ODOO_USERNAME --env production   # Login-E-Mail des API-Benutzers
+wrangler secret put ODOO_API_KEY  --env production   # der erzeugte API-Schlüssel
+```
+
+**Robustheit:** E-Mail + Einwilligung werden serverseitig erzwungen (sonst `400`).
+Ist Odoo nicht konfiguriert oder schlägt der Push fehl, wird der Lead in den
+Worker-Logs (`wrangler tail`) protokolliert und der Nutzer **trotzdem** zum
+Bericht durchgelassen — kein Lead geht verloren, keine Sackgasse für den Nutzer.
+
+> Besucher-Identifikation (Firmen-Ebene) erfolgt zusätzlich über den
+> Leadfeeder/Dealfront-Tracker in `public/index.html`.
+
 ## Architektur
 
 ```
@@ -69,24 +95,26 @@ src/
 ├── grading.ts            # scoreToGrade (A+…F) + gradeToSeverity (gemeinsame Skala)
 ├── observatory.ts        # MDN HTTP Observatory v2 client + Benchmark
 ├── observatory-i18n.ts   # Deutsche Übersetzungen (Titel + Result-Codes)
+├── leads/
+│   └── odoo.ts           # Lead-Capture → Odoo CRM (JSON-RPC crm.lead)
 └── analyzers/
     ├── dmarc.ts          # _dmarc.<domain> → Parser + Note + Spoofing-Hinweis
     ├── spf.ts            # v=spf1 → Parser + rekursive Lookup-Zählung
-    ├── dkim.ts           # Selektor-Probing (~40 gängige Selektoren)
+    ├── dkim.ts           # Selektor-Probing (~16 gängige Selektoren)
     ├── mx.ts             # MX + A/AAAA Auflösung
     ├── mta-sts.ts        # _mta-sts TXT + Policy-Fetch (.well-known)
     ├── tls-rpt.ts        # _smtp._tls TXT (RFC 8460)
     └── dnssec.ts         # DNSKEY + DS + AD-Flag → Note
 public/
-├── index.html            # 3-Tab SPA (E-Mail / Website / DNSSEC)
+├── index.html            # 3-Tab SPA (E-Mail / Website / DNSSEC) + Leadfeeder-Tracker
 ├── styles.css            # Reineke-Technik-Branding (Rot #dc0d23 / Schwarz / Weiß)
-├── app.js                # Tab-Routing, Domain-State, Per-Tab-Cache, Noten-Badges, Benchmark
+├── app.js                # Tab-Routing, Domain-State, Per-Tab-Cache, Noten-Badges, Report + Lead-Gate
 └── assets/
     ├── reineke-logo.png  # Reineke Cyber Security Logo
     ├── sharp-logo.png    # Sharp Partner-Logo
     └── favicon.png       # Reineke-Fuchs (aus reineke-logo.png zugeschnitten)
-tests/                    # 69 vitest-Tests (dmarc, spf, dkim, dns, mta-sts,
-                          # tls-rpt, dnssec, observatory, grading)
+tests/                    # 79 vitest-Tests (dmarc, spf, dkim, dns, mta-sts,
+                          # tls-rpt, dnssec, observatory, grading, odoo-lead)
 ```
 
 ## Noten-Konzept
@@ -230,6 +258,13 @@ Globale Observatory-Notenverteilung für die Benchmark-Darstellung (Cache 1 Tag)
 ```jsonc
 { "distribution": [ { "grade": "A+", "count": 59156 }, … , { "grade": "F", "count": 954615 } ] }
 ```
+
+### `POST /api/lead`
+
+Lead-Erfassung vor dem Report-Download. Body: `{ "email": "…", "domain": "…",
+"consent": true }`. Erzwingt gültige E-Mail + Einwilligung (sonst `400`
+`INVALID_EMAIL` / `NO_CONSENT`), legt anschließend best-effort einen `crm.lead`
+in Odoo an. Antwort: `{ ok, code, message, leadId? }`.
 
 ### `GET /api/health`
 
