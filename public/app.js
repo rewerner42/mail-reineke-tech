@@ -484,58 +484,101 @@ function switchTab(tab) {
 }
 
 /* ─────────────── cybersecurity report (PDF export) ─────────────── */
+// The report is grouped into three areas: one summary page, then one page each.
+const REPORT_AREAS = [
+  {
+    title: "E-Mail-Sicherheit",
+    intro:
+      "Diese Prüfungen bestimmen, ob Dritte in Ihrem Namen E-Mails versenden können (Spoofing) und ob Ihre Nachrichten zuverlässig und verschlüsselt zugestellt werden. DMARC ist dabei der zentrale Schutz.",
+    checks: ["dmarc", "spf", "dkim", "mx", "mtaSts", "tlsRpt"],
+    gradeFrom: "dmarc",
+  },
+  {
+    title: "Website-Sicherheit",
+    intro:
+      "Bewertung der HTTP-Security-Header Ihrer Website durch das MDN HTTP Observatory — Schutz vor Cross-Site-Scripting, Clickjacking und unverschlüsselten Verbindungen.",
+    checks: ["observatory"],
+    gradeFrom: "observatory",
+  },
+  {
+    title: "DNSSEC",
+    intro:
+      "Kryptografische Absicherung Ihrer DNS-Zone gegen Manipulation wie Cache-Poisoning und DNS-Spoofing.",
+    checks: ["dnssec"],
+    gradeFrom: "dnssec",
+  },
+];
+
+function renderObservatoryReportBody(c) {
+  let body = "";
+  const d = c.data;
+  if (d && d.grade) {
+    body += kvGrid([
+      ["Score", String(d.score)],
+      ["Tests bestanden", `${d.testsPassed}/${d.testsQuantity}`],
+    ]);
+  }
+  body += renderIssues(c.issues);
+  if (d && Array.isArray(d.tests) && d.tests.length) body += renderObsTests(d.tests);
+  return body;
+}
+
+// Technical-detail renderer per check — reuses the same bodies as the live cards.
+const REPORT_DETAIL = {
+  dmarc: renderDmarcBody,
+  spf: renderSpfBody,
+  dkim: renderDkimBody,
+  mx: renderMxBody,
+  mtaSts: renderMtaStsBody,
+  tlsRpt: renderTlsRptBody,
+  dnssec: renderDnssecBody,
+  observatory: renderObservatoryReportBody,
+};
+
+function reportBadge(c) {
+  const status = c?.status ?? "info";
+  return c?.grade
+    ? `<span class="report-grade" data-status="${status}">${escapeHtml(c.grade)}</span>`
+    : `<span class="report-grade report-grade-icon" data-status="${status}">${SEVERITY_ICON[status] ?? "•"}</span>`;
+}
+
 function reportFindingHtml(key, c) {
   const label = CHECK_LABELS[key] ?? key;
   const status = c.status ?? "info";
-  // Letter-grade checks (DMARC/DNSSEC/Observatory) show the grade; the rest show
-  // the severity icon — a long word like "HINWEIS" overflows the square badge.
-  const grade = c.grade
-    ? `<span class="report-grade" data-status="${status}">${escapeHtml(c.grade)}</span>`
-    : `<span class="report-grade report-grade-icon" data-status="${status}">${SEVERITY_ICON[status] ?? "•"}</span>`;
-  let extra = "";
-  if (key === "observatory" && Array.isArray(c.data?.tests)) {
-    const failed = c.data.tests.filter((t) => t.pass === false);
-    if (failed.length) {
-      extra =
-        `<ul class="report-subfindings">` +
-        failed
-          .map(
-            (t) =>
-              `<li><strong>${escapeHtml(t.title)}</strong> (${escapeHtml(fmtScore(t.scoreModifier))})${t.recommendation ? ` — ${escapeHtml(t.recommendation)}` : ""}</li>`,
-          )
-          .join("") +
-        `</ul>`;
-    }
-  }
+  const detail = (REPORT_DETAIL[key] || ((x) => renderIssues(x.issues)))(c);
   return `
     <section class="report-finding" data-status="${status}">
       <div class="report-finding-head">
-        ${grade}
+        ${reportBadge(c)}
         <div class="report-finding-meta">
           <h3>${escapeHtml(label)}</h3>
           <p class="report-finding-summary">${escapeHtml(c.summary ?? "")}</p>
         </div>
       </div>
-      ${renderIssues(c.issues)}
-      ${extra}
+      <div class="report-finding-detail">${detail}</div>
     </section>`;
 }
 
-function reportSummaryHtml(findings) {
-  const rows = findings
-    .map(([key, c]) => {
-      const status = c.status ?? "info";
-      const verdict = c.grade ? c.grade : SEVERITY_LABEL[status] ?? "—";
-      return `<tr>
-        <td>${escapeHtml(CHECK_LABELS[key] ?? key)}</td>
-        <td><span class="report-status" data-status="${status}">${escapeHtml(verdict)}</span></td>
-        <td>${escapeHtml(c.summary ?? "")}</td>
-      </tr>`;
+function reportAreaOverview(area, F) {
+  const gc = F[area.gradeFrom];
+  const gStatus = gc?.status ?? "info";
+  const chips = area.checks
+    .map((k) => {
+      const c = F[k];
+      if (!c) return "";
+      const st = c.status ?? "info";
+      const verdict = c.grade ?? SEVERITY_LABEL[st] ?? "—";
+      return `<span class="report-chip" data-status="${st}">${escapeHtml(CHECK_LABELS[k] ?? k)}: ${escapeHtml(verdict)}</span>`;
     })
     .join("");
-  return `<table class="report-summary-table">
-    <thead><tr><th>Prüfung</th><th>Bewertung</th><th>Befund</th></tr></thead>
-    <tbody>${rows}</tbody></table>`;
+  return `
+    <div class="report-area-card" data-status="${gStatus}">
+      ${reportBadge(gc)}
+      <div class="report-area-card-body">
+        <h3>${escapeHtml(area.title)}</h3>
+        <div class="report-chips">${chips}</div>
+      </div>
+    </div>`;
 }
 
 function buildReportHtml(domain, isSingle, singleLabel, findings) {
@@ -563,21 +606,41 @@ function buildReportHtml(domain, isSingle, singleLabel, findings) {
       <h1>Sicherheitsanalyse für <span class="mono">${escapeHtml(domain)}</span></h1>
       <p class="report-date">Erstellt am ${now}</p>
     </div>`;
-  const summary = isSingle
-    ? ""
-    : `<section class="report-section"><h2>Zusammenfassung</h2>${reportSummaryHtml(findings)}</section>`;
-  const findingsHtml = findings.map(([k, c2]) => reportFindingHtml(k, c2)).join("");
   const footer = `<footer class="report-footer">
       Automatisch erstellt mit sharp.reineke.tech am ${now}. Die Analyse basiert auf
       öffentlich abfragbaren DNS- und HTTP-Daten zum Abrufzeitpunkt. © ${c.company}.
     </footer>`;
-  return (
-    letterhead +
-    titleBlock +
-    summary +
-    `<section class="report-section report-findings">${findingsHtml}</section>` +
-    footer
-  );
+
+  if (isSingle) {
+    const [key, fc] = findings[0];
+    return (
+      letterhead +
+      titleBlock +
+      `<section class="report-section report-findings">${reportFindingHtml(key, fc)}</section>` +
+      footer
+    );
+  }
+
+  // Full report: page 1 = three area overview blocks; then one page per area.
+  const F = Object.fromEntries(findings);
+  const overview = `
+    <section class="report-section">
+      <h2>Zusammenfassung</h2>
+      <div class="report-areas">${REPORT_AREAS.map((a) => reportAreaOverview(a, F)).join("")}</div>
+    </section>`;
+  const areaPages = REPORT_AREAS.map((a) => {
+    const findingsHtml = a.checks
+      .filter((k) => F[k])
+      .map((k) => reportFindingHtml(k, F[k]))
+      .join("");
+    return `
+      <section class="report-page">
+        <h2 class="report-area-title">${escapeHtml(a.title)}</h2>
+        <p class="report-area-intro">${escapeHtml(a.intro)}</p>
+        ${findingsHtml}
+      </section>`;
+  }).join("");
+  return letterhead + titleBlock + overview + areaPages + footer;
 }
 
 function startReportProgress(doc, estMs) {
