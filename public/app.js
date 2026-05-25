@@ -115,16 +115,21 @@ function renderDkimBody(check) {
   const issues = renderIssues(check.issues);
   if (!check.data || check.data.length === 0) return issues;
   const items = check.data
-    .map(
-      (d) => `
-        <li class="dkim-item">
-          <span class="sel">${escapeHtml(d.selector)}</span>
-          <span class="meta">${d.keySize ? `${d.keySize}-Bit` : ""}${d.k ? ` · k=${escapeHtml(d.k)}` : ""}${d.t?.length ? ` · t=${escapeHtml(d.t.join(":"))}` : ""}</span>
-          <pre class="record-block" style="margin-top:0.5rem">${escapeHtml(d.raw)}</pre>
-        </li>`,
-    )
+    .map((d) => {
+      const meta = `${d.keySize ? `${d.keySize}-Bit` : ""}${d.k ? ` · k=${escapeHtml(d.k)}` : ""}${d.t?.length ? ` · t=${escapeHtml(d.t.join(":"))}` : ""}`;
+      // Collapsed by default — the public-key blob is long; expand on demand.
+      return `
+        <details class="dkim-item">
+          <summary>
+            <span class="sel">${escapeHtml(d.selector)}</span>
+            <span class="meta">${meta}</span>
+            <span class="dkim-toggle">Record</span>
+          </summary>
+          <pre class="record-block">${escapeHtml(d.raw)}</pre>
+        </details>`;
+    })
     .join("");
-  return `<ul class="dkim-list">${items}</ul>${issues}`;
+  return `<div class="dkim-list">${items}</div>${issues}`;
 }
 
 function renderMxBody(check) {
