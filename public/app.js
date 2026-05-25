@@ -935,9 +935,45 @@ function showReportView() {
   $("#view-report").hidden = false;
 }
 
+// Server-side PDF download (Browser Rendering). Posts the already-built report
+// HTML and saves the returned PDF. Falls back to the browser print dialog if the
+// PDF service is unavailable (e.g. daily Browser-Rendering limit reached).
+async function downloadReportPdf(btn) {
+  const doc = $("[data-report-doc]");
+  if (!doc || doc.querySelector(".lead-gate, .report-progress")) return; // not ready
+  const url = new URL(window.location.href);
+  const domain = (url.searchParams.get("d") || "report").trim();
+  const check = url.searchParams.get("check") || "";
+  btn.classList.add("loading");
+  btn.disabled = true;
+  try {
+    const r = await fetch("/api/report-pdf", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ html: doc.innerHTML, domain, check }),
+    });
+    if (!r.ok) throw new Error("PDF-Service nicht verfügbar");
+    const blob = await r.blob();
+    const objUrl = URL.createObjectURL(blob);
+    const safe = domain.replace(/[^a-z0-9.-]/gi, "_");
+    const a = document.createElement("a");
+    a.href = objUrl;
+    a.download = `${check ? `Befund-${check}-${safe}` : `Sicherheitsbericht-${safe}`}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(objUrl), 4000);
+  } catch {
+    window.print(); // graceful fallback
+  } finally {
+    btn.classList.remove("loading");
+    btn.disabled = false;
+  }
+}
+
 /* ─────────────── wire up ─────────────── */
 const printBtn = $("#report-print");
-if (printBtn) printBtn.addEventListener("click", () => window.print());
+if (printBtn) printBtn.addEventListener("click", () => downloadReportPdf(printBtn));
 TABS.forEach((tab) => {
   const { form } = viewParts(tab);
   form.addEventListener("submit", (e) => {

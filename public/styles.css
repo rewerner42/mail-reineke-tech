@@ -1267,7 +1267,7 @@ body.is-report .site-footer { display: none; }
 }
 
 @media print {
-  @page { margin: 14mm; }
+  @page { size: A4; margin: 14mm; }
   body { background: #fff; }
   .report-toolbar { display: none !important; }
   .cookie-banner { display: none !important; }
