@@ -23,16 +23,19 @@ export async function analyzeMx(domain: string): Promise<CheckResult<MxRecord[]>
   }
 
   if (raw.length === 0) {
+    // No MX = the domain simply has no e-mail server. This is informational, not
+    // a security failure — don't penalise web-only / non-mail domains.
     return {
-      status: "fail",
-      summary: "Keine MX-Records",
+      status: "info",
+      summary: "Kein E-Mail-Server (kein MX)",
       issues: [
         {
-          severity: "fail",
-          code: "MX_MISSING",
-          message: "Domain hat keine MX-Records — kann keine E-Mails empfangen.",
+          severity: "info",
+          code: "MX_NONE",
+          message:
+            "Diese Domain hat keinen E-Mail-Server (kein MX-Eintrag) — sie empfängt keine E-Mails.",
           recommendation:
-            "Falls die Domain Mail empfangen soll, MX-Einträge auf die Mailserver setzen. Reine Sender-Domains können einen Null-MX (\".\") verwenden.",
+            "Falls die Domain doch Mail empfangen soll, MX-Einträge auf die Mailserver setzen. Reine Web-/Sender-Domains brauchen keinen MX — zum Schutz vor Spoofing empfiehlt sich dennoch DMARC (p=reject) und SPF (-all).",
         },
       ],
       data: [],

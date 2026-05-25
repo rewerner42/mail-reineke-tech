@@ -26,6 +26,44 @@ type Bindings = {
 
 const app = new Hono<{ Bindings: Bindings }>();
 
+// Security headers on EVERY response — including the static assets served via the
+// ASSETS binding (so we rebuild the response to attach them reliably). Hardens the
+// tool itself and fixes its own HTTP-Observatory grade. The CSP allows our own
+// origin plus the consent-gated analytics (Umami + Leadfeeder); script-src stays
+// free of 'unsafe-inline'.
+const CSP = [
+  "default-src 'self'",
+  "script-src 'self' https://cloud.umami.is https://*.lfeeder.com",
+  "connect-src 'self' https://cloud.umami.is https://*.lfeeder.com",
+  "img-src 'self' data: https://*.lfeeder.com",
+  "style-src 'self' 'unsafe-inline'",
+  "font-src 'self'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+  "upgrade-insecure-requests",
+].join("; ");
+
+const SECURITY_HEADERS: Record<string, string> = {
+  "Content-Security-Policy": CSP,
+  "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Cross-Origin-Opener-Policy": "same-origin",
+  "Cross-Origin-Resource-Policy": "same-origin",
+  "Permissions-Policy": "geolocation=(), camera=(), microphone=(), payment=(), usb=()",
+};
+
+app.use("*", async (c, next) => {
+  await next();
+  // Rebuild the response so headers are mutable (ASSETS responses can be immutable).
+  const res = new Response(c.res.body, c.res);
+  for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.headers.set(k, v);
+  c.res = res;
+});
+
 app.use("/api/*", cors({ origin: "*", maxAge: 86400 }));
 
 // Domain validation: ASCII labels, optional IDN should be punycoded by client.

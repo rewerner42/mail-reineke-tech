@@ -318,8 +318,17 @@ Logos (Reineke-Fuchs, Sharp) liegen als PNG in [public/assets/](public/assets/).
 
 ## Sicherheit
 
-`.api-keys` enthält lokale Cloudflare-Tokens und ist via `.gitignore`
-ausgeschlossen — niemals committen.
+`.api-keys` (Cloudflare-Tokens) und `.dev.vars` (lokale Odoo-Config) sind via
+`.gitignore` ausgeschlossen — niemals committen. Produktiv liegen die
+Odoo-Zugangsdaten als verschlüsselte **Worker-Secrets** (`wrangler secret`).
+
+**Security-Header:** Eine Middleware in [src/index.ts](src/index.ts) setzt auf
+**jeder** Antwort (inkl. der statischen Assets via `run_worker_first`) eine
+strikte **CSP** (script-src ohne `'unsafe-inline'`, erlaubt nur die eigene Origin
++ die consent-gesteuerten Analytics), **HSTS** (2 Jahre, includeSubDomains,
+preload), `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,
+`Referrer-Policy`, COOP/CORP und `Permissions-Policy`. Das härtet das Tool selbst
+und sorgt für eine gute eigene HTTP-Observatory-Note.
 
 ## Lizenz
 
