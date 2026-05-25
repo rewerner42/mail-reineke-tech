@@ -702,21 +702,47 @@ b, strong { font-weight: 700; }
 }
 .mx-ips { color: var(--rt-gray); font-size: 0.8rem; overflow-wrap: anywhere; word-break: break-all; }
 
+/* DKIM selectors are collapsible <details> — the public key blob is long. */
 .dkim-item {
   background: var(--rt-bg-soft);
   border-left: 3px solid var(--pass);
-  padding: 0.85rem 1rem;
 }
+.dkim-item > summary {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  padding: 0.7rem 0.9rem;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+.dkim-item > summary::-webkit-details-marker { display: none; }
 .dkim-item .sel {
   font-family: var(--rt-mono);
   font-weight: 700;
   color: var(--rt-black);
+  overflow-wrap: anywhere;
 }
 .dkim-item .meta {
   font-size: 0.8rem;
   color: var(--rt-gray);
-  margin-left: 0.6rem;
 }
+.dkim-toggle {
+  margin-left: auto;
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--rt-red);
+}
+.dkim-item > summary:hover .dkim-toggle { color: var(--rt-red-dark); }
+.dkim-item:not([open]) .dkim-toggle::after { content: " ▾"; }
+.dkim-item[open] .dkim-toggle::after { content: " ▴"; }
+.dkim-item .record-block { margin: 0 0.9rem 0.9rem; }
+/* Explicitly hide the record when collapsed — don't rely on UA <details> rendering. */
+.dkim-item:not([open]) .record-block { display: none; }
 
 /* ─── CTA section ────────────────────────────────────────── */
 /* ─── Info / Hintergrund section (per tab) ───────────────── */
