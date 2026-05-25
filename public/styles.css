@@ -989,30 +989,67 @@ body.is-report .site-footer { display: none; }
 .report-status[data-status="info"] { background: var(--info-bg); color: var(--info); }
 
 .report-finding {
-  padding: 1.1rem 0 1.1rem 1.1rem;
+  padding: 0.7rem 0 0.7rem 1rem;
   border-left: 4px solid var(--rt-border);
-  margin-bottom: 1.25rem;
+  margin-bottom: 0.9rem;
 }
 .report-finding[data-status="pass"] { border-color: var(--pass); }
 .report-finding[data-status="warn"] { border-color: var(--warn); }
 .report-finding[data-status="fail"] { border-color: var(--fail); }
 .report-finding[data-status="info"] { border-color: var(--info); }
-.report-finding-head { display: flex; align-items: center; gap: 1rem; }
-.report-finding-meta h3 { margin: 0; font-size: 1.1rem; color: var(--rt-black); }
-.report-finding-summary { margin: 0.2rem 0 0; color: var(--rt-gray); font-size: 0.92rem; }
+.report-finding-head { display: flex; align-items: center; gap: 0.85rem; }
+.report-finding-meta { min-width: 0; }
+.report-finding-meta h3 { margin: 0; font-size: 1.05rem; color: var(--rt-black); }
+.report-finding-summary { margin: 0.15rem 0 0; color: var(--rt-gray); font-size: 0.88rem; }
 .report-grade {
   flex: 0 0 auto;
-  width: 54px;
-  height: 54px;
+  width: 42px;
+  height: 42px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   font-weight: 700;
   border: 2px solid var(--rt-border);
   background: var(--rt-bg-soft);
 }
-.report-grade.report-grade-icon { font-size: 1.7rem; font-family: var(--rt-mono); }
+.report-grade.report-grade-icon { font-size: 1.3rem; font-family: var(--rt-mono); }
+
+/* Compact facts + issues lists in the report */
+.report-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.4rem;
+  margin: 0.6rem 0 0;
+}
+.report-facts span {
+  font-family: var(--rt-mono);
+  font-size: 0.74rem;
+  color: var(--rt-black);
+  background: var(--rt-bg-soft);
+  border: 1px solid var(--rt-border);
+  padding: 0.1rem 0.45rem;
+  overflow-wrap: anywhere;
+}
+.report-issues {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.report-issues li {
+  font-size: 0.82rem;
+  line-height: 1.4;
+  padding: 0.3rem 0.55rem;
+  border-left: 3px solid var(--rt-border);
+  background: var(--rt-bg-soft);
+}
+.report-issues li[data-severity="warn"] { border-color: var(--warn); background: var(--warn-bg); }
+.report-issues li[data-severity="fail"] { border-color: var(--fail); background: var(--fail-bg); }
+.report-issues li[data-severity="info"] { border-color: var(--info); background: var(--info-bg); }
+.report-issues .rec { display: block; margin-top: 0.15rem; color: var(--rt-gray); }
 .report-grade[data-status="pass"] { color: var(--pass); border-color: var(--pass); background: var(--pass-bg); }
 .report-grade[data-status="warn"] { color: var(--warn); border-color: var(--warn); background: var(--warn-bg); }
 .report-grade[data-status="fail"] { color: var(--fail); border-color: var(--fail); background: var(--fail-bg); }
@@ -1070,8 +1107,49 @@ body.is-report .site-footer { display: none; }
   margin: 0 0 0.5rem;
   letter-spacing: -0.01em;
 }
-.report-area-intro { margin: 0 0 1.75rem; color: var(--rt-gray); max-width: 64ch; line-height: 1.55; }
+.report-area-intro { margin: 0 0 0.9rem; color: var(--rt-gray); max-width: 64ch; line-height: 1.5; }
 .report-finding-detail { margin-top: 0.5rem; }
+
+/* Compact per-area verdict table */
+.report-detail-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+.report-detail-table th {
+  text-align: left;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--rt-gray);
+  padding: 0.35rem 0.55rem;
+  border-bottom: 1px solid var(--rt-border);
+}
+.report-detail-table td {
+  padding: 0.4rem 0.55rem;
+  border-bottom: 1px solid var(--rt-border);
+  vertical-align: top;
+}
+.report-detail-table .rt-check { font-weight: 600; color: var(--rt-black); white-space: nowrap; }
+.rt-summary { display: block; color: var(--rt-black); }
+.rt-facts {
+  display: block;
+  margin-top: 0.18rem;
+  font-family: var(--rt-mono);
+  font-size: 0.72rem;
+  color: var(--rt-gray);
+  overflow-wrap: anywhere;
+}
+.rt-rec-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--rt-black);
+  margin: 0.9rem 0 0.4rem;
+}
+.rt-allgood {
+  margin: 1.25rem 0 0;
+  padding: 0.6rem 0.85rem;
+  background: var(--pass-bg);
+  color: var(--pass);
+  font-size: 0.85rem;
+  border-left: 3px solid var(--pass);
+}
 
 .report-footer {
   margin-top: 2.5rem;
@@ -1092,6 +1170,10 @@ body.is-report .site-footer { display: none; }
   .report-page { break-before: page; border-top: 0; margin-top: 0; padding-top: 0; }
   .report-finding { break-inside: avoid; }
   .report-area-card { break-inside: avoid; }
+  .report-detail-table tr { break-inside: avoid; }
+  .report-issues li { break-inside: avoid; }
+  .rt-rec-title { break-after: avoid; }
+  .report-footer { break-before: avoid; }
   a[href]::after { content: ""; } /* no URL noise */
 }
 
