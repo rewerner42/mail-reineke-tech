@@ -117,6 +117,21 @@ Die Domain wird beim Tab-Wechsel übernommen und (sofern noch nicht im Session-C
 automatisch neu gescannt. Shareable Links: `/dnssec?d=<domain>`, `/website?d=<domain>`,
 `/?d=<domain>&s=<selektoren>`.
 
+### Report-Export (PDF)
+
+Branded **Cybersecurity-Report** unter `/report`, exportierbar als PDF über den
+Browser-Druck (`window.print()`, Print-Stylesheet blendet die Bedienelemente aus):
+
+- **Gesamtbericht:** `/report?d=<domain>` — alle Checks, Zusammenfassungstabelle +
+  Befunde. Button „Gesamtbericht (PDF)" in jeder Ergebnis-Leiste.
+- **Einzelbefund:** `/report?d=<domain>&check=<id>` (`id` = `dmarc`, `spf`, `dkim`,
+  `mx`, `mtaSts`, `tlsRpt`, `dnssec`, `observatory`). Button „Befund als PDF
+  exportieren" auf jeder Ergebnis-Karte.
+
+Briefkopf: **Reineke Technik GmbH · Werner Francis Reineke · Geseker Straße 26,
+33154 Salzkotten · Tel. +49 (0) 5258 987-282 · wf.reineke@reineke-technik.de**
+(in [public/app.js](public/app.js) als `REPORT_CONTACT` gepflegt).
+
 ## API
 
 ### `GET /api/email?domain=<fqdn>&selectors=<csv>`
