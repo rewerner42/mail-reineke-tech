@@ -94,6 +94,26 @@ function parseSelectors(param: string | undefined): string[] {
     : [];
 }
 
+/**
+ * True if a request's Origin is a *different* host than the one serving it.
+ * Used to reject cross-site abuse of the write endpoints (lead capture, PDF).
+ * A missing Origin is treated as same-origin so legitimate clients aren't broken.
+ */
+function isCrossOrigin(originHeader: string | undefined, reqUrl: string): boolean {
+  if (!originHeader) return false;
+  try {
+    return new URL(originHeader).host !== new URL(reqUrl).host;
+  } catch {
+    return true; // malformed Origin → block
+  }
+}
+
+const CROSS_ORIGIN_DENIED = {
+  ok: false,
+  code: "CROSS_ORIGIN",
+  message: "Ungültige Anfrage-Herkunft.",
+} as const;
+
 /** Run the e-mail authentication + transport checks (no DNSSEC, no Observatory). */
 async function runEmailChecks(domain: string, extraSelectors: string[]) {
   const [dmarc, spf, dkim, mx, mtaSts, tlsRpt] = await Promise.all([
@@ -179,6 +199,8 @@ app.get("/api/analyze", async (c) => {
 // lead into Odoo CRM. A configuration/Odoo failure must NOT block the user from
 // their report, so we log the lead (observability) and still return ok.
 app.post("/api/lead", async (c) => {
+  if (isCrossOrigin(c.req.header("Origin"), c.req.url)) return c.json(CROSS_ORIGIN_DENIED, 403);
+
   let body: { email?: unknown; domain?: unknown; consent?: unknown };
   try {
     body = await c.req.json();
@@ -232,6 +254,7 @@ app.post("/api/lead", async (c) => {
 // render it to a real PDF (Browser Rendering) for a true one-click download.
 // On any failure the frontend falls back to the browser print dialog.
 app.post("/api/report-pdf", async (c) => {
+  if (isCrossOrigin(c.req.header("Origin"), c.req.url)) return c.json(CROSS_ORIGIN_DENIED, 403);
   if (!c.env.BROWSER) {
     return c.json(
       { ok: false, code: "NO_BROWSER", message: "PDF-Rendering nicht verfügbar." },
