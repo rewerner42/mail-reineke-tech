@@ -1004,3 +1004,63 @@ window.addEventListener("popstate", () => {
   setActiveTab(tab);
   if (currentDomain) runScan(tab, currentDomain);
 })();
+
+/* ─────────────── Cookie-Consent + Leadfeeder ───────────────
+ * Opt-out-Modell: Tracking läuft, sofern der Nutzer es nicht ablehnt. Der
+ * Banner erscheint nur, solange noch keine Wahl getroffen wurde. */
+const CONSENT_KEY = "rt-consent"; // "accepted" | "rejected"
+
+function loadLeadfeeder() {
+  if (window.__lfLoaded) return;
+  window.__lfLoaded = true;
+  (function (ss, ex) {
+    window.ldfdr =
+      window.ldfdr ||
+      function () {
+        (ldfdr._q = ldfdr._q || []).push([].slice.call(arguments));
+      };
+    (function (d, s) {
+      const fs = d.getElementsByTagName(s)[0];
+      function ce(src) {
+        const cs = d.createElement(s);
+        cs.src = src;
+        cs.async = 1;
+        fs.parentNode.insertBefore(cs, fs);
+      }
+      ce("https://sc.lfeeder.com/lftracker_v1_" + ss + (ex ? "_" + ex : "") + ".js");
+    })(document, "script");
+  })("bElvO732oZG8ZMqj");
+}
+
+function readConsent() {
+  try {
+    return localStorage.getItem(CONSENT_KEY);
+  } catch {
+    return null;
+  }
+}
+
+(function initConsent() {
+  const consent = readConsent();
+  // Assume consent unless explicitly rejected.
+  if (consent !== "rejected") loadLeadfeeder();
+  if (consent) return; // choice already made → no banner
+
+  const banner = $("[data-cookie-banner]");
+  if (!banner) return;
+  banner.hidden = false;
+  const choose = (val) => {
+    try {
+      localStorage.setItem(CONSENT_KEY, val);
+    } catch {
+      /* storage unavailable */
+    }
+    banner.hidden = true;
+    if (val === "rejected") {
+      // Best-effort: expire the Leadfeeder first-party cookie.
+      document.cookie = "_lfa=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+    }
+  };
+  $("[data-cookie-accept]", banner)?.addEventListener("click", () => choose("accepted"));
+  $("[data-cookie-reject]", banner)?.addEventListener("click", () => choose("rejected"));
+})();
