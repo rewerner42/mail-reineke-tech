@@ -966,10 +966,10 @@ body.is-report .site-footer { display: none; }
 .lead-submit { width: 100%; }
 .lead-note { margin: 0.25rem 0 0; font-size: 0.78rem; color: var(--rt-gray-mid); line-height: 1.5; }
 
-/* ─── Cookie-Hinweis (unaufdringlich, unten links) ───────── */
+/* ─── Cookie-Hinweis (unaufdringlich, unten rechts) ───────── */
 .cookie-banner {
   position: fixed;
-  left: 1rem;
+  right: 1rem;
   bottom: 1rem;
   z-index: 50;
   max-width: 320px;

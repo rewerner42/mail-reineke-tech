@@ -8,10 +8,13 @@ compatibility_flags = ["nodejs_compat"]
 browser = { binding = "BROWSER" }
 
 # Static assets (frontend served from /public)
+# run_worker_first: route asset requests through the Worker too, so the security
+# headers (middleware in src/index.ts) are attached to the HTML/asset responses.
 [assets]
 directory = "./public"
 binding = "ASSETS"
 not_found_handling = "single-page-application"
+run_worker_first = true
 
 # Production environment with custom domain
 [env.production]
@@ -26,6 +29,7 @@ browser = { binding = "BROWSER" }
 directory = "./public"
 binding = "ASSETS"
 not_found_handling = "single-page-application"
+run_worker_first = true
 
 # Observability
 [observability]
