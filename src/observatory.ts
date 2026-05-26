@@ -7,8 +7,8 @@ import type {
   ObservatoryTest,
 } from "./types.js";
 
-// The v2 "analyze" endpoint returns the per-test scoring breakdown (the POST
-// "scan" endpoint only returns the grade summary).
+// The v2 "analyze" endpoint returns the per-test scoring breakdown. We POST to it
+// (see analyzeObservatory) to trigger a fresh scan rather than reading a stale one.
 const OBSERVATORY_API = "https://observatory-api.mdn.mozilla.net/api/v2/analyze";
 const GRADE_DIST_API =
   "https://observatory-api.mdn.mozilla.net/api/v2/grade_distribution";
@@ -164,7 +164,11 @@ export async function analyzeObservatory(
 
   let body: AnalyzeResponse;
   try {
-    const r = await fetch(url, { signal: controller.signal });
+    // POST triggers a FRESH scan (respecting MDN's own rescan cooldown) and
+    // returns the per-test breakdown — so a site that was just fixed shows its
+    // current grade instead of MDN's last cached scan. GET would only read the
+    // last stored scan, which can lag behind the site's real state.
+    const r = await fetch(url, { method: "POST", signal: controller.signal });
     body = (await r.json()) as AnalyzeResponse;
   } catch (err) {
     const aborted = err instanceof Error && err.name === "AbortError";

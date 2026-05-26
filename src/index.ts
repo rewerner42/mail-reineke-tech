@@ -138,7 +138,7 @@ app.get("/api/email", async (c) => {
   return c.json(
     { domain, queriedAt: new Date().toISOString(), ...email },
     200,
-    { "Cache-Control": "public, max-age=60" },
+    { "Cache-Control": "no-store" },
   );
 });
 
@@ -151,7 +151,7 @@ app.get("/api/dnssec", async (c) => {
   return c.json(
     { domain, queriedAt: new Date().toISOString(), dnssec },
     200,
-    { "Cache-Control": "public, max-age=60" },
+    { "Cache-Control": "no-store" },
   );
 });
 
@@ -165,7 +165,7 @@ app.get("/api/observatory", async (c) => {
   return c.json(
     { domain, queriedAt: new Date().toISOString(), observatory: result },
     200,
-    { "Cache-Control": "public, max-age=300" },
+    { "Cache-Control": "no-store" },
   );
 });
 
