@@ -159,17 +159,33 @@ export async function analyzeObservatory(
   const issues: CheckIssue[] = [];
   const url = `${OBSERVATORY_API}?host=${encodeURIComponent(host)}`;
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), SCAN_TIMEOUT_MS);
+  // POST = trigger a fresh scan (reflects the site's current state, returns the
+  // per-test breakdown). GET = read MDN's last stored scan.
+  async function scan(method: "GET" | "POST", timeoutMs: number): Promise<AnalyzeResponse> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const r = await fetch(url, { method, signal: controller.signal });
+      return (await r.json()) as AnalyzeResponse;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
 
   let body: AnalyzeResponse;
   try {
-    // POST triggers a FRESH scan (respecting MDN's own rescan cooldown) and
-    // returns the per-test breakdown — so a site that was just fixed shows its
-    // current grade instead of MDN's last cached scan. GET would only read the
-    // last stored scan, which can lag behind the site's real state.
-    const r = await fetch(url, { method: "POST", signal: controller.signal });
-    body = (await r.json()) as AnalyzeResponse;
+    body = await scan("POST", SCAN_TIMEOUT_MS);
+    // If the fresh scan failed (e.g. a transient site/MDN hiccup) but MDN still
+    // holds a prior successful scan, fall back to it instead of showing an error.
+    const freshFailed = !!(body.error ?? body.scan?.error) || !body.scan?.grade;
+    if (freshFailed) {
+      try {
+        const cached = await scan("GET", 8000);
+        if (cached.scan?.grade) body = cached;
+      } catch {
+        /* keep the POST result/error */
+      }
+    }
   } catch (err) {
     const aborted = err instanceof Error && err.name === "AbortError";
     return {
@@ -186,14 +202,22 @@ export async function analyzeObservatory(
       ],
       data: emptyResult(host),
     };
-  } finally {
-    clearTimeout(timer);
   }
 
   const scanError = body.error ?? body.scan?.error ?? null;
   if (scanError || !body.scan) {
     const detail = body.message ?? scanError ?? "kein Ergebnis";
+    const status5xx = detail.match(/\b5\d\d\b/)?.[0]; // e.g. Cloudflare 521 (origin down)
     const transient = /down|timeout|timed out|unreachable/i.test(detail);
+    let recommendation: string;
+    if (status5xx) {
+      recommendation = `Die Website lieferte einen Server-Fehler (HTTP ${status5xx}). Häufig bedeutet das, dass die Domain zwar über einen Proxy (z.B. Cloudflare) erreichbar ist, der Origin-Server dahinter aber nicht antwortet. Prüfe, ob unter https://${host} eine funktionierende Website ausgeliefert wird — ohne erreichbare Website ist keine HTTP-Bewertung möglich.`;
+    } else if (transient) {
+      recommendation = `Der MDN-Scanner hat die Website kurzzeitig nicht erreicht. Bitte die Analyse in einem Moment erneut starten. Falls es bestehen bleibt: erreichbare HTTPS-Website unter https://${host} vorhanden?`;
+    } else {
+      recommendation =
+        "Das HTTP Observatory prüft eine öffentlich erreichbare HTTPS-Website. Reine Sender- oder Mail-Domains ohne Website liefern hier kein Ergebnis.";
+    }
     return {
       status: "info",
       summary: "Observatory-Scan nicht möglich",
@@ -202,9 +226,7 @@ export async function analyzeObservatory(
           severity: "info",
           code: "OBS_SCAN_ERROR",
           message: `MDN Observatory konnte ${host} nicht scannen: ${detail}.`,
-          recommendation: transient
-            ? `Der MDN-Scanner hat die Website kurzzeitig nicht erreicht. Bitte die Analyse in einem Moment erneut starten. Falls es bestehen bleibt: erreichbare HTTPS-Website unter https://${host} vorhanden?`
-            : "Das HTTP Observatory prüft eine öffentlich erreichbare HTTPS-Website. Reine Sender- oder Mail-Domains ohne Website liefern hier kein Ergebnis.",
+          recommendation,
         },
       ],
       data: emptyResult(host),
