@@ -164,3 +164,66 @@ export async function createLead(
     clearTimeout(timer);
   }
 }
+
+// ─── Scanned-domain log (custom Odoo model x_reineke_scanned_domain) ───────────
+// One row per domain: x_name = domain, x_scan_count = number of scans. Odoo's
+// built-in create_date / write_date serve as first/last seen.
+const SCANNED_MODEL = "x_reineke_scanned_domain";
+
+// Cache the authenticated uid per isolate to avoid re-logging-in on every scan.
+let cachedUid: number | null = null;
+
+async function authUid(
+  cfg: OdooConfig,
+  fetchImpl: typeof fetch,
+  signal: AbortSignal,
+): Promise<number | null> {
+  if (cachedUid) return cachedUid;
+  const uid = await jsonRpc<number | false>(
+    cfg.url,
+    "common",
+    "login",
+    [cfg.db, cfg.username, cfg.apiKey],
+    fetchImpl,
+    signal,
+  );
+  if (uid && typeof uid === "number") {
+    cachedUid = uid;
+    return uid;
+  }
+  return null;
+}
+
+/**
+ * Upsert a scanned domain into the custom Odoo model. Best-effort: never throws,
+ * so a logging hiccup can't affect the scan response. Meant to be called via
+ * executionCtx.waitUntil so it doesn't add latency.
+ */
+export async function recordScannedDomain(
+  cfg: OdooConfig,
+  domain: string,
+  opts: { fetchImpl?: typeof fetch; timeoutMs?: number } = {},
+): Promise<void> {
+  const fetchImpl = opts.fetchImpl ?? fetch;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), opts.timeoutMs ?? 10000);
+  try {
+    const uid = await authUid(cfg, fetchImpl, controller.signal);
+    if (!uid) return;
+    const exec = <T>(model: string, method: string, args: unknown[]) =>
+      jsonRpc<T>(cfg.url, "object", "execute_kw", [cfg.db, uid, cfg.apiKey, model, method, args], fetchImpl, controller.signal);
+
+    const ids = await exec<number[]>(SCANNED_MODEL, "search", [[["x_name", "=", domain]]]);
+    if (ids.length) {
+      const rows = await exec<Array<{ x_scan_count?: number }>>(SCANNED_MODEL, "read", [[ids[0]], ["x_scan_count"]]);
+      const count = (rows[0]?.x_scan_count ?? 0) + 1;
+      await exec(SCANNED_MODEL, "write", [[ids[0]], { x_scan_count: count }]);
+    } else {
+      await exec(SCANNED_MODEL, "create", [{ x_name: domain, x_scan_count: 1 }]);
+    }
+  } catch {
+    // best-effort — domain logging must never affect the scan itself
+  } finally {
+    clearTimeout(timer);
+  }
+}

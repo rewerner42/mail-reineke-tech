@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { cors } from "hono/cors";
 import { analyzeDmarc } from "./analyzers/dmarc.js";
 import { analyzeSpf } from "./analyzers/spf.js";
@@ -8,7 +8,7 @@ import { analyzeMtaSts } from "./analyzers/mta-sts.js";
 import { analyzeTlsRpt } from "./analyzers/tls-rpt.js";
 import { analyzeDnssec } from "./analyzers/dnssec.js";
 import { analyzeObservatory, fetchGradeDistribution } from "./observatory.js";
-import { createLead, odooConfigFromEnv, validateEmail } from "./leads/odoo.js";
+import { createLead, odooConfigFromEnv, recordScannedDomain, validateEmail } from "./leads/odoo.js";
 import { MAX_HTML_BYTES, renderReportPdf } from "./pdf/render.js";
 import type { BrowserWorker } from "@cloudflare/puppeteer";
 import type { AnalysisResponse } from "./types.js";
@@ -114,6 +114,12 @@ const CROSS_ORIGIN_DENIED = {
   message: "Ungültige Anfrage-Herkunft.",
 } as const;
 
+/** Best-effort: log a scanned domain into the Odoo model (no-op if Odoo unset). */
+function recordDomainSafe(c: Context<{ Bindings: Bindings }>, domain: string): void {
+  const cfg = odooConfigFromEnv(c.env);
+  if (cfg) c.executionCtx.waitUntil(recordScannedDomain(cfg, domain).catch(() => {}));
+}
+
 /** Run the e-mail authentication + transport checks (no DNSSEC, no Observatory). */
 async function runEmailChecks(domain: string, extraSelectors: string[]) {
   const [dmarc, spf, dkim, mx, mtaSts, tlsRpt] = await Promise.all([
@@ -133,6 +139,7 @@ app.get("/api/health", (c) => c.json({ ok: true, service: "mail.reineke.tech" })
 app.get("/api/email", async (c) => {
   const domain = normalizeDomain(c.req.query("domain") ?? "");
   if (!domain) return c.json(INVALID_DOMAIN, 400);
+  recordDomainSafe(c, domain);
 
   const email = await runEmailChecks(domain, parseSelectors(c.req.query("selectors")));
   return c.json(
@@ -146,6 +153,7 @@ app.get("/api/email", async (c) => {
 app.get("/api/dnssec", async (c) => {
   const domain = normalizeDomain(c.req.query("domain") ?? "");
   if (!domain) return c.json(INVALID_DOMAIN, 400);
+  recordDomainSafe(c, domain);
 
   const dnssec = await analyzeDnssec(domain);
   return c.json(
@@ -160,6 +168,7 @@ app.get("/api/dnssec", async (c) => {
 app.get("/api/observatory", async (c) => {
   const domain = normalizeDomain(c.req.query("domain") ?? "");
   if (!domain) return c.json(INVALID_DOMAIN, 400);
+  recordDomainSafe(c, domain);
 
   const result = await analyzeObservatory(domain);
   return c.json(
@@ -179,6 +188,7 @@ app.get("/api/grade-distribution", async (c) => {
 app.get("/api/analyze", async (c) => {
   const domain = normalizeDomain(c.req.query("domain") ?? "");
   if (!domain) return c.json(INVALID_DOMAIN, 400);
+  recordDomainSafe(c, domain);
 
   const [email, dnssec] = await Promise.all([
     runEmailChecks(domain, parseSelectors(c.req.query("selectors"))),
@@ -191,7 +201,7 @@ app.get("/api/analyze", async (c) => {
     ...email,
     dnssec,
   };
-  return c.json(response, 200, { "Cache-Control": "public, max-age=60" });
+  return c.json(response, 200, { "Cache-Control": "no-store" });
 });
 
 // Lead capture: the report download is gated behind an e-mail + DSGVO consent.

@@ -3,6 +3,7 @@ import {
   buildLeadValues,
   createLead,
   odooConfigFromEnv,
+  recordScannedDomain,
   validateEmail,
   type OdooConfig,
 } from "../src/leads/odoo.js";
@@ -107,5 +108,47 @@ describe("createLead", () => {
     expect(r.ok).toBe(false);
     expect(r.code).toBe("ODOO_ERROR");
     expect(r.message).toContain("Access Denied");
+  });
+});
+
+/** Mock fetch for the scanned-domain upsert. `existing` = search() result ids. */
+function mockScanned(existing: number[], scanCount = 0) {
+  const calls: string[] = [];
+  const fetchImpl = vi.fn(async (_url: string, init: RequestInit) => {
+    const body = JSON.parse(String(init.body));
+    const { service, method, args } = body.params;
+    let result: unknown;
+    if (service === "common" && method === "login") result = 7;
+    else if (method === "execute_kw") {
+      const m = args[4] as string; // model method
+      calls.push(m);
+      if (m === "search") result = existing;
+      else if (m === "read") result = [{ x_scan_count: scanCount }];
+      else if (m === "create") result = 99;
+      else result = true; // write
+    }
+    return new Response(JSON.stringify({ jsonrpc: "2.0", result }), {
+      headers: { "Content-Type": "application/json" },
+    });
+  }) as unknown as typeof fetch;
+  return { fetchImpl, calls };
+}
+
+describe("recordScannedDomain", () => {
+  it("creates a new row for an unseen domain", async () => {
+    const { fetchImpl, calls } = mockScanned([]);
+    await recordScannedDomain(CFG, "new-domain.example", { fetchImpl });
+    expect(calls).toContain("search");
+    expect(calls).toContain("create");
+    expect(calls).not.toContain("write");
+  });
+
+  it("increments scan_count for a known domain", async () => {
+    const { fetchImpl, calls } = mockScanned([5], 3);
+    await recordScannedDomain(CFG, "known.example", { fetchImpl });
+    expect(calls).toContain("search");
+    expect(calls).toContain("read");
+    expect(calls).toContain("write");
+    expect(calls).not.toContain("create");
   });
 });
