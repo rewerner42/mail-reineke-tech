@@ -153,6 +153,13 @@ export async function createLead(
       fetchImpl,
       controller.signal,
     );
+    // Best-effort: drop a To-Do activity on the lead so the team is notified in
+    // Odoo (Activities bell + "My Activities"). Never fails the lead.
+    try {
+      await createLeadActivity(cfg, uid, leadId, lead, fetchImpl, controller.signal, opts.now);
+    } catch {
+      /* notification is best-effort; the lead is already saved */
+    }
     return { ok: true, code: "OK", message: "Lead erstellt.", leadId };
   } catch (err) {
     return {
@@ -163,6 +170,50 @@ export async function createLead(
   } finally {
     clearTimeout(timer);
   }
+}
+
+// "To Do" activity type + crm.lead model id — resolved once per isolate.
+let activityTypeIdCache: number | undefined;
+let leadModelIdCache: number | undefined;
+
+/** Create a To-Do activity on the lead so the salesperson is notified in Odoo. */
+async function createLeadActivity(
+  cfg: OdooConfig,
+  uid: number,
+  leadId: number,
+  lead: LeadInput,
+  fetchImpl: typeof fetch,
+  signal: AbortSignal,
+  now?: Date,
+): Promise<void> {
+  const exec = <T>(model: string, method: string, args: unknown[]) =>
+    jsonRpc<T>(cfg.url, "object", "execute_kw", [cfg.db, uid, cfg.apiKey, model, method, args], fetchImpl, signal);
+
+  if (!activityTypeIdCache) {
+    const td = await exec<Array<{ res_id: number }>>("ir.model.data", "search_read", [
+      [["module", "=", "mail"], ["name", "=", "mail_activity_data_todo"]],
+      ["res_id"],
+    ]);
+    activityTypeIdCache = td[0]?.res_id;
+  }
+  if (!leadModelIdCache) {
+    const m = await exec<number[]>("ir.model", "search", [[["model", "=", "crm.lead"]]]);
+    leadModelIdCache = m[0];
+  }
+  if (!activityTypeIdCache || !leadModelIdCache) return;
+
+  const domain = lead.domain?.trim();
+  await exec("mail.activity", "create", [
+    {
+      activity_type_id: activityTypeIdCache,
+      res_model_id: leadModelIdCache,
+      res_id: leadId,
+      user_id: uid,
+      summary: "Neuer Lead aus dem Sicherheits-Tool",
+      note: `${lead.email.trim()} hat den Bericht${domain ? ` für ${domain}` : ""} angefordert (sharp.reineke.tech).`,
+      date_deadline: (now ?? new Date()).toISOString().slice(0, 10),
+    },
+  ]);
 }
 
 // ─── Scanned-domain log (custom Odoo model x_reineke_scanned_domain) ───────────
