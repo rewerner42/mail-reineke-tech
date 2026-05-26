@@ -29,7 +29,7 @@ DMARC-Compliance voraussetzen.
 ```bash
 npm install
 npm run dev        # Wrangler-Server auf http://localhost:8787
-npm test           # vitest — 79 Unit-Tests
+npm test           # vitest — 81 Unit-Tests
 npm run typecheck  # tsc --noEmit
 ```
 
@@ -93,6 +93,16 @@ Bericht durchgelassen — kein Lead geht verloren, keine Sackgasse für den Nutz
 > Cookie-Banner nicht „Ablehnen" wählt; bei Ablehnung wird der `_lfa`-Cookie
 > entfernt und die Wahl in `localStorage` gemerkt).
 
+### Gescannte Domains in Odoo
+
+Jeder Scan wird (best-effort, via `waitUntil`) in ein **eigenes Odoo-Modell**
+`x_reineke_scanned_domain` („Gescannte Domains") protokolliert — eine Zeile pro
+Domain mit `x_scan_count`; Odoos `create_date`/`write_date` dienen als
+erstmals/zuletzt gesehen. Sichtbar in Odoo über den Menüpunkt **„Gescannte
+Domains"**. Nutzt dieselben `ODOO_*`-Secrets wie die Lead-Erfassung; das Modell
+wurde einmalig per API angelegt (inkl. Zugriffsregel für interne Benutzer). Ist
+Odoo nicht erreichbar, bleibt der Scan unberührt (kein Blockieren).
+
 ## Architektur
 
 ```
@@ -104,7 +114,7 @@ src/
 ├── observatory.ts        # MDN HTTP Observatory v2 client + Benchmark
 ├── observatory-i18n.ts   # Deutsche Übersetzungen (Titel + Result-Codes)
 ├── leads/
-│   └── odoo.ts           # Lead-Capture → Odoo CRM (JSON-RPC crm.lead)
+│   └── odoo.ts           # Odoo CRM: crm.lead + Scan-Domain-Log (JSON-RPC)
 ├── pdf/
 │   └── render.ts         # Report-HTML → PDF (Cloudflare Browser Rendering)
 └── analyzers/
@@ -123,7 +133,7 @@ public/
     ├── reineke-logo.png  # Reineke Cyber Security Logo
     ├── sharp-logo.png    # Sharp Partner-Logo
     └── favicon.png       # Reineke-Fuchs (aus reineke-logo.png zugeschnitten)
-tests/                    # 79 vitest-Tests (dmarc, spf, dkim, dns, mta-sts,
+tests/                    # 81 vitest-Tests (dmarc, spf, dkim, dns, mta-sts,
                           # tls-rpt, dnssec, observatory, grading, odoo-lead)
 ```
 
