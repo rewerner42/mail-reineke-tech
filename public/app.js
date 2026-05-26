@@ -404,7 +404,9 @@ function ensureReportButton(view, domain) {
 
 /* ─────────────── scanning ─────────────── */
 async function fetchJson(url) {
-  const res = await fetch(url);
+  // no-store: a security scanner must always reflect the site's CURRENT state —
+  // never serve a stale grade from the browser/HTTP cache.
+  const res = await fetch(url, { cache: "no-store" });
   const data = await res.json();
   if (!res.ok) throw new Error(data.message ?? "Anfrage fehlgeschlagen.");
   return data;
