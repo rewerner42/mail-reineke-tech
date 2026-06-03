@@ -141,7 +141,7 @@ tests/                    # 81 vitest-Tests (dmarc, spf, dkim, dns, mta-sts,
 
 | Check | A+ | … | F |
 |---|---|---|---|
-| **DMARC** | `p=reject` + rua + pct=100 | `quarantine`→B, `none`→D+ | kein/ungültiges DMARC (+ Spoofing-Hinweis) |
+| **DMARC** | `p=reject` **oder** `p=quarantine` + rua + pct=100 | `none`→D+ | kein/ungültiges DMARC (+ Spoofing-Hinweis) |
 | **DNSSEC** | signiert & validiert | — *(binär, keine Zwischenstufen)* | kein DNSSEC / nicht verankert / kaputte Kette |
 | **Observatory** | MDN-Note (A+…F) übernommen | — | — |
 
