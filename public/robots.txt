@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://mail.reineke.tech/sitemap.xml
+Sitemap: https://wsit.reineke.tech/sitemap.xml

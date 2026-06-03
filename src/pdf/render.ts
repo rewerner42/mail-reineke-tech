@@ -10,7 +10,7 @@ export const MAX_HTML_BYTES = 400_000;
 
 export interface RenderInput {
   html: string;
-  origin: string; // e.g. https://sharp.reineke.tech
+  origin: string; // e.g. https://wsit.reineke.tech
   css?: string; // inlined stylesheet (avoids an external fetch from the headless browser)
 }
 

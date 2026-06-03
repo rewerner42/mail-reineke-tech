@@ -66,7 +66,7 @@ export function buildLeadValues(
     ? `Sicherheits-Check: ${domain}`
     : `Sicherheits-Check Anfrage: ${email}`;
   const description =
-    `Lead über das Reineke Technik Sicherheits-Analyse-Tool (sharp.reineke.tech).\n` +
+    `Lead über das WS IT-TECHNOLOGY Sicherheits-Analyse-Tool (wsit.reineke.tech).\n` +
     (domain ? `Analysierte Domain: ${domain}\n` : "") +
     `E-Mail: ${email}\n` +
     `DSGVO-Einwilligung erteilt: ${stamp}`;
@@ -79,7 +79,7 @@ export function buildLeadValues(
     type: "opportunity",
     description,
     // Free-text channel marker; avoids depending on specific source_id records.
-    referred: "sharp.reineke.tech",
+    referred: "wsit.reineke.tech",
   };
   // Store the analysed domain in the structured Website field, too.
   if (domain) values.website = domain;
@@ -210,7 +210,7 @@ async function createLeadActivity(
       res_id: leadId,
       user_id: uid,
       summary: "Neuer Lead aus dem Sicherheits-Tool",
-      note: `${lead.email.trim()} hat den Bericht${domain ? ` für ${domain}` : ""} angefordert (sharp.reineke.tech).`,
+      note: `${lead.email.trim()} hat den Bericht${domain ? ` für ${domain}` : ""} angefordert (wsit.reineke.tech).`,
       date_deadline: (now ?? new Date()).toISOString().slice(0, 10),
     },
   ]);

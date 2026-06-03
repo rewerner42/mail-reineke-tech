@@ -32,6 +32,23 @@ binding = "ASSETS"
 not_found_handling = "single-page-application"
 run_worker_first = true
 
+# ─── WS IT-TECHNOLOGY white-label ────────────────────────────────────────────
+# Separate Worker + custom domain. Deploy independently with:
+#   wrangler deploy --env wsit
+# This NEVER touches the sharp/mail/scan production Worker (that is --env production).
+[env.wsit]
+name = "wsit-reineke-tech"
+routes = [
+  { pattern = "wsit.reineke.tech", custom_domain = true }
+]
+browser = { binding = "BROWSER" }
+
+[env.wsit.assets]
+directory = "./public"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = true
+
 # Observability
 [observability]
 enabled = true

@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#dc0d23" />
+    <meta name="theme-color" content="#5c2483" />
     <meta name="robots" content="noindex, nofollow" />
-    <title>Report-Generator · Reineke Technik</title>
+    <title>Report-Generator · WS IT-TECHNOLOGY</title>
     <link rel="icon" type="image/png" href="/assets/favicon.png" />
     <style>
       :root {
-        --rt-red: #dc0d23; --rt-red-dark: #8a060e; --rt-gray: #5a5a5a;
+        --rt-red: #5c2483; --rt-red-dark: #3f1860; --rt-accent: #009fe3; --rt-gray: #5a5a5a;
         --rt-border: #e6e7e6; --rt-bg: #f7f7f8; --g-green: #1e8e3e;
       }
       * { box-sizing: border-box; }
@@ -27,20 +27,20 @@
       .rg-sharp { height: 18px; }
       .rg-sep { color: var(--rt-border); }
       .rg-kicker { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--rt-gray); }
-      .rg-bs { color: var(--rt-red); font-weight: 800; margin-right: 0.3em; }
+      .rg-bs { color: var(--rt-accent); font-weight: 800; margin-right: 0.3em; }
       h1 { font-size: 20px; margin: 0 0 4px; }
       .rg-sub { color: var(--rt-gray); font-size: 13px; margin: 0 0 18px; }
       .rg-form { display: flex; flex-direction: column; gap: 10px; }
       .rg-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--rt-gray); }
       .rg-input { font-size: 15px; padding: 11px 13px; border: 1px solid var(--rt-border); border-radius: 7px; width: 100%; }
-      .rg-input:focus { outline: none; border-color: var(--rt-red); box-shadow: 0 0 0 3px rgba(220, 13, 35, 0.12); }
+      .rg-input:focus { outline: none; border-color: var(--rt-red); box-shadow: 0 0 0 3px rgba(92, 36, 131, 0.14); }
       .rg-btn { background: var(--rt-red); color: #fff; border: none; border-radius: 7px; padding: 12px 16px; font-size: 15px; font-weight: 700; cursor: pointer; text-align: center; text-decoration: none; display: inline-block; }
       .rg-btn:hover { background: var(--rt-red-dark); }
       .rg-btn:disabled { opacity: 0.6; cursor: default; }
       .rg-err { color: var(--rt-red); font-size: 13px; margin: 8px 0 0; }
       .rg-progress { margin-top: 18px; }
       .rg-bar { height: 10px; background: var(--rt-bg); border: 1px solid var(--rt-border); border-radius: 20px; overflow: hidden; }
-      .rg-bar-fill { height: 100%; width: 0; background: linear-gradient(90deg, var(--rt-red), var(--rt-red-dark)); border-radius: 20px; transition: width 0.35s ease; }
+      .rg-bar-fill { height: 100%; width: 0; background: linear-gradient(90deg, var(--rt-red), var(--rt-accent)); border-radius: 20px; transition: width 0.35s ease; }
       .rg-status { font-size: 13px; color: var(--rt-gray); margin: 10px 0 0; }
       .rg-done { margin-top: 18px; display: flex; flex-direction: column; gap: 10px; }
       .rg-ok { color: var(--g-green); font-weight: 700; margin: 0; }
@@ -56,7 +56,7 @@
     <main class="rg-wrap">
       <div class="rg-card">
         <div class="rg-head">
-          <img class="rg-sharp" src="/assets/sharp-logo.png" alt="Sharp" />
+          <img class="rg-sharp" src="/assets/wsit-logo.svg" alt="WS IT-TECHNOLOGY" />
           <span class="rg-sep">·</span>
           <span class="rg-kicker"><span class="rg-bs">\</span>Report-Generator</span>
         </div>

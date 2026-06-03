@@ -93,7 +93,7 @@
         }
         var cd = r.headers.get("Content-Disposition") || "";
         var m = cd.match(/filename="?([^"]+)"?/);
-        var name = m ? m[1] : "Sharp-Befund-" + d + ".pdf";
+        var name = m ? m[1] : "WS-IT-Befund-" + d + ".pdf";
         return r.blob().then(function (blob) { return { blob: blob, name: name }; });
       })
       .then(function (res) {

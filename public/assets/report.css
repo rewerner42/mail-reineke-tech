@@ -1,6 +1,7 @@
-/* Sharp / Reineke Technik — Sicherheitsbericht (Print/PDF, A4) */
+/* WS IT-TECHNOLOGY / Reineke Technik — Sicherheitsbericht (Print/PDF, A4) */
 :root{
-  --rt-red:#dc0d23; --rt-red-dark:#8a060e; --rt-black:#111; --rt-gray:#5a5a5a;
+  --rt-red:#5c2483; --rt-red-dark:#3f1860; --rt-accent:#009fe3; --danger:#dc0d23;
+  --rt-black:#111; --rt-gray:#5a5a5a;
   --rt-border:#e6e7e6; --rt-bg:#f7f7f8;
   --g-a:#1e8e3e; --g-b:#5fa800; --g-c:#e8a200; --g-d:#e8710a; --g-f:#dc0d23; --g-na:#9aa0a6;
 }
@@ -17,7 +18,7 @@ code{font-family:"SFMono-Regular",Menlo,Consolas,monospace; font-size:.92em; bac
   border:1px solid var(--rt-border); border-radius:3px; padding:1px 5px; word-break:break-all;}
 em{font-style:italic;}
 /* roter Backslash-Akzent (Anlehnung an die Navigation auf reineke-technik.de) */
-.bs{ color:var(--rt-red); font-weight:800; font-style:normal; margin-right:.32em; }
+.bs{ color:var(--rt-accent); font-weight:800; font-style:normal; margin-right:.32em; }
 
 .page{ position:relative; page-break-after:always; padding-bottom:14mm; min-height:252mm; }
 .page:last-child{page-break-after:auto;}
@@ -64,7 +65,7 @@ em{font-style:italic;}
 .d-host{ color:var(--rt-gray); font-size:9px; }
 .g{ display:inline-block; min-width:30px; padding:3px 7px; border-radius:5px; color:#fff; font-weight:800; font-size:12px; }
 .prio{ font-weight:700; font-size:9.5px; }
-.prio-kritisch{ background:var(--rt-red); color:#fff; }
+.prio-kritisch{ background:var(--danger); color:#fff; }
 .prio-hoch{ background:var(--g-d); color:#fff; }
 .prio-mittel{ background:var(--g-c); color:#fff; }
 .prio-niedrig{ background:var(--g-a); color:#fff; }
@@ -114,12 +115,12 @@ td.prio.prio-kritisch,td.prio.prio-hoch,td.prio.prio-mittel{ color:#fff; }
 .record{ background:var(--rt-bg); border:1px solid var(--rt-border); border-radius:5px; padding:5px 9px; margin-bottom:5px; }
 .record-k{ display:block; font-size:8.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--rt-gray); margin-bottom:3px; font-weight:700; }
 .record code{ background:none; border:none; padding:0; font-size:9.6px; color:var(--rt-red-dark); }
-.record-missing code{ color:var(--rt-red); font-style:italic; }
+.record-missing code{ color:var(--danger); font-style:italic; }
 
 .issues{ list-style:none; margin:0; padding:0; }
 .issues li{ display:flex; gap:8px; align-items:flex-start; margin-bottom:4px; }
 .sev-dot{ width:9px; height:9px; border-radius:50%; flex:0 0 9px; margin-top:3px; }
-.sev-fail .sev-dot{ background:var(--rt-red); } .sev-warn .sev-dot{ background:var(--g-c); }
+.sev-fail .sev-dot{ background:var(--danger); } .sev-warn .sev-dot{ background:var(--g-c); }
 .sev-info .sev-dot{ background:var(--g-na); }
 .msg{ font-size:10.3px; } .rec{ font-size:9.8px; color:var(--rt-red-dark); margin-top:2px; }
 .ok-note{ font-size:10.3px; color:var(--g-a); }
@@ -130,9 +131,9 @@ table.mini td{ border-bottom:1px solid var(--rt-border); padding:2.5px 6px; font
 .mr-label{ width:24%; font-weight:600; } .mr-sum{ color:#333; }
 .pill{ display:inline-block; font-size:8px; font-weight:700; padding:1px 7px; border-radius:20px; text-transform:uppercase; }
 .p-pass{ background:#e6f4ea; color:var(--g-a); } .p-warn{ background:#fef3da; color:#9a6b00; }
-.p-fail{ background:#fde7ea; color:var(--rt-red); } .p-info{ background:#eef0f1; color:var(--rt-gray); }
+.p-fail{ background:#fde7ea; color:var(--danger); } .p-info{ background:#eef0f1; color:var(--rt-gray); }
 
-.angle{ margin-top:4px; background:#fff7f8; border:1px solid #f4c9cf; border-radius:6px; padding:7px 12px; font-size:10.3px; }
+.angle{ margin-top:4px; background:#f4f0fa; border:1px solid #e0d4ec; border-radius:6px; padding:7px 12px; font-size:10.3px; }
 .angle-k{ font-weight:700; color:var(--rt-red-dark); margin-bottom:2px; font-size:11px; }
 
 /* ---------------- METHOD ---------------- */

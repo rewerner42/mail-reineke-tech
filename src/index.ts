@@ -476,23 +476,23 @@ app.post("/api/generate-report", async (c) => {
   // Stylesheet + Logos aus den Assets inlinen — keine externen Fetches im Headless-Browser.
   const origin = new URL(c.req.url).origin;
   let css = "";
-  let logoSharp = "";
+  let logoPartner = "";
   let logoReineke = "";
   try {
-    const [cssResp, sharpResp, foxResp] = await Promise.all([
+    const [cssResp, partnerResp, foxResp] = await Promise.all([
       c.env.ASSETS.fetch(new Request(`${origin}/assets/report.css`)),
-      c.env.ASSETS.fetch(new Request(`${origin}/assets/sharp-logo.png`)),
+      c.env.ASSETS.fetch(new Request(`${origin}/assets/wsit-logo.svg`)),
       c.env.ASSETS.fetch(new Request(`${origin}/assets/reineke-official.svg`)),
     ]);
     if (cssResp.ok) css = await cssResp.text();
-    if (sharpResp.ok) logoSharp = `data:image/png;base64,${bufToBase64(await sharpResp.arrayBuffer())}`;
+    if (partnerResp.ok) logoPartner = `data:image/svg+xml;base64,${bufToBase64(await partnerResp.arrayBuffer())}`;
     if (foxResp.ok) logoReineke = `data:image/svg+xml;base64,${bufToBase64(await foxResp.arrayBuffer())}`;
   } catch {
     /* fall back to an unstyled / logoless render rather than failing outright */
   }
 
   const reportBody = buildReportBody(domain, analyze, observatory, {
-    sharp: logoSharp,
+    partner: logoPartner,
     reineke: logoReineke,
   });
   if (reportBody.length > MAX_HTML_BYTES) {
@@ -504,7 +504,7 @@ app.post("/api/generate-report", async (c) => {
     return new Response(pdf, {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="Sharp-Befund-${domain}.pdf"`,
+        "Content-Disposition": `attachment; filename="WS-IT-Befund-${domain}.pdf"`,
         "Cache-Control": "no-store",
       },
     });

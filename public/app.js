@@ -1,4 +1,4 @@
-// sharp.reineke.tech — frontend (3 tools: E-Mail / Website / DNSSEC)
+// wsit.reineke.tech — frontend (3 tools: E-Mail / Website / DNSSEC)
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
@@ -22,12 +22,12 @@ const CHECK_LABELS = {
 
 // Letterhead for the exported cybersecurity reports.
 const REPORT_CONTACT = {
-  company: "Reineke Technik GmbH",
-  name: "Werner Francis Reineke",
-  street: "Geseker Straße 26",
-  city: "33154 Salzkotten",
-  phone: "+49 (0) 5258 987-282",
-  email: "wf.reineke@reineke-technik.de",
+  company: "WS IT-TECHNOLOGY GmbH",
+  name: "Werner Spellerberg",
+  street: "Bad Meinberger Straße 1",
+  city: "32760 Detmold",
+  phone: "+49 (0) 5231 308087-0",
+  email: "wspellerberg@ws-it-technology.de",
 };
 
 function reportLink(domain, check) {
@@ -704,7 +704,7 @@ function buildReportHtml(domain, isSingle, singleLabel, findings) {
   const kind = isSingle ? `Einzelbefund: ${singleLabel}` : "Cybersecurity-Report";
   const letterhead = `
     <header class="report-letterhead">
-      <img src="/assets/reineke-logo.png" alt="Reineke Technik" class="report-logo" />
+      <img src="/assets/wsit-logo.svg" alt="WS IT-TECHNOLOGY" class="report-logo" />
       <address class="report-contact">
         <strong>${c.company}</strong><br />
         ${c.name}<br />
@@ -811,9 +811,9 @@ function renderLeadGate(doc, domain, onProceed) {
         </label>
         <label class="lead-consent">
           <input type="checkbox" name="consent" required />
-          <span>Ich willige ein, dass die <strong>Reineke Technik GmbH</strong> meine
+          <span>Ich willige ein, dass die <strong>WS IT-TECHNOLOGY GmbH</strong> meine
             E-Mail-Adresse zur Bereitstellung des Berichts und zur Kontaktaufnahme
-            verarbeitet. Die <a href="https://www.reineke-technik.de/datenschutz/"
+            verarbeitet. Die <a href="https://www.ws-it-technology.de/datenschutz/"
             target="_blank" rel="noopener">Datenschutzerklärung</a> habe ich zur Kenntnis
             genommen. Diese Einwilligung kann ich jederzeit mit Wirkung für die Zukunft
             widerrufen.</span>

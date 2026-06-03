@@ -1,15 +1,16 @@
-/* Reineke Technik — E-Mail Authentifizierungs-Check
- * Brand palette derived from reineke-technik.de live CSS:
- *   primary red #dc0d23, dark red #8a060e, gray #5a5a5a, light borders #e6e7e6.
- * Typography matches the site stack: 'Frutiger' (if available) with a humanist
- * sans-serif fallback. Body weight 300 / strong 700 — the Reineke signature
- * "light heading + bold word" look.
+/* WS IT-TECHNOLOGY — Domain-Sicherheits-Check (White-Label, Technik von Reineke Technik)
+ * Brand palette derived from the WS IT-TECHNOLOGY logo:
+ *   primary purple #5c2483, light purple #885ea4, azure accent #009fe3,
+ *   gray #5a5a5a, light borders #e6e7e6.
+ * Humanist sans stack, body weight 300 / strong 700 — clean corporate look.
+ * NB: --rt-red is kept as the brand token name but now holds WS-IT purple.
  */
 
 :root {
-  --rt-red: #dc0d23;
-  --rt-red-dark: #8a060e;
-  --rt-red-soft: #fcf0ef;
+  --rt-red: #5c2483; /* WS IT-TECHNOLOGY purple (primary brand) */
+  --rt-red-dark: #3f1860;
+  --rt-red-soft: #f3eef9;
+  --rt-accent: #009fe3; /* WS IT-TECHNOLOGY azure (spark accent) */
   --rt-black: #000000;
   --rt-ink: #1a1a1a;
   --rt-gray: #5a5a5a;
@@ -27,8 +28,8 @@
   --pass-bg: #e8f4ec;
   --warn: #a8590b;
   --warn-bg: #fbf2e1;
-  --fail: var(--rt-red);
-  --fail-bg: var(--rt-red-soft);
+  --fail: #d72638; /* danger stays red, independent of brand */
+  --fail-bg: #fdecec;
   --info: #1d4f8b;
   --info-bg: #e3edf8;
 
@@ -90,7 +91,7 @@ b, strong { font-weight: 700; }
   padding: 1.1rem 0;
 }
 .brand-logo {
-  height: 52px;
+  height: 44px;
   width: auto;
   display: block;
 }
@@ -134,7 +135,7 @@ b, strong { font-weight: 700; }
   position: absolute;
   inset: auto 0 0 0;
   height: 4px;
-  background: linear-gradient(90deg, var(--rt-red) 0%, var(--rt-red) 30%, transparent 30%);
+  background: linear-gradient(90deg, var(--rt-accent) 0%, var(--rt-accent) 30%, transparent 30%);
   opacity: 0.08;
 }
 .hero-inner { max-width: 920px; }
