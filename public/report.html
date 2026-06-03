@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#dc0d23" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Report-Generator · Reineke Technik</title>
+    <link rel="icon" type="image/png" href="/assets/favicon.png" />
+    <style>
+      :root {
+        --rt-red: #dc0d23; --rt-red-dark: #8a060e; --rt-gray: #5a5a5a;
+        --rt-border: #e6e7e6; --rt-bg: #f7f7f8; --g-green: #1e8e3e;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0; color: #111; background: var(--rt-bg);
+        font-family: "Frutiger", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      }
+      .rg-wrap { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
+      .rg-card {
+        background: #fff; border: 1px solid var(--rt-border); border-top: 4px solid var(--rt-red);
+        border-radius: 10px; max-width: 480px; width: 100%; padding: 28px 28px 24px;
+        box-shadow: 0 6px 30px rgba(0, 0, 0, 0.06);
+      }
+      .rg-head { display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--rt-border); padding-bottom: 12px; margin-bottom: 18px; }
+      .rg-sharp { height: 18px; }
+      .rg-sep { color: var(--rt-border); }
+      .rg-kicker { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--rt-gray); }
+      .rg-bs { color: var(--rt-red); font-weight: 800; margin-right: 0.3em; }
+      h1 { font-size: 20px; margin: 0 0 4px; }
+      .rg-sub { color: var(--rt-gray); font-size: 13px; margin: 0 0 18px; }
+      .rg-form { display: flex; flex-direction: column; gap: 10px; }
+      .rg-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--rt-gray); }
+      .rg-input { font-size: 15px; padding: 11px 13px; border: 1px solid var(--rt-border); border-radius: 7px; width: 100%; }
+      .rg-input:focus { outline: none; border-color: var(--rt-red); box-shadow: 0 0 0 3px rgba(220, 13, 35, 0.12); }
+      .rg-btn { background: var(--rt-red); color: #fff; border: none; border-radius: 7px; padding: 12px 16px; font-size: 15px; font-weight: 700; cursor: pointer; text-align: center; text-decoration: none; display: inline-block; }
+      .rg-btn:hover { background: var(--rt-red-dark); }
+      .rg-btn:disabled { opacity: 0.6; cursor: default; }
+      .rg-err { color: var(--rt-red); font-size: 13px; margin: 8px 0 0; }
+      .rg-progress { margin-top: 18px; }
+      .rg-bar { height: 10px; background: var(--rt-bg); border: 1px solid var(--rt-border); border-radius: 20px; overflow: hidden; }
+      .rg-bar-fill { height: 100%; width: 0; background: linear-gradient(90deg, var(--rt-red), var(--rt-red-dark)); border-radius: 20px; transition: width 0.35s ease; }
+      .rg-status { font-size: 13px; color: var(--rt-gray); margin: 10px 0 0; }
+      .rg-done { margin-top: 18px; display: flex; flex-direction: column; gap: 10px; }
+      .rg-ok { color: var(--g-green); font-weight: 700; margin: 0; }
+      .rg-btn-dl { background: var(--g-green); }
+      .rg-btn-dl:hover { background: #16702f; }
+      .rg-link { background: none; border: none; color: var(--rt-red); font-size: 13px; cursor: pointer; text-decoration: underline; padding: 0; align-self: flex-start; }
+      .rg-foot { margin-top: 16px; font-size: 13px; }
+      .rg-foot a { color: var(--rt-gray); }
+      [hidden] { display: none !important; }
+    </style>
+  </head>
+  <body>
+    <main class="rg-wrap">
+      <div class="rg-card">
+        <div class="rg-head">
+          <img class="rg-sharp" src="/assets/sharp-logo.png" alt="Sharp" />
+          <span class="rg-sep">·</span>
+          <span class="rg-kicker"><span class="rg-bs">\</span>Report-Generator</span>
+        </div>
+
+        <!-- LOGIN -->
+        <section id="login">
+          <h1>Anmeldung</h1>
+          <p class="rg-sub">Dieser Bereich ist passwortgeschützt.</p>
+          <form id="loginForm" class="rg-form" autocomplete="off">
+            <label class="rg-label" for="pw">Passwort</label>
+            <input id="pw" type="password" class="rg-input" placeholder="Passwort" required autocomplete="current-password" />
+            <button type="submit" id="loginBtn" class="rg-btn">Anmelden</button>
+            <p id="loginErr" class="rg-err" hidden></p>
+          </form>
+        </section>
+
+        <!-- GENERATOR -->
+        <section id="gen" hidden>
+          <h1>Sicherheits-Report erstellen</h1>
+          <p class="rg-sub">Domain eingeben — DMARC, DNSSEC und Website-Sicherheit werden geprüft und als gebrandetes PDF erstellt.</p>
+          <form id="genForm" class="rg-form">
+            <label class="rg-label" for="domain">Domain</label>
+            <input id="domain" type="text" class="rg-input" placeholder="z. B. cemex.de" required autocapitalize="off" autocorrect="off" spellcheck="false" />
+            <button type="submit" id="genBtn" class="rg-btn">Report erstellen</button>
+          </form>
+
+          <div id="progress" class="rg-progress" hidden>
+            <div class="rg-bar"><div id="barFill" class="rg-bar-fill"></div></div>
+            <p id="statusText" class="rg-status">…</p>
+          </div>
+
+          <div id="done" class="rg-done" hidden>
+            <p class="rg-ok">✓ Report erstellt.</p>
+            <a id="dl" class="rg-btn rg-btn-dl" download>PDF herunterladen</a>
+            <button type="button" id="again" class="rg-link">Weiteren Report erstellen</button>
+          </div>
+
+          <p id="genErr" class="rg-err" hidden></p>
+        </section>
+      </div>
+      <p class="rg-foot"><a href="/">← Zur Startseite</a></p>
+    </main>
+    <script src="/report.js" defer></script>
+  </body>
+</html>
