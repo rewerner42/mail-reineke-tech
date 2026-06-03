@@ -4,8 +4,10 @@ import type { CheckIssue, CheckResult, DmarcRecord } from "../types.js";
 
 /**
  * Grade the DMARC posture (0–100 → letter grade). Policy is the dominant factor:
- * reject is full protection, quarantine partial, none is monitoring only (no
- * protection — spoofing still possible), missing/invalid offers nothing.
+ * reject AND quarantine are treated as full protection (Google's Feb-2024
+ * bulk-sender rules + M3AAWG/RFC guidance both accept quarantine as compliant).
+ * none is monitoring only (no protection — spoofing still possible),
+ * missing/invalid offers nothing.
  */
 export function gradeDmarc(
   record: DmarcRecord | null,
@@ -17,7 +19,7 @@ export function gradeDmarc(
     return { score: 0, grade: scoreToGrade(0) };
   }
 
-  let score = policy === "reject" ? 100 : policy === "quarantine" ? 75 : 40;
+  let score = policy === "reject" || policy === "quarantine" ? 100 : 40;
   const enforcing = policy === "reject" || policy === "quarantine";
 
   // Partial enforcement (pct < 100) weakens an otherwise enforcing policy.
@@ -179,11 +181,10 @@ export async function analyzeDmarc(
         break;
       case "quarantine":
         issues.push({
-          severity: "warn",
+          severity: "pass",
           code: "DMARC_POLICY_QUARANTINE",
-          message: "Policy \"quarantine\" — verdächtige Mails landen im Spam.",
-          recommendation:
-            "Sobald SPF/DKIM stabil ausgerichtet sind, auf p=reject wechseln für maximalen Schutz.",
+          message:
+            "Policy \"quarantine\" — verdächtige Mails landen im Spam. Voller Schutz im Sinne der Google-/Microsoft-Bulk-Sender-Anforderungen.",
         });
         break;
       case "reject":

@@ -45,8 +45,9 @@ describe("gradeDmarc", () => {
     expect(g.grade).toBe("A");
   });
 
-  it("grades quarantine with reporting as B", () => {
-    expect(gradeDmarc(rec("quarantine", { rua: ["mailto:r@x.de"] }), 1).grade).toBe("B");
+  it("grades quarantine with reporting + pct=100 as A+ (treated as full protection)", () => {
+    const g = gradeDmarc(rec("quarantine", { rua: ["mailto:r@x.de"], pct: 100 }), 1);
+    expect(g.grade).toBe("A+");
   });
 
   it("grades p=none low (no protection)", () => {
