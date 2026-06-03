@@ -10,6 +10,7 @@ import { analyzeDnssec } from "./analyzers/dnssec.js";
 import { analyzeObservatory, fetchGradeDistribution } from "./observatory.js";
 import { createLead, odooConfigFromEnv, recordScannedDomain, validateEmail } from "./leads/odoo.js";
 import { MAX_HTML_BYTES, renderReportPdf } from "./pdf/render.js";
+import { buildReportBody } from "./report/build.js";
 import type { BrowserWorker } from "@cloudflare/puppeteer";
 import type { AnalysisResponse } from "./types.js";
 
@@ -22,6 +23,8 @@ type Bindings = {
   ODOO_API_KEY?: string;
   // Browser Rendering binding for server-side PDF export.
   BROWSER?: BrowserWorker;
+  // Password (no username) gating the internal report generator at /report.
+  REPORT_PASSWORD?: string;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -131,6 +134,70 @@ async function runEmailChecks(domain: string, extraSelectors: string[]) {
     analyzeTlsRpt(domain),
   ]);
   return { dmarc, spf, dkim, mx, mtaSts, tlsRpt };
+}
+
+// ── Report-Generator: Auth (nur Passwort, kein Benutzername) ──────────────────
+const REPORT_COOKIE = "rpt";
+const REPORT_TTL_MS = 8 * 60 * 60 * 1000; // 8 h
+
+function bufToBase64(buf: ArrayBuffer): string {
+  const bytes = new Uint8Array(buf);
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  }
+  return btoa(bin);
+}
+
+/** Length-independent equality to avoid leaking the password via timing. */
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let r = 0;
+  for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return r === 0;
+}
+
+async function hmacHex(secret: string, msg: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(msg));
+  return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function makeReportToken(secret: string): Promise<string> {
+  const exp = Date.now() + REPORT_TTL_MS;
+  return `${exp}.${await hmacHex(secret, `report.${exp}`)}`;
+}
+
+async function verifyReportToken(secret: string, token: string | undefined): Promise<boolean> {
+  if (!token) return false;
+  const dot = token.indexOf(".");
+  if (dot < 0) return false;
+  const exp = Number(token.slice(0, dot));
+  if (!Number.isFinite(exp) || exp < Date.now()) return false;
+  const expected = `${exp}.${await hmacHex(secret, `report.${exp}`)}`;
+  return timingSafeEqual(token, expected);
+}
+
+function readCookie(header: string | undefined, name: string): string | undefined {
+  if (!header) return undefined;
+  for (const part of header.split(";")) {
+    const eq = part.indexOf("=");
+    if (eq < 0) continue;
+    if (part.slice(0, eq).trim() === name) return part.slice(eq + 1).trim();
+  }
+  return undefined;
+}
+
+function isReportAuthed(c: Context<{ Bindings: Bindings }>): Promise<boolean> {
+  const secret = c.env.REPORT_PASSWORD;
+  if (!secret) return Promise.resolve(false);
+  return verifyReportToken(secret, readCookie(c.req.header("Cookie"), REPORT_COOKIE));
 }
 
 app.get("/api/health", (c) => c.json({ ok: true, service: "mail.reineke.tech" }));
@@ -337,6 +404,113 @@ app.post("/api/report-pdf", async (c) => {
       { ok: false, code: "RENDER_FAILED", message: "PDF konnte nicht erstellt werden." },
       502,
     );
+  }
+});
+
+// ── Report-Generator (passwortgeschützte Seite) ───────────────────────────────
+// Saubere URL für die geschützte Seite (liefert report.html aus den Assets).
+app.get("/report", (c) => c.env.ASSETS.fetch(new Request(new URL("/report.html", c.req.url))));
+
+// Login: nur Passwort (kein Benutzername) → signiertes HttpOnly-Cookie.
+app.post("/api/report-auth", async (c) => {
+  if (isCrossOrigin(c.req.header("Origin"), c.req.url)) return c.json(CROSS_ORIGIN_DENIED, 403);
+  const secret = c.env.REPORT_PASSWORD;
+  if (!secret) {
+    return c.json(
+      { ok: false, code: "NOT_CONFIGURED", message: "Report-Login ist nicht konfiguriert." },
+      503,
+    );
+  }
+  let body: { password?: unknown };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ ok: false, code: "BAD_REQUEST", message: "Ungültige Anfrage." }, 400);
+  }
+  const pw = typeof body.password === "string" ? body.password : "";
+  if (!timingSafeEqual(pw, secret)) {
+    return c.json({ ok: false, code: "INVALID", message: "Falsches Passwort." }, 401);
+  }
+  const token = await makeReportToken(secret);
+  const secure = new URL(c.req.url).protocol === "https:" ? "; Secure" : "";
+  c.header(
+    "Set-Cookie",
+    `${REPORT_COOKIE}=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${REPORT_TTL_MS / 1000}${secure}`,
+  );
+  return c.json({ ok: true });
+});
+
+// Auth-Status (die Seite entscheidet damit: Login-Formular vs. Generator).
+app.get("/api/report-auth", async (c) =>
+  c.json({ authed: await isReportAuthed(c) }, 200, { "Cache-Control": "no-store" }),
+);
+
+// Report erzeugen: Domain scannen → gebrandeten Report bauen → als PDF rendern.
+app.post("/api/generate-report", async (c) => {
+  if (isCrossOrigin(c.req.header("Origin"), c.req.url)) return c.json(CROSS_ORIGIN_DENIED, 403);
+  if (!(await isReportAuthed(c))) {
+    return c.json({ ok: false, code: "UNAUTHORIZED", message: "Bitte zuerst anmelden." }, 401);
+  }
+  if (!c.env.BROWSER) {
+    return c.json({ ok: false, code: "NO_BROWSER", message: "PDF-Rendering nicht verfügbar." }, 503);
+  }
+
+  let body: { domain?: unknown };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ ok: false, code: "BAD_REQUEST", message: "Ungültige Anfrage." }, 400);
+  }
+  const domain = normalizeDomain(typeof body.domain === "string" ? body.domain : "");
+  if (!domain) return c.json(INVALID_DOMAIN, 400);
+  recordDomainSafe(c, domain);
+
+  // Scans serverseitig (autoritativ): E-Mail-Auth + DNSSEC + Website-Header.
+  const [email, dnssec, observatory] = await Promise.all([
+    runEmailChecks(domain, []),
+    analyzeDnssec(domain),
+    analyzeObservatory(domain),
+  ]);
+  const analyze: AnalysisResponse = { domain, queriedAt: new Date().toISOString(), ...email, dnssec };
+
+  // Stylesheet + Logos aus den Assets inlinen — keine externen Fetches im Headless-Browser.
+  const origin = new URL(c.req.url).origin;
+  let css = "";
+  let logoSharp = "";
+  let logoReineke = "";
+  try {
+    const [cssResp, sharpResp, foxResp] = await Promise.all([
+      c.env.ASSETS.fetch(new Request(`${origin}/assets/report.css`)),
+      c.env.ASSETS.fetch(new Request(`${origin}/assets/sharp-logo.png`)),
+      c.env.ASSETS.fetch(new Request(`${origin}/assets/reineke-official.svg`)),
+    ]);
+    if (cssResp.ok) css = await cssResp.text();
+    if (sharpResp.ok) logoSharp = `data:image/png;base64,${bufToBase64(await sharpResp.arrayBuffer())}`;
+    if (foxResp.ok) logoReineke = `data:image/svg+xml;base64,${bufToBase64(await foxResp.arrayBuffer())}`;
+  } catch {
+    /* fall back to an unstyled / logoless render rather than failing outright */
+  }
+
+  const reportBody = buildReportBody(domain, analyze, observatory, {
+    sharp: logoSharp,
+    reineke: logoReineke,
+  });
+  if (reportBody.length > MAX_HTML_BYTES) {
+    return c.json({ ok: false, code: "TOO_LARGE", message: "Report zu groß." }, 500);
+  }
+
+  try {
+    const pdf = await renderReportPdf(c.env.BROWSER, { html: reportBody, origin, css });
+    return new Response(pdf, {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="Sharp-Befund-${domain}.pdf"`,
+        "Cache-Control": "no-store",
+      },
+    });
+  } catch (err) {
+    console.error("generate-report render failed:", err instanceof Error ? err.message : String(err));
+    return c.json({ ok: false, code: "RENDER_FAILED", message: "PDF konnte nicht erstellt werden." }, 502);
   }
 });
 
