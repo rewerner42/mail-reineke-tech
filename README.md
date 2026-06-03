@@ -14,7 +14,7 @@ englischer Fallback) und gegen die globale MDN-Notenverteilung gebenchmarkt.
 DMARC steht im Fokus, da Google und Microsoft seit Februar 2024 für Bulk-Sender
 DMARC-Compliance voraussetzen.
 
-**Live:** https://sharp.reineke.tech · https://mail.reineke.tech (Alt-Hostname)
+**Live:** https://scan.reineke.tech · https://sharp.reineke.tech · https://mail.reineke.tech
 
 ## Stack
 
@@ -39,7 +39,7 @@ npm run typecheck  # tsc --noEmit
 # Vorschau (Worker auf <name>.<account>.workers.dev)
 npm run deploy
 
-# Produktion mit Custom Domains sharp.reineke.tech & mail.reineke.tech
+# Produktion mit Custom Domains scan/sharp/mail.reineke.tech
 npm run deploy:prod
 ```
 
@@ -50,6 +50,7 @@ In `wrangler.toml` sind die Routen bereits konfiguriert:
 ```toml
 [env.production]
 routes = [
+  { pattern = "scan.reineke.tech",  custom_domain = true },
   { pattern = "sharp.reineke.tech", custom_domain = true },
   { pattern = "mail.reineke.tech",  custom_domain = true }
 ]
@@ -135,7 +136,6 @@ public/
 ├── app.js                # Tab-Routing, Domain-State, Cache, Report + Lead-Gate, Consent + Leadfeeder
 └── assets/
     ├── reineke-logo.png  # Reineke Cyber Security Logo
-    ├── sharp-logo.png    # Sharp Partner-Logo
     └── favicon.png       # Reineke-Fuchs (aus reineke-logo.png zugeschnitten)
 tests/                    # 81 vitest-Tests (dmarc, spf, dkim, dns, mta-sts,
                           # tls-rpt, dnssec, observatory, grading, odoo-lead)
