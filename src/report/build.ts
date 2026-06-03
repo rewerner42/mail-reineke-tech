@@ -19,15 +19,15 @@ export interface ReportLogos {
 }
 
 const REINEKE = {
-  name: "Werner Reineke",
-  role: "Geschäftsführer",
-  org: "Reineke Technik GmbH",
-  mail: "wf.reineke@reineke-technik.de",
+  name: "Werner Francis Reineke",
+  role: "Cybersecurity & Analyse",
+  org: "WS IT-TECHNOLOGY GmbH",
+  mail: "wreineke@ws-it-technology.de",
   tel: "+49 172 2872390",
   mobile: "",
   fax: "",
-  addr: "Geseker Straße 26, 33154 Salzkotten",
-  web: "www.reineke-technik.de",
+  addr: "Bad Meinberger Straße 1, 32760 Detmold",
+  web: "www.ws-it-technology.de",
 };
 const PARTNER = {
   name: "Werner Spellerberg",
@@ -129,10 +129,10 @@ function contactCard(c: typeof REINEKE): string {
 }
 
 const OFFER_BLOCK = `<div class="offer">
-    <h3>Unser Angebot — Reineke Technik &amp; WS IT-TECHNOLOGY</h3>
-    <p>Gemeinsam bringen wir Ihre Domains kontrolliert und nachvollziehbar auf ein durchgesetztes
-      Schutzniveau — die technische Umsetzung durch Reineke Technik, persönliche Betreuung durch
-      WS IT-TECHNOLOGY, durchgängig DSGVO-konform und deutschsprachig:</p>
+    <h3>Unser Angebot — WS IT-TECHNOLOGY</h3>
+    <p>Wir bringen Ihre Domains kontrolliert und nachvollziehbar auf ein durchgesetztes
+      Schutzniveau — technische Umsetzung und persönliche Betreuung aus einer Hand,
+      durchgängig DSGVO-konform und deutschsprachig:</p>
     <ol>
       <li><strong>DMARC-Einführung &amp; -Härtung:</strong> begleiteter Rollout von
         <code>p=none</code> über <code>p=quarantine</code> bis <code>p=reject</code>, inkl.
@@ -155,7 +155,7 @@ function pageHead(title: string, L: ReportLogos): string {
 }
 
 function foot(date: string): string {
-  return `<div class="page-foot">Geprüft mit wsit.reineke.tech · Stand ${esc(date)} · Reineke Technik GmbH · Vertraulich</div>`;
+  return `<div class="page-foot">Geprüft mit wsit.reineke.tech · Stand ${esc(date)} · WS IT-TECHNOLOGY GmbH · Vertraulich</div>`;
 }
 
 function coverPage(domain: string, date: string, L: ReportLogos): string {
@@ -172,11 +172,11 @@ function coverPage(domain: string, date: string, L: ReportLogos): string {
   <div class="cover-bottom">
     <div class="cover-by">
       <div class="cb-label">Durchgeführt &amp; erstellt von</div>
-      <div class="cb-org">Reineke Technik GmbH</div>
-      <div class="cb-partner">Geseker Straße 26 · 33154 Salzkotten · www.reineke-technik.de</div>
+      <div class="cb-org">WS IT-TECHNOLOGY GmbH</div>
+      <div class="cb-partner">Bad Meinberger Straße 1 · 32760 Detmold · www.ws-it-technology.de</div>
       <div class="cb-date">${esc(date)}</div>
     </div>
-    <img class="cover-fox" src="${L.reineke}" alt="Reineke Technik">
+    <img class="cover-fox" src="${L.partner}" alt="WS IT-TECHNOLOGY">
   </div>
   <div class="cover-conf">Vertraulich — nur für den internen Gebrauch der Adressaten bestimmt.</div>
 </section>`;
@@ -309,7 +309,7 @@ function methodPage(date: string, L: ReportLogos): string {
   </div>
   <h3>Wie wurde gemessen?</h3>
   <p>Alle Werte wurden am ${esc(date)} mit dem frei zugänglichen Analyse-Tool
-    <strong>wsit.reineke.tech</strong> von Reineke Technik erhoben. DNS-Abfragen erfolgen über
+    <strong>wsit.reineke.tech</strong> von WS IT-TECHNOLOGY erhoben. DNS-Abfragen erfolgen über
     Cloudflare DNS-over-HTTPS (1.1.1.1); die Website-Bewertung nutzt den
     <em>MDN HTTP Observatory</em> von Mozilla. Die Noten (A+…F) liegen auf einer gemeinsamen
     Skala. Es wurden ausschließlich öffentlich abrufbare DNS- und HTTP-Informationen
@@ -317,12 +317,11 @@ function methodPage(date: string, L: ReportLogos): string {
   <p class="method-note">Die Ergebnisse sind eine Momentaufnahme und können sich nach
     Konfigurationsänderungen ändern. Eine erneute Prüfung ist jederzeit kostenfrei möglich.</p>
   <div class="brandfoot">
-    <img class="bf-fox" src="${L.reineke}" alt="Reineke Technik">
     <div class="bf-body">
-      <div class="bf-org">Reineke Technik GmbH</div>
-      <div class="bf-tag">Analyse durchgeführt &amp; erstellt · E-Mail- &amp; Domain-Sicherheit · wsit.reineke.tech<br>in Zusammenarbeit mit WS IT-TECHNOLOGY GmbH</div>
-      <div class="bf-contact">${esc(REINEKE.name)} (Reineke Technik) · ${esc(REINEKE.mail)}<br>
-        ${esc(PARTNER.name)} (WS IT-TECHNOLOGY) · ${esc(PARTNER.mail)} · ${esc(PARTNER.tel)}</div>
+      <div class="bf-org">WS IT-TECHNOLOGY GmbH</div>
+      <div class="bf-tag">Analyse durchgeführt &amp; erstellt · E-Mail- &amp; Domain-Sicherheit · wsit.reineke.tech</div>
+      <div class="bf-contact">${esc(REINEKE.name)} · ${esc(REINEKE.mail)}<br>
+        ${esc(PARTNER.name)} · ${esc(PARTNER.mail)} · ${esc(PARTNER.tel)}</div>
     </div>
     <img class="bf-sharp" src="${L.partner}" alt="WS IT-TECHNOLOGY">
   </div>

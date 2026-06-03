@@ -37,7 +37,7 @@ em{font-style:italic;}
 /* ---------------- COVER ---------------- */
 .cover{ display:flex; flex-direction:column; min-height:262mm; }
 .cover-top{ padding-top:6mm; }
-.cover-sharp{ height:30px; }
+.cover-sharp{ height:60px; }
 .cover-mid{ margin-top:34mm; }
 .cover-kicker{ color:var(--rt-red); font-weight:700; text-transform:uppercase; letter-spacing:.08em; font-size:12px; margin-bottom:10px; }
 .cover h1{ font-size:33px; line-height:1.08; margin-bottom:14px; }
@@ -50,7 +50,7 @@ em{font-style:italic;}
 .cb-org{ font-size:20px; font-weight:700; color:var(--rt-red); }
 .cb-partner{ font-size:10px; color:var(--rt-gray); max-width:95mm; }
 .cb-date{ font-size:12px; color:var(--rt-gray); margin-top:3px; }
-.cover-fox{ height:96px; }
+.cover-fox{ height:40px; }
 .cover-conf{ margin-top:10px; font-size:8.5px; color:var(--rt-gray); border-top:1px solid var(--rt-border); padding-top:7px; }
 
 /* ---------------- SUMMARY ---------------- */
