@@ -82,6 +82,10 @@ wrangler secret put ODOO_USERNAME --env production   # Login-E-Mail des API-Benu
 wrangler secret put ODOO_API_KEY  --env production   # der erzeugte API-Schlüssel
 ```
 
+**Benachrichtigung:** Zu jedem Lead wird (best-effort) eine **To-Do-Aktivität**
+„Neuer Lead aus dem Sicherheits-Tool" angelegt und dem API-Benutzer zugewiesen —
+sichtbar über die **Aktivitäten-Glocke** und unter **Meine Aktivitäten** in Odoo.
+
 **Robustheit:** E-Mail + Einwilligung werden serverseitig erzwungen (sonst `400`).
 Ist Odoo nicht konfiguriert oder schlägt der Push fehl, wird der Lead in den
 Worker-Logs (`wrangler tail`) protokolliert und der Nutzer **trotzdem** zum
