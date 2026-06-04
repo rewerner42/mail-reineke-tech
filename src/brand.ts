@@ -10,6 +10,7 @@
 // the served HTML/CSS; for the default brand the middleware is a no-op.
 
 import { reineke } from "./brands/reineke.js";
+import { wsit } from "./brands/wsit.js";
 
 export interface BrandContact {
   name: string;
@@ -103,7 +104,7 @@ export interface Brand {
 
 // Registry. `main` ships only the default; client branches append their brand
 // to EXTRA (a single line) so the branch never edits the shared files.
-const EXTRA: Brand[] = [];
+const EXTRA: Brand[] = [wsit];
 
 export const DEFAULT_BRAND = reineke;
 export const BRANDS: Record<string, Brand> = Object.fromEntries(
