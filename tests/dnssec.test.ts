@@ -17,6 +17,19 @@ describe("classifyDnssec", () => {
     expect(c.data.validationFailed).toBe(false);
   });
 
+  it("classifies a name protected by its signed parent zone as secure (AD set, 0 own DNSKEY)", () => {
+    // e.g. sharp.reineke.tech: no DNSKEY/DS of its own (it's a record in the
+    // signed reineke.tech zone), but the validating resolver authenticates the
+    // answer → AD=true. Must be secure (A+), not "unsigned".
+    const c = classifyDnssec({ dnskeyAd: true, dnskeyCount: 0, dnskeyServfail: false, dsCount: 0 });
+    expect(c.status).toBe("pass");
+    expect(c.code).toBe("DNSSEC_SECURE");
+    expect(c.score).toBe(100);
+    expect(c.data.secure).toBe(true);
+    expect(c.data.authenticated).toBe(true);
+    expect(c.data.dnskeyCount).toBe(0);
+  });
+
   it("classifies an unsigned zone (no keys, no DS) as fail — F (binary)", () => {
     const c = classifyDnssec({ dnskeyAd: false, dnskeyCount: 0, dnskeyServfail: false, dsCount: 0 });
     expect(c.status).toBe("fail");
