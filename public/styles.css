@@ -10,6 +10,8 @@
   --rt-red: #dc0d23;
   --rt-red-dark: #8a060e;
   --rt-red-soft: #fcf0ef;
+  --rt-accent: var(--rt-red); /* brand spark / hero accent — overridden per brand */
+  --brand-logo-height: 52px; /* header logo height — overridden per brand */
   --rt-black: #000000;
   --rt-ink: #1a1a1a;
   --rt-gray: #5a5a5a;
@@ -90,7 +92,7 @@ b, strong { font-weight: 700; }
   padding: 1.1rem 0;
 }
 .brand-logo {
-  height: 52px;
+  height: var(--brand-logo-height);
   width: auto;
   display: block;
 }
@@ -146,7 +148,7 @@ b, strong { font-weight: 700; }
   position: absolute;
   inset: auto 0 0 0;
   height: 4px;
-  background: linear-gradient(90deg, var(--rt-red) 0%, var(--rt-red) 30%, transparent 30%);
+  background: linear-gradient(90deg, var(--rt-accent) 0%, var(--rt-accent) 30%, transparent 30%);
   opacity: 0.08;
 }
 .hero-inner { max-width: 920px; }

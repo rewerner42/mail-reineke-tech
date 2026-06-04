@@ -4,6 +4,9 @@
 // report BODY (a sequence of <section class="page">…); the endpoint passes it to
 // renderReportPdf together with the branded stylesheet (public/assets/report.css)
 // and inlined logos. Layout/branding mirror the prospect reports.
+//
+// All brand-specific content (contacts, logos, tool URL, offer text) comes from
+// the active `Brand` (src/brand.ts) so one codebase renders every white-label.
 
 import type {
   AnalysisResponse,
@@ -12,32 +15,12 @@ import type {
   ObservatoryResult,
   Severity,
 } from "../types.js";
+import type { Brand, BrandContact } from "../brand.js";
 
 export interface ReportLogos {
-  sharp: string; // data: URI (PNG wordmark)
-  reineke: string; // data: URI (SVG fox + wordmark)
+  wordmark: string; // data: URI — top wordmark (cover-top, page-heads, brand-foot)
+  fox: string; // data: URI — secondary/fox logo (cover-fox, brand-foot, when shown)
 }
-
-const REINEKE = {
-  name: "Werner Reineke",
-  role: "Geschäftsführer",
-  org: "Reineke Technik GmbH",
-  mail: "wf.reineke@reineke-technik.de",
-  tel: "+49 172 2872390",
-  mobile: "",
-  addr: "Geseker Straße 26, 33154 Salzkotten",
-  web: "www.reineke-technik.de",
-};
-const SHARP = {
-  name: "Theo Müller",
-  role: "Verkaufsleiter Direktvertrieb",
-  org: "Sharp Business Systems Deutschland GmbH",
-  mail: "Theo.Mueller@sharp.eu",
-  tel: "+49 30 263 44 838",
-  mobile: "+49 173 778 19 17",
-  addr: "Fritschestraße 27/28, 10585 Berlin",
-  web: "www.sharp.de",
-};
 
 const BS = '<span class="bs">\\</span>';
 
@@ -121,16 +104,15 @@ function germanDate(iso?: string): string {
 function ccLine(label: string, val?: string): string {
   return val ? `<div class="cc-line"><span>${label}</span> ${esc(val)}</div>` : "";
 }
-function contactCard(c: typeof REINEKE): string {
+function contactCard(c: BrandContact): string {
   const tel = esc(c.tel) + (c.mobile ? ` &middot; Mobil ${esc(c.mobile)}` : "");
-  return `<div class="contact-card"><div class="cc-name">${esc(c.name)}</div><div class="cc-role">${esc(c.role)}</div><div class="cc-org">${esc(c.org)}</div><div class="cc-line"><span>E-Mail</span> ${esc(c.mail)}</div><div class="cc-line"><span>Telefon</span> ${tel}</div>${ccLine("Adresse", c.addr)}${ccLine("Web", c.web)}</div>`;
+  return `<div class="contact-card"><div class="cc-name">${esc(c.name)}</div><div class="cc-role">${esc(c.role)}</div><div class="cc-org">${esc(c.org)}</div><div class="cc-line"><span>E-Mail</span> ${esc(c.mail)}</div><div class="cc-line"><span>Telefon</span> ${tel}</div>${ccLine("Telefax", c.fax)}${ccLine("Adresse", c.addr)}${ccLine("Web", c.web)}</div>`;
 }
 
-const OFFER_BLOCK = `<div class="offer">
-    <h3>Unser Angebot — Reineke Technik &amp; Sharp Business Systems Deutschland</h3>
-    <p>Gemeinsam bringen wir Ihre Domains kontrolliert und nachvollziehbar auf ein durchgesetztes
-      Schutzniveau — die technische Umsetzung durch Reineke Technik, persönliche Betreuung über den
-      Direktvertrieb von Sharp Business Systems, durchgängig DSGVO-konform und deutschsprachig:</p>
+function offerBlock(brand: Brand): string {
+  return `<div class="offer">
+    <h3>${brand.report.offerHeading}</h3>
+    <p>${esc(brand.report.offerLeadIn)}</p>
     <ol>
       <li><strong>DMARC-Einführung &amp; -Härtung:</strong> begleiteter Rollout von
         <code>p=none</code> über <code>p=quarantine</code> bis <code>p=reject</code>, inkl.
@@ -140,41 +122,48 @@ const OFFER_BLOCK = `<div class="offer">
       <li><strong>Website-Härtung:</strong> CSP, HSTS, X-Frame-Options, X-Content-Type-Options
         und SRI sauber gesetzt.</li>
       <li><strong>Laufendes Monitoring:</strong> kontinuierliche Überwachung und verständliche
-        Berichte — jederzeit kostenfrei nachprüfbar unter sharp.reineke.tech.</li>
+        Berichte — jederzeit kostenfrei nachprüfbar unter ${esc(brand.report.toolUrl)}.</li>
     </ol>
   </div>`;
-
-function contactsBlock(): string {
-  return `<h3 class="contact-h">Ihre Ansprechpartner</h3><div class="contacts">${contactCard(REINEKE)}${contactCard(SHARP)}</div>`;
 }
 
-function pageHead(title: string, L: ReportLogos): string {
-  return `<div class="page-head"><img class="ph-logo" src="${L.sharp}" alt="sharp"><span class="ph-sep">·</span><span class="ph-title">${BS}${title}</span></div>`;
+function contactsBlock(brand: Brand): string {
+  const cards = brand.report.partner
+    ? contactCard(brand.report.conductor) + contactCard(brand.report.partner)
+    : contactCard(brand.report.conductor);
+  return `<h3 class="contact-h">Ihre Ansprechpartner</h3><div class="contacts">${cards}</div>`;
 }
 
-function foot(date: string): string {
-  return `<div class="page-foot">Geprüft mit sharp.reineke.tech · Stand ${esc(date)} · Reineke Technik GmbH · Vertraulich</div>`;
+function pageHead(title: string, L: ReportLogos, brand: Brand): string {
+  return `<div class="page-head"><img class="ph-logo" src="${L.wordmark}" alt="${esc(brand.report.wordmarkAlt)}"><span class="ph-sep">·</span><span class="ph-title">${BS}${title}</span></div>`;
 }
 
-function coverPage(domain: string, date: string, L: ReportLogos): string {
+function foot(date: string, brand: Brand): string {
+  return `<div class="page-foot">Geprüft mit ${esc(brand.report.toolUrl)} · Stand ${esc(date)} · ${esc(brand.report.conductor.org)} · Vertraulich</div>`;
+}
+
+function coverPage(domain: string, date: string, L: ReportLogos, brand: Brand): string {
+  const c = brand.report.conductor;
+  const byAddr = `${c.addr.replace(", ", " · ")} · ${c.web}`;
+  const foxSrc = brand.report.showFox ? L.fox : L.wordmark;
   return `<section class="page cover">
-  <div class="cover-top"><img class="cover-sharp" src="${L.sharp}" alt="sharp.reineke.tech"></div>
+  <div class="cover-top"><img class="cover-sharp" src="${L.wordmark}" alt="${esc(brand.report.wordmarkAlt)}"></div>
   <div class="cover-mid">
     <div class="cover-kicker">${BS}Sicherheits-Analyse · E-Mail &amp; Domain</div>
     <h1>${esc(domain)}</h1>
     <p class="cover-lead">Unabhängige Prüfung der digitalen Absender- und Domain-Sicherheit von
       ${esc(domain)} — DMARC, DNSSEC und Website-Sicherheit.</p>
     <ul class="cover-domains"><li><strong>${esc(domain)}</strong> — E-Mail- &amp; Domain-Sicherheit<br>
-      <span class="cd-sub">Automatisierte Analyse mit sharp.reineke.tech</span></li></ul>
+      <span class="cd-sub">Automatisierte Analyse mit ${esc(brand.report.toolUrl)}</span></li></ul>
   </div>
   <div class="cover-bottom">
     <div class="cover-by">
       <div class="cb-label">Durchgeführt &amp; erstellt von</div>
-      <div class="cb-org">Reineke Technik GmbH</div>
-      <div class="cb-partner">Geseker Straße 26 · 33154 Salzkotten · www.reineke-technik.de</div>
+      <div class="cb-org">${esc(c.org)}</div>
+      <div class="cb-partner">${esc(byAddr)}</div>
       <div class="cb-date">${esc(date)}</div>
     </div>
-    <img class="cover-fox" src="${L.reineke}" alt="Reineke Technik">
+    <img class="cover-fox" src="${foxSrc}" alt="${esc(c.org)}">
   </div>
   <div class="cover-conf">Vertraulich — nur für den internen Gebrauch der Adressaten bestimmt.</div>
 </section>`;
@@ -186,6 +175,7 @@ function domainPage(
   observatory: CheckResult<ObservatoryResult>,
   date: string,
   L: ReportLogos,
+  brand: Brand,
 ): string {
   const dm = analyze.dmarc;
   const ds = analyze.dnssec;
@@ -247,7 +237,7 @@ function domainPage(
 
   return `<section class="page domain-page">
       <div class="page-head">
-        <img class="ph-logo" src="${L.sharp}" alt="sharp">
+        <img class="ph-logo" src="${L.wordmark}" alt="${esc(brand.report.wordmarkAlt)}">
         <span class="ph-sep">·</span><span class="ph-title">${BS}Domain-Bericht</span>
         <span class="ph-prio prio-${need.cls}">Handlungsbedarf: ${esc(need.label)}</span>
       </div>
@@ -279,25 +269,35 @@ function domainPage(
         <table class="mini">${mini}</table>
       </div>
       <div class="angle"><div class="angle-k">Was das für ${esc(domain)} bedeutet</div>${angle}</div>
-      ${foot(date)}
+      ${foot(date, brand)}
     </section>`;
 }
 
-function empfehlungPage(domain: string, date: string, L: ReportLogos): string {
+function empfehlungPage(domain: string, date: string, L: ReportLogos, brand: Brand): string {
   return `<section class="page summary">
-  ${pageHead("Empfehlung &amp; Ansprechpartner", L)}
+  ${pageHead("Empfehlung &amp; Ansprechpartner", L, brand)}
   <h2 class="sum-h">Empfehlung für ${esc(domain)}</h2>
   <p class="sum-intro">Die auf der vorigen Seite dokumentierten Punkte lassen sich kontrolliert und
     ohne Betriebsunterbrechung schließen. So gehen wir gemeinsam vor:</p>
-  ${OFFER_BLOCK}
-  ${contactsBlock()}
-  ${foot(date)}
+  ${offerBlock(brand)}
+  ${contactsBlock(brand)}
+  ${foot(date, brand)}
 </section>`;
 }
 
-function methodPage(date: string, L: ReportLogos): string {
+function methodPage(date: string, L: ReportLogos, brand: Brand): string {
+  const c = brand.report.conductor;
+  const bfFox = brand.report.showFox
+    ? `<img class="bf-fox" src="${L.fox}" alt="${esc(c.org)}">`
+    : "";
+  const coBrand = brand.report.coBrandLine ? `<br>${brand.report.coBrandLine}` : "";
+  const contactLine = (x: BrandContact, withTel: boolean): string =>
+    `${esc(x.name)}${x.short ? ` (${esc(x.short)})` : ""} · ${esc(x.mail)}${withTel ? ` · ${esc(x.tel)}` : ""}`;
+  const bfContact = brand.report.partner
+    ? `${contactLine(c, false)}<br>\n        ${contactLine(brand.report.partner, true)}`
+    : contactLine(c, true);
   return `<section class="page method">
-  ${pageHead("Methodik &amp; Hinweise", L)}
+  ${pageHead("Methodik &amp; Hinweise", L, brand)}
   <h2 class="sum-h">Methodik &amp; Hinweise</h2>
   <h3>Was wurde geprüft?</h3>
   <div class="method-grid">
@@ -307,7 +307,7 @@ function methodPage(date: string, L: ReportLogos): string {
   </div>
   <h3>Wie wurde gemessen?</h3>
   <p>Alle Werte wurden am ${esc(date)} mit dem frei zugänglichen Analyse-Tool
-    <strong>sharp.reineke.tech</strong> von Reineke Technik erhoben. DNS-Abfragen erfolgen über
+    <strong>${esc(brand.report.toolUrl)}</strong> von ${esc(c.short ?? c.org)} erhoben. DNS-Abfragen erfolgen über
     Cloudflare DNS-over-HTTPS (1.1.1.1); die Website-Bewertung nutzt den
     <em>MDN HTTP Observatory</em> von Mozilla. Die Noten (A+…F) liegen auf einer gemeinsamen
     Skala. Es wurden ausschließlich öffentlich abrufbare DNS- und HTTP-Informationen
@@ -315,30 +315,30 @@ function methodPage(date: string, L: ReportLogos): string {
   <p class="method-note">Die Ergebnisse sind eine Momentaufnahme und können sich nach
     Konfigurationsänderungen ändern. Eine erneute Prüfung ist jederzeit kostenfrei möglich.</p>
   <div class="brandfoot">
-    <img class="bf-fox" src="${L.reineke}" alt="Reineke Technik">
+    ${bfFox}
     <div class="bf-body">
-      <div class="bf-org">Reineke Technik GmbH</div>
-      <div class="bf-tag">Analyse durchgeführt &amp; erstellt · E-Mail- &amp; Domain-Sicherheit · sharp.reineke.tech<br>in Zusammenarbeit mit Sharp Business Systems Deutschland GmbH</div>
-      <div class="bf-contact">${esc(REINEKE.name)} (Reineke Technik) · ${esc(REINEKE.mail)}<br>
-        ${esc(SHARP.name)} (Sharp Business Systems) · ${esc(SHARP.mail)} · ${esc(SHARP.tel)}</div>
+      <div class="bf-org">${esc(c.org)}</div>
+      <div class="bf-tag">Analyse durchgeführt &amp; erstellt · E-Mail- &amp; Domain-Sicherheit · ${esc(brand.report.toolUrl)}${coBrand}</div>
+      <div class="bf-contact">${bfContact}</div>
     </div>
-    <img class="bf-sharp" src="${L.sharp}" alt="Sharp">
+    <img class="bf-sharp" src="${L.wordmark}" alt="${esc(brand.report.wordmarkAlt)}">
   </div>
 </section>`;
 }
 
-/** Build the full report body (sections). Pass the scan results from the API. */
+/** Build the full report body (sections). Pass the scan results + active brand. */
 export function buildReportBody(
   domain: string,
   analyze: AnalysisResponse,
   observatory: CheckResult<ObservatoryResult>,
   logos: ReportLogos,
+  brand: Brand,
 ): string {
   const date = germanDate(analyze.queriedAt);
   return (
-    coverPage(domain, date, logos) +
-    domainPage(domain, analyze, observatory, date, logos) +
-    empfehlungPage(domain, date, logos) +
-    methodPage(date, logos)
+    coverPage(domain, date, logos, brand) +
+    domainPage(domain, analyze, observatory, date, logos, brand) +
+    empfehlungPage(domain, date, logos, brand) +
+    methodPage(date, logos, brand)
   );
 }

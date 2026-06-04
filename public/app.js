@@ -20,8 +20,20 @@ const CHECK_LABELS = {
   observatory: "Website-Security (HTTP Observatory)",
 };
 
+// Brand data injected by the Worker for non-default (white-label) brands as a
+// CSP-safe <script type="application/json"> block; absent for the default brand,
+// so the Reineke fallbacks below apply unchanged.
+const BRAND = (() => {
+  try {
+    const el = document.getElementById("brand-data");
+    return el ? JSON.parse(el.textContent || "{}") : {};
+  } catch {
+    return {};
+  }
+})();
+
 // Letterhead for the exported cybersecurity reports.
-const REPORT_CONTACT = {
+const REPORT_CONTACT = BRAND.reportContact ?? {
   company: "Reineke Technik GmbH",
   name: "Werner Francis Reineke",
   street: "Geseker Straße 26",
@@ -29,6 +41,10 @@ const REPORT_CONTACT = {
   phone: "+49 (0) 5258 987-282",
   email: "wf.reineke@reineke-technik.de",
 };
+const LETTERHEAD_LOGO = BRAND.letterheadLogo ?? "/assets/reineke-logo.png";
+const LEAD_CONSENT_COMPANY = BRAND.leadConsentCompany ?? "Reineke Technik GmbH";
+const LEAD_DATENSCHUTZ_HREF =
+  BRAND.leadDatenschutzHref ?? "https://www.reineke-technik.de/datenschutz/";
 
 function reportLink(domain, check) {
   const p = new URLSearchParams({ d: domain });
@@ -743,7 +759,7 @@ function buildReportHtml(domain, isSingle, singleLabel, findings) {
   const kind = isSingle ? `Einzelbefund: ${singleLabel}` : "Cybersecurity-Report";
   const letterhead = `
     <header class="report-letterhead">
-      <img src="/assets/reineke-logo.png" alt="Reineke Technik" class="report-logo" />
+      <img src="${LETTERHEAD_LOGO}" alt="${escapeHtml(c.company)}" class="report-logo" />
       <address class="report-contact">
         <strong>${c.company}</strong><br />
         ${c.name}<br />
@@ -850,9 +866,9 @@ function renderLeadGate(doc, domain, onProceed) {
         </label>
         <label class="lead-consent">
           <input type="checkbox" name="consent" required />
-          <span>Ich willige ein, dass die <strong>Reineke Technik GmbH</strong> meine
+          <span>Ich willige ein, dass die <strong>${escapeHtml(LEAD_CONSENT_COMPANY)}</strong> meine
             E-Mail-Adresse zur Bereitstellung des Berichts und zur Kontaktaufnahme
-            verarbeitet. Die <a href="https://www.reineke-technik.de/datenschutz/"
+            verarbeitet. Die <a href="${LEAD_DATENSCHUTZ_HREF}"
             target="_blank" rel="noopener">Datenschutzerklärung</a> habe ich zur Kenntnis
             genommen. Diese Einwilligung kann ich jederzeit mit Wirkung für die Zukunft
             widerrufen.</span>

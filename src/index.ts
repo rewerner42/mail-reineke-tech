@@ -11,6 +11,13 @@ import { analyzeObservatory, fetchGradeDistribution } from "./observatory.js";
 import { createLead, odooConfigFromEnv, recordScannedDomain, validateEmail } from "./leads/odoo.js";
 import { MAX_HTML_BYTES, renderReportPdf } from "./pdf/render.js";
 import { buildReportBody } from "./report/build.js";
+import {
+  resolveBrand,
+  DEFAULT_BRAND,
+  applyBrandToHtml,
+  sitePaletteCss,
+  reportPaletteCss,
+} from "./brand.js";
 import type { BrowserWorker } from "@cloudflare/puppeteer";
 import type { AnalysisResponse } from "./types.js";
 
@@ -25,6 +32,8 @@ type Bindings = {
   BROWSER?: BrowserWorker;
   // Password (no username) gating the internal report generator at /report.
   REPORT_PASSWORD?: string;
+  // White-label brand id (e.g. "wsit") set per Worker env; falls back to Host.
+  BRAND?: string;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -62,8 +71,20 @@ const SECURITY_HEADERS: Record<string, string> = {
 app.use("*", async (c, next) => {
   await next();
   // Rebuild the response so headers are mutable (ASSETS responses can be immutable).
-  const res = new Response(c.res.body, c.res);
+  let res = new Response(c.res.body, c.res);
   for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.headers.set(k, v);
+  // White-label: rewrite served HTML for non-default brands (no-op for default,
+  // so sharp/reineke is byte-unchanged). Skips JSON/PDF/asset responses.
+  const brand = resolveBrand(c.env, new URL(c.req.url).host);
+  if (
+    brand.id !== DEFAULT_BRAND.id &&
+    (res.headers.get("content-type") || "").includes("text/html")
+  ) {
+    const html = applyBrandToHtml(await res.text(), brand);
+    const headers = new Headers(res.headers);
+    headers.delete("content-length"); // body changed — let the runtime recompute
+    res = new Response(html, { status: res.status, statusText: res.statusText, headers });
+  }
   c.res = res;
 });
 
@@ -318,7 +339,8 @@ app.post("/api/lead", async (c) => {
     return c.json({ ok: true, code: "NOT_CONFIGURED", message: "Bericht wird erstellt." });
   }
 
-  const result = await createLead(cfg, lead);
+  const brand = resolveBrand(c.env, new URL(c.req.url).host);
+  const result = await createLead(cfg, lead, { marketing: brand.odoo });
   if (!result.ok) {
     console.error("LEAD Odoo push failed:", result.code, result.message, JSON.stringify(lead));
     // Best-effort: still let the user through to their report.
@@ -368,21 +390,24 @@ app.post("/api/report-pdf", async (c) => {
 
   // Inline the stylesheet + logo (served via the ASSETS binding) so the headless
   // browser needs no external fetches — fully self-contained, fast, env-agnostic.
+  const brand = resolveBrand(c.env, new URL(c.req.url).host);
+  const logoPath = brand.app.letterheadLogo;
+  const logoMime = logoPath.endsWith(".svg") ? "image/svg+xml" : "image/png";
   let css = "";
   let inlineHtml = html;
   try {
     const [cssResp, logoResp] = await Promise.all([
       c.env.ASSETS.fetch(new Request(`${origin}/styles.css`)),
-      c.env.ASSETS.fetch(new Request(`${origin}/assets/reineke-logo.png`)),
+      c.env.ASSETS.fetch(new Request(`${origin}${logoPath}`)),
     ]);
-    if (cssResp.ok) css = await cssResp.text();
+    if (cssResp.ok) css = (await cssResp.text()) + sitePaletteCss(brand);
     if (logoResp.ok) {
       const buf = new Uint8Array(await logoResp.arrayBuffer());
       let bin = "";
       for (let i = 0; i < buf.length; i += 0x8000) {
         bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
       }
-      inlineHtml = html.replaceAll("/assets/reineke-logo.png", `data:image/png;base64,${btoa(bin)}`);
+      inlineHtml = html.replaceAll(logoPath, `data:${logoMime};base64,${btoa(bin)}`);
     }
   } catch {
     /* fall back to linked stylesheet / external logo */
@@ -390,7 +415,9 @@ app.post("/api/report-pdf", async (c) => {
 
   try {
     const pdf = await renderReportPdf(c.env.BROWSER, { html: inlineHtml, origin, css });
-    const base = check ? `Befund-${check}-${domain}` : `Sicherheitsbericht-${domain}`;
+    const base = check
+      ? `${brand.app.filenameSingle}-${check}-${domain}`
+      : `${brand.app.filenameFull}-${domain}`;
     return new Response(pdf, {
       headers: {
         "Content-Type": "application/pdf",
@@ -475,26 +502,32 @@ app.post("/api/generate-report", async (c) => {
 
   // Stylesheet + Logos aus den Assets inlinen — keine externen Fetches im Headless-Browser.
   const origin = new URL(c.req.url).origin;
+  const brand = resolveBrand(c.env, new URL(c.req.url).host);
+  const wordmarkMime = brand.report.wordmarkAsset.endsWith(".svg") ? "image/svg+xml" : "image/png";
+  const foxMime = brand.report.foxAsset.endsWith(".svg") ? "image/svg+xml" : "image/png";
   let css = "";
-  let logoSharp = "";
-  let logoReineke = "";
+  let logoWordmark = "";
+  let logoFox = "";
   try {
-    const [cssResp, sharpResp, foxResp] = await Promise.all([
+    const [cssResp, wmResp, foxResp] = await Promise.all([
       c.env.ASSETS.fetch(new Request(`${origin}/assets/report.css`)),
-      c.env.ASSETS.fetch(new Request(`${origin}/assets/sharp-logo.png`)),
-      c.env.ASSETS.fetch(new Request(`${origin}/assets/reineke-official.svg`)),
+      c.env.ASSETS.fetch(new Request(`${origin}${brand.report.wordmarkAsset}`)),
+      c.env.ASSETS.fetch(new Request(`${origin}${brand.report.foxAsset}`)),
     ]);
-    if (cssResp.ok) css = await cssResp.text();
-    if (sharpResp.ok) logoSharp = `data:image/png;base64,${bufToBase64(await sharpResp.arrayBuffer())}`;
-    if (foxResp.ok) logoReineke = `data:image/svg+xml;base64,${bufToBase64(await foxResp.arrayBuffer())}`;
+    if (cssResp.ok) css = (await cssResp.text()) + reportPaletteCss(brand);
+    if (wmResp.ok) logoWordmark = `data:${wordmarkMime};base64,${bufToBase64(await wmResp.arrayBuffer())}`;
+    if (foxResp.ok) logoFox = `data:${foxMime};base64,${bufToBase64(await foxResp.arrayBuffer())}`;
   } catch {
     /* fall back to an unstyled / logoless render rather than failing outright */
   }
 
-  const reportBody = buildReportBody(domain, analyze, observatory, {
-    sharp: logoSharp,
-    reineke: logoReineke,
-  });
+  const reportBody = buildReportBody(
+    domain,
+    analyze,
+    observatory,
+    { wordmark: logoWordmark, fox: logoFox },
+    brand,
+  );
   if (reportBody.length > MAX_HTML_BYTES) {
     return c.json({ ok: false, code: "TOO_LARGE", message: "Report zu groß." }, 500);
   }
@@ -504,7 +537,7 @@ app.post("/api/generate-report", async (c) => {
     return new Response(pdf, {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="Sharp-Befund-${domain}.pdf"`,
+        "Content-Disposition": `attachment; filename="${brand.report.filenamePrefix}-${domain}.pdf"`,
         "Cache-Control": "no-store",
       },
     });

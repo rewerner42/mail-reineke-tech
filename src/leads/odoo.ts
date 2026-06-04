@@ -55,9 +55,19 @@ export function odooConfigFromEnv(env: {
 }
 
 /** Build the crm.lead field map. Pure (no network) so it is unit-testable. */
+export interface LeadMarketing {
+  referred: string; // free-text channel marker, e.g. "sharp.reineke.tech"
+  toolLabel: string; // brand name in the description, e.g. "Reineke Technik"
+}
+const DEFAULT_MARKETING: LeadMarketing = {
+  referred: "sharp.reineke.tech",
+  toolLabel: "Reineke Technik",
+};
+
 export function buildLeadValues(
   lead: LeadInput,
   now: Date = new Date(),
+  marketing: LeadMarketing = DEFAULT_MARKETING,
 ): Record<string, unknown> {
   const email = lead.email.trim();
   const domain = lead.domain?.trim();
@@ -66,7 +76,7 @@ export function buildLeadValues(
     ? `Sicherheits-Check: ${domain}`
     : `Sicherheits-Check Anfrage: ${email}`;
   const description =
-    `Lead über das Reineke Technik Sicherheits-Analyse-Tool (sharp.reineke.tech).\n` +
+    `Lead über das ${marketing.toolLabel} Sicherheits-Analyse-Tool (${marketing.referred}).\n` +
     (domain ? `Analysierte Domain: ${domain}\n` : "") +
     `E-Mail: ${email}\n` +
     `DSGVO-Einwilligung erteilt: ${stamp}`;
@@ -79,7 +89,7 @@ export function buildLeadValues(
     type: "opportunity",
     description,
     // Free-text channel marker; avoids depending on specific source_id records.
-    referred: "sharp.reineke.tech",
+    referred: marketing.referred,
   };
   // Store the analysed domain in the structured Website field, too.
   if (domain) values.website = domain;
@@ -124,7 +134,7 @@ async function jsonRpc<T>(
 export async function createLead(
   cfg: OdooConfig,
   lead: LeadInput,
-  opts: { fetchImpl?: typeof fetch; timeoutMs?: number; now?: Date } = {},
+  opts: { fetchImpl?: typeof fetch; timeoutMs?: number; now?: Date; marketing?: LeadMarketing } = {},
 ): Promise<LeadResult> {
   const fetchImpl = opts.fetchImpl ?? fetch;
   const controller = new AbortController();
@@ -149,14 +159,14 @@ export async function createLead(
       cfg.url,
       "object",
       "execute_kw",
-      [cfg.db, uid, cfg.apiKey, "crm.lead", "create", [buildLeadValues(lead, opts.now)]],
+      [cfg.db, uid, cfg.apiKey, "crm.lead", "create", [buildLeadValues(lead, opts.now, opts.marketing)]],
       fetchImpl,
       controller.signal,
     );
     // Best-effort: drop a To-Do activity on the lead so the team is notified in
     // Odoo (Activities bell + "My Activities"). Never fails the lead.
     try {
-      await createLeadActivity(cfg, uid, leadId, lead, fetchImpl, controller.signal, opts.now);
+      await createLeadActivity(cfg, uid, leadId, lead, fetchImpl, controller.signal, opts.now, opts.marketing);
     } catch {
       /* notification is best-effort; the lead is already saved */
     }
@@ -185,6 +195,7 @@ async function createLeadActivity(
   fetchImpl: typeof fetch,
   signal: AbortSignal,
   now?: Date,
+  marketing: LeadMarketing = DEFAULT_MARKETING,
 ): Promise<void> {
   const exec = <T>(model: string, method: string, args: unknown[]) =>
     jsonRpc<T>(cfg.url, "object", "execute_kw", [cfg.db, uid, cfg.apiKey, model, method, args], fetchImpl, signal);
@@ -210,7 +221,7 @@ async function createLeadActivity(
       res_id: leadId,
       user_id: uid,
       summary: "Neuer Lead aus dem Sicherheits-Tool",
-      note: `${lead.email.trim()} hat den Bericht${domain ? ` für ${domain}` : ""} angefordert (sharp.reineke.tech).`,
+      note: `${lead.email.trim()} hat den Bericht${domain ? ` für ${domain}` : ""} angefordert (${marketing.referred}).`,
       date_deadline: (now ?? new Date()).toISOString().slice(0, 10),
     },
   ]);
