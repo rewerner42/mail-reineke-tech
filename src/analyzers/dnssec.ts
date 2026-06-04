@@ -42,13 +42,22 @@ export interface DnssecClassification {
 export function classifyDnssec(s: DnssecSignals): DnssecClassification {
   const dsPresent = s.dsCount > 0;
 
-  // 1) Resolver validated the chain → secure.
-  if (s.dnskeyAd && s.dnskeyCount > 0) {
+  // 1) Resolver validated the answer (AD flag) → secure. This holds whether the
+  //    name is its own signed zone apex (own DNSKEY/DS) OR just a record inside a
+  //    signed parent zone — e.g. a subdomain like sharp.reineke.tech, which has
+  //    NO DNSKEY/DS of its own yet is still authenticated by the validating
+  //    resolver (AD=true) because the reineke.tech zone is signed. The previous
+  //    `dnskeyCount > 0` requirement wrongly flagged such protected names as
+  //    unsigned (F).
+  if (s.dnskeyAd) {
+    const viaParent = s.dnskeyCount === 0;
     return {
       status: "pass",
       code: "DNSSEC_SECURE",
       summary: "DNSSEC aktiv",
-      message: `Zone ist DNSSEC-signiert und validiert (AD-Flag gesetzt, ${s.dnskeyCount} DNSKEY${dsPresent ? ", DS beim Parent vorhanden" : ""}).`,
+      message: viaParent
+        ? "Name ist über die signierte übergeordnete Zone DNSSEC-geschützt und validiert (AD-Flag gesetzt). Auf dieser Ebene sind keine eigenen DNSKEY-/DS-Einträge erforderlich."
+        : `Zone ist DNSSEC-signiert und validiert (AD-Flag gesetzt, ${s.dnskeyCount} DNSKEY${dsPresent ? ", DS beim Parent vorhanden" : ""}).`,
       score: 100,
       data: {
         secure: true,

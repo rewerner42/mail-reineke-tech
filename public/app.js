@@ -216,6 +216,31 @@ function addCardExport(card) {
     : "";
 }
 
+/**
+ * A domain with no MX sends/receives no e-mail, so a weak/missing DMARC note is
+ * not a reputation problem. Surface that context right at the DMARC grade (top
+ * card) instead of leaving it buried in the MX card lower down.
+ */
+function maybeFlagNonSending(view, data) {
+  const card = $("#card-dmarc", view);
+  if (!card) return;
+  const body = $("[data-body]", card);
+  if (!body) return;
+  const prev = body.querySelector(".context-note");
+  if (prev) prev.remove(); // re-render safety
+  const mxIssues = (data.mx && data.mx.issues) || [];
+  const nonSending = mxIssues.some((i) => i.code === "MX_NONE" || i.code === "MX_NULL");
+  if (!nonSending) return;
+  const note = document.createElement("div");
+  note.className = "context-note";
+  note.innerHTML =
+    '<span class="context-note-icon" aria-hidden="true">ℹ</span>' +
+    "<p><strong>Diese Domain versendet/empfängt offenbar keine E-Mails</strong> (keine MX-Einträge). " +
+    "Eine fehlende oder schwache DMARC-Note ist hier kein Reputationsrisiko — zum Schutz des " +
+    "Domain-Namens vor Spoofing empfehlen wir dennoch <code>p=reject</code> und SPF <code>-all</code>.</p>";
+  body.insertBefore(note, body.firstChild);
+}
+
 function renderEmailResults(view, data) {
   renderCard($("#card-dmarc", view), data.dmarc, renderDmarcBody);
   renderCard($("#card-spf", view), data.spf, renderSpfBody);
@@ -223,6 +248,7 @@ function renderEmailResults(view, data) {
   renderCard($("#card-mx", view), data.mx, renderMxBody);
   renderCard($("#card-mtaSts", view), data.mtaSts, renderMtaStsBody);
   renderCard($("#card-tlsRpt", view), data.tlsRpt, renderTlsRptBody);
+  maybeFlagNonSending(view, data);
 }
 
 function renderDnssecResults(view, data) {
