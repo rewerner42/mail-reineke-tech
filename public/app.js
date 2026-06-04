@@ -231,6 +231,19 @@ function maybeFlagNonSending(view, data) {
   const mxIssues = (data.mx && data.mx.issues) || [];
   const nonSending = mxIssues.some((i) => i.code === "MX_NONE" || i.code === "MX_NULL");
   if (!nonSending) return;
+
+  // No mail ⇒ no e-mail reputation to lose. Drop the alarming DMARC "F" grade
+  // letter and the "Fehler" styling; the context note below explains why. (A
+  // fresh scan re-renders the card first, so a later sending domain keeps its grade.)
+  const badge = body.querySelector(".grade-badge");
+  if (badge) badge.remove();
+  card.dataset.status = "info";
+  const pill = $("[data-pill]", card);
+  if (pill) {
+    pill.dataset.status = "info";
+    pill.textContent = SEVERITY_LABEL.info;
+  }
+
   const note = document.createElement("div");
   note.className = "context-note";
   note.innerHTML =
