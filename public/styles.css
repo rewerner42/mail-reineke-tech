@@ -94,8 +94,20 @@ b, strong { font-weight: 700; }
   width: auto;
   display: block;
 }
+.header-meta {
+  display: flex;
+  align-items: center;
+  justify-self: end;
+}
+.partner-logo {
+  /* SHARP is a wide wordmark (~6.7:1) — size by width so it doesn't dominate
+     the compact Reineke mark. */
+  width: 130px;
+  height: auto;
+  display: block;
+}
 
-/* ─── Tab navigation (centered; empty right column balances the brand) ────────── */
+/* ─── Tab navigation (centered between the logos) ────────── */
 .header-tabs {
   justify-self: center;
   display: flex;
@@ -1290,18 +1302,29 @@ body.is-report .site-footer { display: none; }
 
 /* ─── Responsive ─────────────────────────────────────────── */
 @media (max-width: 860px) {
-  /* Header: Reineke brand on row 1, tabs centered on row 2. */
+  /* Header: Reineke left + Sharp top-right on row 1, tabs centered on row 2.
+     Explicit grid placement — auto-placement would otherwise push the Sharp
+     logo below the full-width tab row. */
   .header-inner {
-    grid-template-columns: 1fr;
+    grid-template-columns: auto auto;
+    column-gap: 1rem;
     padding: 0 1.25rem;
   }
   .brand {
     grid-row: 1;
+    grid-column: 1;
     justify-self: start;
     padding: 0.85rem 0;
   }
+  .header-meta {
+    grid-row: 1;
+    grid-column: 2;
+    justify-self: end;
+    align-self: center;
+  }
   .header-tabs {
     grid-row: 2;
+    grid-column: 1 / -1;
     justify-self: stretch;
     justify-content: center;
     border-top: 1px solid var(--rt-border);
