@@ -7,12 +7,17 @@
   var genForm = $("genForm"), domain = $("domain"), genBtn = $("genBtn"), genErr = $("genErr");
   var progress = $("progress"), barFill = $("barFill"), statusText = $("statusText");
   var done = $("done"), dl = $("dl"), again = $("again");
+  var rep = $("rep"), addRepBtn = $("addRepBtn"), addRep = $("addRep");
+  var arName = $("ar-name"), arRole = $("ar-role"), arOrg = $("ar-org"), arMail = $("ar-mail");
+  var arTel = $("ar-tel"), arMobile = $("ar-mobile"), arAddr = $("ar-addr"), arWeb = $("ar-web");
+  var arSave = $("ar-save"), arCancel = $("ar-cancel"), arErr = $("ar-err");
+  var repRemoveWrap = $("repRemoveWrap"), repRemove = $("repRemove");
 
   function show(view) {
     loginView.hidden = view !== "login";
     genView.hidden = view !== "gen";
     if (view === "login") { try { pw.focus(); } catch (e) {} }
-    else { try { domain.focus(); } catch (e) {} }
+    else { ensureReps(); try { domain.focus(); } catch (e) {} }
   }
 
   // Startzustand: Auth prüfen → Login oder Generator zeigen.
@@ -82,7 +87,7 @@
     fetch("/api/generate-report", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ domain: d }),
+      body: JSON.stringify({ domain: d, rep: repPayload() }),
     })
       .then(function (r) {
         if (r.status === 401) { stopProgress(); progress.hidden = true; show("login"); return null; }
@@ -124,5 +129,79 @@
     setBar(0, "");
     domain.value = "";
     try { domain.focus(); } catch (e) {}
+  });
+
+  // ── Vertriebsmitarbeiter (swaps the report's "partner" card) ──────────────
+  var REPS_KEY = "reportReps_v1";   // user-added reps (localStorage)
+  var SEL_KEY = "reportRepSel_v1";  // last selected rep
+  var serverReps = null;            // brand defaults (fetched once)
+  var allReps = [];                 // combined [{key, custom, …contact}]
+  var repsLoaded = false;
+
+  function escHtml(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  function repKey(c) { return ((c.name || "") + "|" + (c.mail || "")).toLowerCase(); }
+  function readCustomReps() { try { return JSON.parse(localStorage.getItem(REPS_KEY) || "[]") || []; } catch (e) { return []; } }
+  function writeCustomReps(list) { try { localStorage.setItem(REPS_KEY, JSON.stringify(list)); } catch (e) {} }
+  function tag(c, custom) { var o = {}; for (var k in c) o[k] = c[k]; o.key = repKey(c); o.custom = custom; return o; }
+
+  function renderReps(selectKey) {
+    var list = (serverReps || []).map(function (c) { return tag(c, false); })
+      .concat(readCustomReps().map(function (c) { return tag(c, true); }));
+    var seen = {}; allReps = [];
+    list.forEach(function (r) { if (!seen[r.key]) { seen[r.key] = 1; allReps.push(r); } });
+    var want = selectKey || localStorage.getItem(SEL_KEY) || (allReps[0] && allReps[0].key);
+    if (!allReps.some(function (r) { return r.key === want; })) want = allReps[0] && allReps[0].key;
+    rep.innerHTML = allReps.map(function (r) {
+      var label = r.name + (r.org ? " — " + r.org : "") + (r.custom ? " (eigener)" : "");
+      return '<option value="' + escHtml(r.key) + '"' + (r.key === want ? " selected" : "") + ">" + escHtml(label) + "</option>";
+    }).join("");
+    if (want) rep.value = want;
+    onRepChange();
+  }
+  function currentRep() { for (var i = 0; i < allReps.length; i++) if (allReps[i].key === rep.value) return allReps[i]; return null; }
+  function onRepChange() {
+    var r = currentRep();
+    if (r) { try { localStorage.setItem(SEL_KEY, r.key); } catch (e) {} }
+    repRemoveWrap.hidden = !(r && r.custom);
+  }
+  function repPayload() {
+    var r = currentRep();
+    if (!r) return null;
+    return { name: r.name, role: r.role, org: r.org, mail: r.mail, tel: r.tel, mobile: r.mobile, fax: r.fax, addr: r.addr, web: r.web, short: r.short };
+  }
+  function ensureReps() {
+    if (repsLoaded) { renderReps(); return; }
+    fetch("/api/report-reps", { headers: { accept: "application/json" } })
+      .then(function (r) { return r.ok ? r.json() : { reps: [] }; })
+      .then(function (d) { serverReps = (d && d.reps) || []; repsLoaded = true; renderReps(); })
+      .catch(function () { serverReps = []; repsLoaded = true; renderReps(); });
+  }
+
+  rep.addEventListener("change", onRepChange);
+  addRepBtn.addEventListener("click", function () {
+    addRep.hidden = !addRep.hidden;
+    if (!addRep.hidden) { arErr.hidden = true; try { arName.focus(); } catch (e) {} }
+  });
+  arCancel.addEventListener("click", function () { addRep.hidden = true; });
+  arSave.addEventListener("click", function () {
+    arErr.hidden = true;
+    function v(el) { return (el.value || "").trim(); }
+    var c = { name: v(arName), role: v(arRole), org: v(arOrg), mail: v(arMail), tel: v(arTel), mobile: v(arMobile), addr: v(arAddr), web: v(arWeb), short: "" };
+    if (!c.name || !c.mail) { arErr.textContent = "Name und E-Mail sind erforderlich."; arErr.hidden = false; return; }
+    var k = repKey(c);
+    var customs = readCustomReps().filter(function (x) { return repKey(x) !== k; });
+    customs.push(c);
+    writeCustomReps(customs);
+    [arName, arRole, arOrg, arMail, arTel, arMobile, arAddr, arWeb].forEach(function (el) { el.value = ""; });
+    addRep.hidden = true;
+    renderReps(k);
+  });
+  repRemove.addEventListener("click", function () {
+    var r = currentRep();
+    if (!r || !r.custom) return;
+    var customs = readCustomReps().filter(function (x) { return repKey(x) !== r.key; });
+    writeCustomReps(customs);
+    try { localStorage.removeItem(SEL_KEY); } catch (e) {}
+    renderReps();
   });
 })();

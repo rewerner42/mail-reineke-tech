@@ -18,6 +18,7 @@ import {
   sitePaletteCss,
   reportPaletteCss,
 } from "./brand.js";
+import type { BrandContact } from "./brand.js";
 import type { BrowserWorker } from "@cloudflare/puppeteer";
 import type { AnalysisResponse } from "./types.js";
 
@@ -473,6 +474,50 @@ app.get("/api/report-auth", async (c) =>
 );
 
 // Report erzeugen: Domain scannen → gebrandeten Report bauen → als PDF rendern.
+/**
+ * Validate a sales-rep object posted from the report generator. It becomes the
+ * report's "partner" card (the conductor/persona stays the brand default). All
+ * fields are HTML-escaped at render time; here we coerce to strings, cap lengths
+ * and require at least a name + e-mail.
+ */
+function parseRepInput(v: unknown): BrandContact | null {
+  if (!v || typeof v !== "object") return null;
+  const o = v as Record<string, unknown>;
+  const s = (x: unknown, max: number) => (typeof x === "string" ? x.trim().slice(0, max) : "");
+  const opt = (x: unknown, max: number) => s(x, max) || undefined;
+  const name = s(o.name, 120);
+  const mail = s(o.mail, 200);
+  if (!name || !mail) return null;
+  return {
+    name,
+    role: s(o.role, 120),
+    org: s(o.org, 160),
+    mail,
+    tel: s(o.tel, 60),
+    mobile: opt(o.mobile, 60),
+    fax: opt(o.fax, 60),
+    addr: s(o.addr, 200),
+    web: s(o.web, 120),
+    short: opt(o.short, 80),
+  };
+}
+
+// Sales reps selectable in the report generator: the active brand's defaults.
+// The UI merges these with reps the user added locally (localStorage).
+app.get("/api/report-reps", async (c) => {
+  if (!(await isReportAuthed(c))) {
+    return c.json({ ok: false, code: "UNAUTHORIZED", message: "Bitte zuerst anmelden." }, 401);
+  }
+  const brand = resolveBrand(c.env, new URL(c.req.url).host);
+  const reps =
+    brand.report.reps && brand.report.reps.length
+      ? brand.report.reps
+      : brand.report.partner
+        ? [brand.report.partner]
+        : [];
+  return c.json({ reps }, 200, { "Cache-Control": "no-store" });
+});
+
 app.post("/api/generate-report", async (c) => {
   if (isCrossOrigin(c.req.header("Origin"), c.req.url)) return c.json(CROSS_ORIGIN_DENIED, 403);
   if (!(await isReportAuthed(c))) {
@@ -482,7 +527,7 @@ app.post("/api/generate-report", async (c) => {
     return c.json({ ok: false, code: "NO_BROWSER", message: "PDF-Rendering nicht verfügbar." }, 503);
   }
 
-  let body: { domain?: unknown };
+  let body: { domain?: unknown; rep?: unknown };
   try {
     body = await c.req.json();
   } catch {
@@ -502,7 +547,10 @@ app.post("/api/generate-report", async (c) => {
 
   // Stylesheet + Logos aus den Assets inlinen — keine externen Fetches im Headless-Browser.
   const origin = new URL(c.req.url).origin;
-  const brand = resolveBrand(c.env, new URL(c.req.url).host);
+  // Active brand, with the partner card swapped to the picked sales rep (if any).
+  const baseBrand = resolveBrand(c.env, new URL(c.req.url).host);
+  const rep = parseRepInput(body.rep);
+  const brand = rep ? { ...baseBrand, report: { ...baseBrand.report, partner: rep } } : baseBrand;
   const wordmarkMime = brand.report.wordmarkAsset.endsWith(".svg") ? "image/svg+xml" : "image/png";
   const foxMime = brand.report.foxAsset.endsWith(".svg") ? "image/svg+xml" : "image/png";
   let css = "";

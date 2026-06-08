@@ -49,6 +49,21 @@
       .rg-link { background: none; border: none; color: var(--rt-red); font-size: 13px; cursor: pointer; text-decoration: underline; padding: 0; align-self: flex-start; }
       .rg-foot { margin-top: 16px; font-size: 13px; }
       .rg-foot a { color: var(--rt-gray); }
+      .rg-row { display: flex; gap: 8px; align-items: stretch; }
+      .rg-row .rg-input { flex: 1; }
+      .rg-select { background: #fff; }
+      .rg-icon-btn { flex: 0 0 auto; width: 44px; border: 1px solid var(--rt-border); background: #fff; color: var(--rt-red); font-size: 22px; line-height: 1; border-radius: 7px; cursor: pointer; }
+      .rg-icon-btn:hover { border-color: var(--rt-red); }
+      .rg-hint { font-size: 12px; margin: -2px 0 0; }
+      .rg-addrep { margin-top: 14px; border: 1px solid var(--rt-border); border-radius: 8px; padding: 14px; background: var(--rt-bg); }
+      .rg-addrep h2 { font-size: 14px; margin: 0 0 10px; }
+      .rg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
+      .rg-grid label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: var(--rt-gray); display: flex; flex-direction: column; gap: 4px; }
+      .rg-grid label.rg-wide { grid-column: 1 / -1; }
+      .rg-grid input { font-size: 14px; padding: 8px 10px; border: 1px solid var(--rt-border); border-radius: 6px; font-weight: 400; text-transform: none; letter-spacing: 0; color: #111; }
+      .rg-grid input:focus { outline: none; border-color: var(--rt-red); }
+      .rg-addrep-actions { display: flex; gap: 12px; align-items: center; margin-top: 12px; }
+      .rg-addrep-actions .rg-btn { padding: 9px 16px; font-size: 14px; }
       [hidden] { display: none !important; }
     </style>
   </head>
@@ -78,10 +93,37 @@
           <h1>Sicherheits-Report erstellen</h1>
           <p class="rg-sub">Domain eingeben — DMARC, DNSSEC und Website-Sicherheit werden geprüft und als gebrandetes PDF erstellt.</p>
           <form id="genForm" class="rg-form">
+            <label class="rg-label" for="rep">Vertriebsmitarbeiter</label>
+            <div class="rg-row">
+              <select id="rep" class="rg-input rg-select" aria-label="Vertriebsmitarbeiter"></select>
+              <button type="button" id="addRepBtn" class="rg-icon-btn" title="Vertriebsmitarbeiter hinzufügen" aria-label="Vertriebsmitarbeiter hinzufügen">+</button>
+            </div>
+            <p id="repRemoveWrap" class="rg-hint" hidden><button type="button" id="repRemove" class="rg-link">Diesen (selbst angelegten) Eintrag entfernen</button></p>
+
             <label class="rg-label" for="domain">Domain</label>
             <input id="domain" type="text" class="rg-input" placeholder="z. B. cemex.de" required autocapitalize="off" autocorrect="off" spellcheck="false" />
             <button type="submit" id="genBtn" class="rg-btn">Report erstellen</button>
           </form>
+
+          <!-- Vertriebsmitarbeiter hinzufügen -->
+          <div id="addRep" class="rg-addrep" hidden>
+            <h2>Vertriebsmitarbeiter hinzufügen</h2>
+            <div class="rg-grid">
+              <label class="rg-wide">Name<input id="ar-name" type="text" autocomplete="off" /></label>
+              <label>Funktion<input id="ar-role" type="text" placeholder="z. B. Sales" autocomplete="off" /></label>
+              <label>Firma<input id="ar-org" type="text" placeholder="Sharp Business Systems Deutschland GmbH" autocomplete="off" /></label>
+              <label class="rg-wide">E-Mail<input id="ar-mail" type="email" autocomplete="off" /></label>
+              <label>Telefon<input id="ar-tel" type="text" autocomplete="off" /></label>
+              <label>Mobil<input id="ar-mobile" type="text" autocomplete="off" /></label>
+              <label class="rg-wide">Adresse<input id="ar-addr" type="text" placeholder="Straße Nr., PLZ Ort" autocomplete="off" /></label>
+              <label>Web<input id="ar-web" type="text" placeholder="www.sharp.de" autocomplete="off" /></label>
+            </div>
+            <p id="ar-err" class="rg-err" hidden></p>
+            <div class="rg-addrep-actions">
+              <button type="button" id="ar-save" class="rg-btn">Speichern</button>
+              <button type="button" id="ar-cancel" class="rg-link">Abbrechen</button>
+            </div>
+          </div>
 
           <div id="progress" class="rg-progress" hidden>
             <div class="rg-bar"><div id="barFill" class="rg-bar-fill"></div></div>
