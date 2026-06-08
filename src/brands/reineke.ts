@@ -1,7 +1,33 @@
 // Default brand = Reineke Technik (sharp.reineke.tech). Values are the EXACT
 // current literals so the default render is unchanged. Do not "tidy" these — the
 // middleware uses several of them verbatim as replace anchors.
-import type { Brand } from "../brand.js";
+import type { Brand, BrandContact } from "../brand.js";
+
+// Sharp sales reps selectable in the report generator. The "partner" card swaps
+// to the chosen rep; the conductor/persona (Reineke) stays fixed. These are the
+// always-available defaults; reps added via the UI live client-side (localStorage).
+const THEO: BrandContact = {
+  name: "Theo Müller",
+  role: "Verkaufsleiter Direktvertrieb",
+  org: "Sharp Business Systems Deutschland GmbH",
+  mail: "Theo.Mueller@sharp.eu",
+  tel: "+49 30 263 44 838",
+  mobile: "+49 173 778 19 17",
+  addr: "Fritschestraße 27/28, 10585 Berlin",
+  web: "www.sharp.de",
+  short: "Sharp Business Systems",
+};
+const NICO: BrandContact = {
+  name: "Nico Höferlin",
+  role: "Sales",
+  org: "Sharp Business Systems Deutschland GmbH",
+  mail: "Nico.Hoeferlin@sharp.eu",
+  tel: "+49 5251 144 131",
+  mobile: "+49 160 98949872",
+  addr: "Pagendarmweg 9-9a, 33100 Paderborn",
+  web: "www.sharp.de",
+  short: "Sharp Business Systems",
+};
 
 export const reineke: Brand = {
   id: "reineke",
@@ -56,17 +82,8 @@ export const reineke: Brand = {
       web: "www.reineke-technik.de",
       short: "Reineke Technik",
     },
-    partner: {
-      name: "Theo Müller",
-      role: "Verkaufsleiter Direktvertrieb",
-      org: "Sharp Business Systems Deutschland GmbH",
-      mail: "Theo.Mueller@sharp.eu",
-      tel: "+49 30 263 44 838",
-      mobile: "+49 173 778 19 17",
-      addr: "Fritschestraße 27/28, 10585 Berlin",
-      web: "www.sharp.de",
-      short: "Sharp Business Systems",
-    },
+    partner: THEO, // default partner card (used when no rep is picked)
+    reps: [THEO, NICO], // selectable in the /report generator
     wordmarkAsset: "/assets/sharp-logo.png",
     foxAsset: "/assets/reineke-official.svg",
     showFox: true,

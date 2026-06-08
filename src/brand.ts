@@ -73,7 +73,8 @@ export interface Brand {
   report: {
     toolUrl: string; // "sharp.reineke.tech"
     conductor: BrandContact; // first contact card + "durchgeführt & erstellt von"
-    partner: BrandContact | null; // second card (null = single-company)
+    partner: BrandContact | null; // second card (null = single-company); default when no rep picked
+    reps?: BrandContact[]; // selectable sales reps in the /report generator (swap the partner card); first = default
     wordmarkAsset: string; // top wordmark logo asset (cover-top, page-heads, bf)
     foxAsset: string; // bottom fox logo asset (cover-fox, bf-fox)
     showFox: boolean; // render the separate fox logo
