@@ -19,7 +19,7 @@ const THEO: BrandContact = {
 };
 const NICO: BrandContact = {
   name: "Nico Höferlin",
-  role: "Sales",
+  role: "Gebietsverkaufsleiter",
   org: "Sharp Business Systems Deutschland GmbH",
   mail: "Nico.Hoeferlin@sharp.eu",
   tel: "+49 5251 144 131",
