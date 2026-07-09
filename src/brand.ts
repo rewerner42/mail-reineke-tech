@@ -73,6 +73,7 @@ export interface Brand {
   // ── Server-side PDF report (src/report/build.ts + src/index.ts) ──
   report: {
     toolUrl: string; // "sharp.reineke.tech"
+    layout?: "emblem"; // opt-in layout: centered emblem cover, brand-name page head, numbered footers
     conductor: BrandContact; // first contact card + "durchgeführt & erstellt von"
     partner: BrandContact | null; // second card (null = single-company); default when no rep picked
     reps?: BrandContact[]; // selectable sales reps in the /report generator (swap the partner card); first = default

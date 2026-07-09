@@ -151,3 +151,22 @@ table.mini td{ border-bottom:1px solid var(--rt-border); padding:2.5px 6px; font
 .bf-org{ font-size:13px; font-weight:700; color:var(--rt-red); }
 .bf-tag{ font-size:10px; color:var(--rt-gray); }
 .bf-contact{ font-size:9.5px; color:#333; margin-top:4px; line-height:1.5; }
+
+/* ---------------- EMBLEM LAYOUT (brand.report.layout === "emblem") ----------------
+   Centered emblem cover, brand-name page head, numbered footers + red base bar.
+   Scoped under .layout-emblem so the default (wordmark) layout stays untouched. */
+.layout-emblem .cover-top{ padding-top:22mm; text-align:center; }
+.layout-emblem .cover-mid{ margin-top:28mm; }
+.layout-emblem .cover h1{ font-size:38px; margin-bottom:7px; }
+.layout-emblem .cover-kicker{ margin:0 0 12px; }
+.layout-emblem .cb-org{ color:var(--rt-black); font-size:17px; }
+.layout-emblem .page-head{ border-bottom:1px solid var(--rt-border); padding-bottom:8px; }
+.layout-emblem .ph-fox{ height:26px; }
+.layout-emblem .ph-brand{ font-weight:800; font-size:12px; letter-spacing:.05em; text-transform:uppercase; color:var(--rt-black); }
+.layout-emblem .domain-h{ font-size:24px; }
+.layout-emblem .check h3{ color:var(--rt-red); }
+.layout-emblem .page:not(.cover)::after{ content:""; position:absolute; left:0; right:0; bottom:0; height:4px; background:var(--rt-red); }
+.layout-emblem .contacts .contact-card:only-child{ flex:0 0 58%; }
+.layout-emblem .brandfoot{ border-top:1px solid #333; gap:14px; }
+.layout-emblem .bf-emblem{ height:46px; }
+.layout-emblem .bf-org{ color:var(--rt-black); }
