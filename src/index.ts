@@ -70,13 +70,20 @@ const SECURITY_HEADERS: Record<string, string> = {
 };
 
 app.use("*", async (c, next) => {
-  await next();
+  const url = new URL(c.req.url);
+  const brand = resolveBrand(c.env, url.host);
+  // White-label: don't serve the default brand's private assets (e.g. the Sharp
+  // partner logo) from another brand's Worker.
+  if (brand.id !== DEFAULT_BRAND.id && (DEFAULT_BRAND.privateAssets ?? []).includes(url.pathname)) {
+    c.res = new Response("Not found", { status: 404 });
+  } else {
+    await next();
+  }
   // Rebuild the response so headers are mutable (ASSETS responses can be immutable).
   let res = new Response(c.res.body, c.res);
   for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.headers.set(k, v);
   // White-label: rewrite served HTML for non-default brands (no-op for default,
   // so sharp/reineke is byte-unchanged). Skips JSON/PDF/asset responses.
-  const brand = resolveBrand(c.env, new URL(c.req.url).host);
   if (
     brand.id !== DEFAULT_BRAND.id &&
     (res.headers.get("content-type") || "").includes("text/html")

@@ -27,6 +27,7 @@ export interface BrandContact {
 export interface Brand {
   id: string;
   hosts: string[]; // Host fallback (used when env.BRAND is unset)
+  privateAssets?: string[]; // asset paths owned by THIS brand; 404 on other brands' Workers
 
   // ── Static-HTML rewrite anchors/targets (applied for non-default brands) ──
   shortName: string; // replaceAll text anchor, e.g. "Reineke Technik"
@@ -90,7 +91,7 @@ export interface Brand {
       danger: string;
       angleBg: string;
       angleBorder: string;
-      coverPartnerH: string; // .cover-sharp height
+      coverPartnerH: string; // .cover-wordmark height
       coverFoxH: string; // .cover-fox height
     };
   };

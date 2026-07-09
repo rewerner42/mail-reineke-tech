@@ -24,7 +24,7 @@
         box-shadow: 0 6px 30px rgba(0, 0, 0, 0.06);
       }
       .rg-head { display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--rt-border); padding-bottom: 12px; margin-bottom: 18px; }
-      .rg-sharp { height: 18px; }
+      .rg-logo { height: var(--brand-logo-height, 18px); max-width: 200px; object-fit: contain; }
       .rg-sep { color: var(--rt-border); }
       .rg-kicker { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--rt-gray); }
       .rg-bs { color: var(--rt-accent); font-weight: 800; margin-right: 0.3em; }
@@ -71,7 +71,7 @@
     <main class="rg-wrap">
       <div class="rg-card">
         <div class="rg-head">
-          <img class="rg-sharp" src="/assets/sharp-logo.png" alt="Logo" />
+          <img class="rg-logo" src="/assets/sharp-logo.png" alt="Logo" />
           <span class="rg-sep">·</span>
           <span class="rg-kicker"><span class="rg-bs">\</span>Report-Generator</span>
         </div>

@@ -147,7 +147,7 @@ function coverPage(domain: string, date: string, L: ReportLogos, brand: Brand): 
   const byAddr = `${c.addr.replace(", ", " · ")} · ${c.web}`;
   const foxSrc = brand.report.showFox ? L.fox : L.wordmark;
   return `<section class="page cover">
-  <div class="cover-top"><img class="cover-sharp" src="${L.wordmark}" alt="${esc(brand.report.wordmarkAlt)}"></div>
+  <div class="cover-top"><img class="cover-wordmark" src="${L.wordmark}" alt="${esc(brand.report.wordmarkAlt)}"></div>
   <div class="cover-mid">
     <div class="cover-kicker">${BS}Sicherheits-Analyse · E-Mail &amp; Domain</div>
     <h1>${esc(domain)}</h1>
@@ -321,7 +321,7 @@ function methodPage(date: string, L: ReportLogos, brand: Brand): string {
       <div class="bf-tag">Analyse durchgeführt &amp; erstellt · E-Mail- &amp; Domain-Sicherheit · ${esc(brand.report.toolUrl)}${coBrand}</div>
       <div class="bf-contact">${bfContact}</div>
     </div>
-    <img class="bf-sharp" src="${L.wordmark}" alt="${esc(brand.report.wordmarkAlt)}">
+    <img class="bf-wordmark" src="${L.wordmark}" alt="${esc(brand.report.wordmarkAlt)}">
   </div>
 </section>`;
 }

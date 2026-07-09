@@ -1,4 +1,4 @@
-/* Sharp / Reineke Technik — Sicherheitsbericht (Print/PDF, A4) */
+/* Sicherheitsbericht (Print/PDF, A4) — brand-neutral; palette via :root override */
 :root{
   --rt-red:#dc0d23; --rt-red-dark:#8a060e; --rt-black:#111; --rt-gray:#5a5a5a;
   --rt-border:#e6e7e6; --rt-bg:#f7f7f8;
@@ -39,7 +39,7 @@ em{font-style:italic;}
 /* ---------------- COVER ---------------- */
 .cover{ display:flex; flex-direction:column; min-height:262mm; }
 .cover-top{ padding-top:6mm; }
-.cover-sharp{ height:var(--cover-partner-h); }
+.cover-wordmark{ height:var(--cover-partner-h); }
 .cover-mid{ margin-top:34mm; }
 .cover-kicker{ color:var(--rt-red); font-weight:700; text-transform:uppercase; letter-spacing:.08em; font-size:12px; margin-bottom:10px; }
 .cover h1{ font-size:33px; line-height:1.08; margin-bottom:14px; }
@@ -146,7 +146,7 @@ table.mini td{ border-bottom:1px solid var(--rt-border); padding:2.5px 6px; font
 .method-note{ font-size:9.5px; color:var(--rt-gray); font-style:italic; }
 .brandfoot{ display:flex; align-items:center; gap:16px; margin-top:24px; border-top:2px solid var(--rt-red); padding-top:14px; }
 .bf-fox{ height:58px; }
-.bf-sharp{ height:20px; margin-left:auto; }
+.bf-wordmark{ height:20px; margin-left:auto; }
 .bf-body{ flex:1; }
 .bf-org{ font-size:13px; font-weight:700; color:var(--rt-red); }
 .bf-tag{ font-size:10px; color:var(--rt-gray); }
