@@ -156,7 +156,7 @@ table.mini td{ border-bottom:1px solid var(--rt-border); padding:2.5px 6px; font
    Centered emblem cover, brand-name page head, numbered footers + red base bar.
    Scoped under .layout-emblem so the default (wordmark) layout stays untouched. */
 .layout-emblem .cover-top{ padding-top:22mm; text-align:center; }
-.layout-emblem .cover-mid{ margin-top:28mm; }
+.layout-emblem .cover-mid{ margin-top:58mm; }
 .layout-emblem .cover h1{ font-size:38px; margin-bottom:7px; }
 .layout-emblem .cover-kicker{ margin:0 0 12px; }
 .layout-emblem .cb-org{ color:var(--rt-black); font-size:17px; }
