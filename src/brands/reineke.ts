@@ -31,7 +31,7 @@ const NICO: BrandContact = {
 
 export const reineke: Brand = {
   id: "reineke",
-  hosts: ["sharp.reineke.tech", "mail.reineke.tech", "scan.reineke.tech", "localhost"],
+  hosts: ["sharp.reineke.tech", "mail.reineke.tech", "localhost"],
 
   shortName: "Reineke Technik",
   domain: "reineke-technik.de",
