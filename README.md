@@ -76,11 +76,17 @@ braucht Schreibrechte auf das CRM (`crm.lead`).
 
 **2. Worker-Secrets setzen** (nie committen — `.dev.vars` lokal ist gitignored):
 
+Es gibt **zwei Deployments** (ein Repo, zwei Worker): `--env sharp`
+(`mail-reineke-tech`, sharp.reineke.tech) und `--env reineke`
+(`scan-reineke-tech`, scan.reineke.tech + mail.reineke.tech). Secrets je
+Umgebung setzen:
+
 ```bash
-wrangler secret put ODOO_URL      --env production   # z.B. https://firma.odoo.com
-wrangler secret put ODOO_DB       --env production   # Datenbankname
-wrangler secret put ODOO_USERNAME --env production   # Login-E-Mail des API-Benutzers
-wrangler secret put ODOO_API_KEY  --env production   # der erzeugte API-Schlüssel
+wrangler secret put ODOO_URL      --env reineke   # z.B. https://firma.odoo.com
+wrangler secret put ODOO_DB       --env reineke   # Datenbankname
+wrangler secret put ODOO_USERNAME --env reineke   # Login-E-Mail des API-Benutzers
+wrangler secret put ODOO_API_KEY  --env reineke   # der erzeugte API-Schlüssel
+# dito --env sharp für den Partner-Kanal (plus REPORT_PASSWORD je Umgebung)
 ```
 
 **Benachrichtigung:** Zu jedem Lead wird (best-effort) eine **To-Do-Aktivität**

@@ -18,7 +18,7 @@ import {
   sitePaletteCss,
   reportPaletteCss,
 } from "./brand.js";
-import type { BrandContact } from "./brand.js";
+import type { Brand, BrandContact } from "./brand.js";
 import type { BrowserWorker } from "@cloudflare/puppeteer";
 import type { AnalysisResponse } from "./types.js";
 
@@ -42,24 +42,36 @@ const app = new Hono<{ Bindings: Bindings }>();
 // Security headers on EVERY response — including the static assets served via the
 // ASSETS binding (so we rebuild the response to attach them reliably). Hardens the
 // tool itself and fixes its own HTTP-Observatory grade. The CSP allows our own
-// origin plus the consent-gated analytics (Umami + Leadfeeder); script-src stays
-// free of 'unsafe-inline'.
-const CSP = [
-  "default-src 'self'",
-  "script-src 'self' https://cloud.umami.is https://*.lfeeder.com",
-  "connect-src 'self' https://cloud.umami.is https://*.lfeeder.com",
-  "img-src 'self' data: https://*.lfeeder.com",
-  "style-src 'self' 'unsafe-inline'",
-  "font-src 'self'",
-  "object-src 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "frame-ancestors 'none'",
-  "upgrade-insecure-requests",
-].join("; ");
+// origin plus the brand's consent-gated analytics (Umami + Leadfeeder) — brands
+// without analytics get a CSP with no third-party origin at all; script-src stays
+// free of 'unsafe-inline'. Brand files never change at runtime → cache per id.
+const CSP_CACHE = new Map<string, string>();
+function cspFor(brand: Brand): string {
+  const cached = CSP_CACHE.get(brand.id);
+  if (cached) return cached;
+  // Older client-branch brand files have no `analytics` field — they behave like
+  // the default brand (see Brand.analytics), so mirror its origins here too.
+  const a = brand.analytics ?? DEFAULT_BRAND.analytics;
+  const umami = a?.umamiId ? " https://cloud.umami.is" : "";
+  const lf = a?.leadfeederId ? " https://*.lfeeder.com" : "";
+  const csp = [
+    "default-src 'self'",
+    `script-src 'self'${umami}${lf}`,
+    `connect-src 'self'${umami}${lf}`,
+    `img-src 'self' data:${lf}`,
+    "style-src 'self' 'unsafe-inline'",
+    "font-src 'self'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    "upgrade-insecure-requests",
+  ].join("; ");
+  CSP_CACHE.set(brand.id, csp);
+  return csp;
+}
 
 const SECURITY_HEADERS: Record<string, string> = {
-  "Content-Security-Policy": CSP,
   "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
   "X-Content-Type-Options": "nosniff",
   "X-Frame-Options": "DENY",
@@ -82,6 +94,7 @@ app.use("*", async (c, next) => {
   // Rebuild the response so headers are mutable (ASSETS responses can be immutable).
   let res = new Response(c.res.body, c.res);
   for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.headers.set(k, v);
+  res.headers.set("Content-Security-Policy", cspFor(brand));
   // White-label: rewrite served HTML for non-default brands (no-op for default,
   // so sharp/reineke is byte-unchanged). Skips JSON/PDF/asset responses.
   if (
@@ -229,7 +242,9 @@ function isReportAuthed(c: Context<{ Bindings: Bindings }>): Promise<boolean> {
   return verifyReportToken(secret, readCookie(c.req.header("Cookie"), REPORT_COOKIE));
 }
 
-app.get("/api/health", (c) => c.json({ ok: true, service: "mail.reineke.tech" }));
+app.get("/api/health", (c) =>
+  c.json({ ok: true, service: resolveBrand(c.env, new URL(c.req.url).host).report.toolUrl }),
+);
 
 // E-mail tab: DMARC, SPF, DKIM, MX, MTA-STS, TLS-RPT.
 app.get("/api/email", async (c) => {
