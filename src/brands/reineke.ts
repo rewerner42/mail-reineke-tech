@@ -31,7 +31,8 @@ const NICO: BrandContact = {
 
 export const reineke: Brand = {
   id: "reineke",
-  hosts: ["sharp.reineke.tech", "mail.reineke.tech", "scan.reineke.tech", "localhost"],
+  hosts: ["sharp.reineke.tech", "mail.reineke.tech", "localhost"],
+  privateAssets: ["/assets/sharp-logo.png"], // Sharp co-brand asset — not for other brands
 
   shortName: "Reineke Technik",
   domain: "reineke-technik.de",

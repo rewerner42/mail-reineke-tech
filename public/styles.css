@@ -102,8 +102,8 @@ b, strong { font-weight: 700; }
   justify-self: end;
 }
 .partner-logo {
-  /* SHARP is a wide wordmark (~6.7:1) — size by width so it doesn't dominate
-     the compact Reineke mark. */
+  /* Partner wordmarks are wide (~6.7:1) — size by width so they don't dominate
+     the compact brand mark. */
   width: 130px;
   height: auto;
   display: block;
@@ -1304,8 +1304,8 @@ body.is-report .site-footer { display: none; }
 
 /* ─── Responsive ─────────────────────────────────────────── */
 @media (max-width: 860px) {
-  /* Header: Reineke left + Sharp top-right on row 1, tabs centered on row 2.
-     Explicit grid placement — auto-placement would otherwise push the Sharp
+  /* Header: brand left + partner top-right on row 1, tabs centered on row 2.
+     Explicit grid placement — auto-placement would otherwise push the partner
      logo below the full-width tab row. */
   .header-inner {
     grid-template-columns: auto auto;

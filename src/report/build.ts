@@ -131,26 +131,35 @@ function contactsBlock(brand: Brand): string {
   const cards = brand.report.partner
     ? contactCard(brand.report.conductor) + contactCard(brand.report.partner)
     : contactCard(brand.report.conductor);
-  return `<h3 class="contact-h">Ihre Ansprechpartner</h3><div class="contacts">${cards}</div>`;
+  const h = brand.report.partner ? "Ihre Ansprechpartner" : "Ihr Ansprechpartner";
+  return `<h3 class="contact-h">${h}</h3><div class="contacts">${cards}</div>`;
 }
 
 function pageHead(title: string, L: ReportLogos, brand: Brand): string {
   return `<div class="page-head"><img class="ph-logo" src="${L.wordmark}" alt="${esc(brand.report.wordmarkAlt)}"><span class="ph-sep">·</span><span class="ph-title">${BS}${title}</span></div>`;
 }
 
-function foot(date: string, brand: Brand): string {
-  return `<div class="page-foot">Geprüft mit ${esc(brand.report.toolUrl)} · Stand ${esc(date)} · ${esc(brand.report.conductor.org)} · Vertraulich</div>`;
+function foot(date: string, brand: Brand, pageNo?: number, pageTotal?: number): string {
+  const lead =
+    brand.report.layout === "emblem" ? "" : `Geprüft mit ${esc(brand.report.toolUrl)} · `;
+  const pages = pageNo && pageTotal ? ` · Seite ${pageNo} / ${pageTotal}` : "";
+  return `<div class="page-foot">${lead}Stand ${esc(date)} · ${esc(brand.report.conductor.org)} · Vertraulich${pages}</div>`;
 }
 
 function coverPage(domain: string, date: string, L: ReportLogos, brand: Brand): string {
+  const emblem = brand.report.layout === "emblem";
   const c = brand.report.conductor;
   const byAddr = `${c.addr.replace(", ", " · ")} · ${c.web}`;
   const foxSrc = brand.report.showFox ? L.fox : L.wordmark;
+  const kicker = `<div class="cover-kicker">${BS}Sicherheits-Analyse · E-Mail &amp; Domain</div>`;
+  const h1 = `<h1>${esc(domain)}</h1>`;
+  // emblem layout: headline first, kicker beneath; no separate fox in the signature band
+  const title = emblem ? `${h1}\n    ${kicker}` : `${kicker}\n    ${h1}`;
+  const coverFox = emblem ? "" : `\n    <img class="cover-fox" src="${foxSrc}" alt="${esc(c.org)}">`;
   return `<section class="page cover">
-  <div class="cover-top"><img class="cover-sharp" src="${L.wordmark}" alt="${esc(brand.report.wordmarkAlt)}"></div>
+  <div class="cover-top"><img class="cover-wordmark" src="${L.wordmark}" alt="${esc(brand.report.wordmarkAlt)}"></div>
   <div class="cover-mid">
-    <div class="cover-kicker">${BS}Sicherheits-Analyse · E-Mail &amp; Domain</div>
-    <h1>${esc(domain)}</h1>
+    ${title}
     <p class="cover-lead">Unabhängige Prüfung der digitalen Absender- und Domain-Sicherheit von
       ${esc(domain)} — DMARC, DNSSEC und Website-Sicherheit.</p>
     <ul class="cover-domains"><li><strong>${esc(domain)}</strong> — E-Mail- &amp; Domain-Sicherheit<br>
@@ -162,8 +171,7 @@ function coverPage(domain: string, date: string, L: ReportLogos, brand: Brand): 
       <div class="cb-org">${esc(c.org)}</div>
       <div class="cb-partner">${esc(byAddr)}</div>
       <div class="cb-date">${esc(date)}</div>
-    </div>
-    <img class="cover-fox" src="${foxSrc}" alt="${esc(c.org)}">
+    </div>${coverFox}
   </div>
   <div class="cover-conf">Vertraulich — nur für den internen Gebrauch der Adressaten bestimmt.</div>
 </section>`;
@@ -235,12 +243,22 @@ function domainPage(
     miniRow("TLS-RPT", analyze.tlsRpt),
   ].join("");
 
-  return `<section class="page domain-page">
-      <div class="page-head">
+  const emblem = brand.report.layout === "emblem";
+  const prio = `<span class="ph-prio prio-${need.cls}">Handlungsbedarf: ${esc(need.label)}</span>`;
+  const head = emblem
+    ? `<div class="page-head">
+        <img class="ph-fox" src="${L.fox}" alt="">
+        <span class="ph-brand">${esc(brand.shortName)}</span>
+        <span class="ph-title">${BS}Sicherheits-Bericht · ${esc(domain)}</span>
+        ${prio}
+      </div>`
+    : `<div class="page-head">
         <img class="ph-logo" src="${L.wordmark}" alt="${esc(brand.report.wordmarkAlt)}">
         <span class="ph-sep">·</span><span class="ph-title">${BS}Domain-Bericht</span>
-        <span class="ph-prio prio-${need.cls}">Handlungsbedarf: ${esc(need.label)}</span>
-      </div>
+        ${prio}
+      </div>`;
+  return `<section class="page domain-page">
+      ${head}
       <h2 class="domain-h">${esc(domain)}</h2>
       <div class="domain-sub">Automatisierte E-Mail- &amp; Domain-Sicherheitsanalyse</div>
       <div class="domain-host">${esc(domain)} &nbsp;·&nbsp; geprüft am ${esc(date)}</div>
@@ -269,23 +287,25 @@ function domainPage(
         <table class="mini">${mini}</table>
       </div>
       <div class="angle"><div class="angle-k">Was das für ${esc(domain)} bedeutet</div>${angle}</div>
-      ${foot(date, brand)}
+      ${foot(date, brand, emblem ? 1 : undefined, 3)}
     </section>`;
 }
 
 function empfehlungPage(domain: string, date: string, L: ReportLogos, brand: Brand): string {
+  const emblem = brand.report.layout === "emblem";
   return `<section class="page summary">
-  ${pageHead("Empfehlung &amp; Ansprechpartner", L, brand)}
+  ${emblem ? "" : pageHead("Empfehlung &amp; Ansprechpartner", L, brand)}
   <h2 class="sum-h">Empfehlung für ${esc(domain)}</h2>
   <p class="sum-intro">Die auf der vorigen Seite dokumentierten Punkte lassen sich kontrolliert und
     ohne Betriebsunterbrechung schließen. So gehen wir gemeinsam vor:</p>
   ${offerBlock(brand)}
   ${contactsBlock(brand)}
-  ${foot(date, brand)}
+  ${foot(date, brand, emblem ? 2 : undefined, 3)}
 </section>`;
 }
 
 function methodPage(date: string, L: ReportLogos, brand: Brand): string {
+  const emblem = brand.report.layout === "emblem";
   const c = brand.report.conductor;
   const bfFox = brand.report.showFox
     ? `<img class="bf-fox" src="${L.fox}" alt="${esc(c.org)}">`
@@ -297,7 +317,7 @@ function methodPage(date: string, L: ReportLogos, brand: Brand): string {
     ? `${contactLine(c, false)}<br>\n        ${contactLine(brand.report.partner, true)}`
     : contactLine(c, true);
   return `<section class="page method">
-  ${pageHead("Methodik &amp; Hinweise", L, brand)}
+  ${emblem ? "" : pageHead("Methodik &amp; Hinweise", L, brand)}
   <h2 class="sum-h">Methodik &amp; Hinweise</h2>
   <h3>Was wurde geprüft?</h3>
   <div class="method-grid">
@@ -314,15 +334,27 @@ function methodPage(date: string, L: ReportLogos, brand: Brand): string {
     ausgewertet — keine Eingriffe, keine Anmeldungen, keine Last für die Zielsysteme.</p>
   <p class="method-note">Die Ergebnisse sind eine Momentaufnahme und können sich nach
     Konfigurationsänderungen ändern. Eine erneute Prüfung ist jederzeit kostenfrei möglich.</p>
-  <div class="brandfoot">
+  ${
+    emblem
+      ? `<div class="brandfoot">
+    <img class="bf-emblem" src="${L.wordmark}" alt="${esc(brand.report.wordmarkAlt)}">
+    <div class="bf-body">
+      <div class="bf-org">${esc(c.org)}</div>
+      <div class="bf-tag">Analyse durchgeführt &amp; erstellt · E-Mail- &amp; Domain-Sicherheit · ${esc(brand.report.toolUrl)}${coBrand}</div>
+      <div class="bf-contact">${bfContact}</div>
+    </div>
+  </div>
+  ${foot(date, brand, 3, 3)}`
+      : `<div class="brandfoot">
     ${bfFox}
     <div class="bf-body">
       <div class="bf-org">${esc(c.org)}</div>
       <div class="bf-tag">Analyse durchgeführt &amp; erstellt · E-Mail- &amp; Domain-Sicherheit · ${esc(brand.report.toolUrl)}${coBrand}</div>
       <div class="bf-contact">${bfContact}</div>
     </div>
-    <img class="bf-sharp" src="${L.wordmark}" alt="${esc(brand.report.wordmarkAlt)}">
-  </div>
+    <img class="bf-wordmark" src="${L.wordmark}" alt="${esc(brand.report.wordmarkAlt)}">
+  </div>`
+  }
 </section>`;
 }
 
@@ -335,10 +367,13 @@ export function buildReportBody(
   brand: Brand,
 ): string {
   const date = germanDate(analyze.queriedAt);
-  return (
+  const sections =
     coverPage(domain, date, logos, brand) +
     domainPage(domain, analyze, observatory, date, logos, brand) +
     empfehlungPage(domain, date, logos, brand) +
-    methodPage(date, logos, brand)
-  );
+    methodPage(date, logos, brand);
+  // Wrap only the emblem layout so the default output stays byte-identical.
+  return brand.report.layout === "emblem"
+    ? `<div class="layout-emblem">${sections}</div>`
+    : sections;
 }

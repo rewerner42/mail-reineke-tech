@@ -1,4 +1,4 @@
-// sharp.reineke.tech — frontend (3 tools: E-Mail / Website / DNSSEC)
+// Domain-Sicherheits-Check — frontend (3 tools: E-Mail / Website / DNSSEC)
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 

@@ -21,8 +21,7 @@ run_worker_first = true
 name = "mail-reineke-tech"
 routes = [
   { pattern = "sharp.reineke.tech", custom_domain = true },
-  { pattern = "mail.reineke.tech", custom_domain = true },
-  { pattern = "scan.reineke.tech", custom_domain = true }
+  { pattern = "mail.reineke.tech", custom_domain = true }
 ]
 browser = { binding = "BROWSER" }
 

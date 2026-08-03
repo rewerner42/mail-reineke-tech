@@ -27,6 +27,7 @@ export interface BrandContact {
 export interface Brand {
   id: string;
   hosts: string[]; // Host fallback (used when env.BRAND is unset)
+  privateAssets?: string[]; // asset paths owned by THIS brand; 404 on other brands' Workers
 
   // ── Static-HTML rewrite anchors/targets (applied for non-default brands) ──
   shortName: string; // replaceAll text anchor, e.g. "Reineke Technik"
@@ -72,6 +73,7 @@ export interface Brand {
   // ── Server-side PDF report (src/report/build.ts + src/index.ts) ──
   report: {
     toolUrl: string; // "sharp.reineke.tech"
+    layout?: "emblem"; // opt-in layout: centered emblem cover, brand-name page head, numbered footers
     conductor: BrandContact; // first contact card + "durchgeführt & erstellt von"
     partner: BrandContact | null; // second card (null = single-company); default when no rep picked
     reps?: BrandContact[]; // selectable sales reps in the /report generator (swap the partner card); first = default
@@ -90,7 +92,7 @@ export interface Brand {
       danger: string;
       angleBg: string;
       angleBorder: string;
-      coverPartnerH: string; // .cover-sharp height
+      coverPartnerH: string; // .cover-wordmark height
       coverFoxH: string; // .cover-fox height
     };
   };
