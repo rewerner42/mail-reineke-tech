@@ -204,8 +204,16 @@ export function applyBrandToHtml(html: string, brand: Brand): string {
     // broad text + URL anchors (titles, meta, alts, eyebrow, footer brand, links)
     .replaceAll(D.shortName, brand.shortName)
     .replaceAll(D.domain, brand.domain);
-  // Pentest-Funnel: primärer CTA-Text (der Link selbst läuft über contactHref).
-  if (brand.funnel) out = out.replaceAll(">Beratung anfragen<", `>${brand.funnel.ctaLabel}<`);
+  // Pentest-Funnel: primärer CTA-Text (der Link selbst läuft über contactHref)
+  // + eigener "Pentest"-Tab in der Kopfnavigation (Anker: der DNSSEC-Tab).
+  if (brand.funnel) {
+    out = out
+      .replaceAll(">Beratung anfragen<", `>${brand.funnel.ctaLabel}<`)
+      .replace(
+        '<a href="/dnssec" class="tab" data-tab-link="dnssec">DNSSEC</a>',
+        `<a href="/dnssec" class="tab" data-tab-link="dnssec">DNSSEC</a>\n          <a href="${brand.funnel.pentestPath}" class="tab tab-pentest">Pentest</a>`,
+      );
+  }
   const style = sitePaletteCss(brand);
   if (style) out = out.replace("</head>", `<style>${style}</style></head>`);
   out = out.replace("</body>", `${brandDataScript(brand)}</body>`);

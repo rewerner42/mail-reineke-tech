@@ -1223,7 +1223,7 @@ const CONSENT_KEY = "rt-consent"; // "accepted" | "rejected"
 // Brands that ship their own analytics config are OPT-IN: nothing loads before
 // an active consent. The default brand keeps its existing behavior.
 const ANALYTICS = BRAND.analytics ?? {
-  umamiId: "705faf06-6f2a-4905-8605-1fee670f68b1",
+  umamiId: null, // Umami-Site liegt seit 2026-08-03 bei scan.reineke.tech (Site-Limit)
   leadfeederId: "bElvO732oZG8ZMqj",
 };
 const ANALYTICS_OPT_IN = Boolean(BRAND.analytics);

@@ -35,7 +35,7 @@ export const sharp: Brand = {
   hosts: ["sharp.reineke.tech", "localhost"],
   privateAssets: ["/assets/sharp-logo.png"], // Sharp co-brand asset — not for other brands
   analytics: {
-    umamiId: "705faf06-6f2a-4905-8605-1fee670f68b1",
+    umamiId: null, // Umami-Site am 2026-08-03 auf scan.reineke.tech umgezogen (Site-Limit)
     leadfeederId: "bElvO732oZG8ZMqj",
   },
 
