@@ -7,7 +7,15 @@ import type { Brand } from "../brand.js";
 export const reineke: Brand = {
   id: "reineke",
   hosts: ["scan.reineke.tech", "mail.reineke.tech"],
+  privateAssets: ["/pentest.html", "/pentest.js"], // Pentest-Strecke — nicht auf anderen Brands
   analytics: { umamiId: null, leadfeederId: null }, // no trackers until Reineke gets own IDs
+  // Pentest-Lead-Strecke: /pentest ersetzt den Kontakt-Absprung als einziger CTA.
+  funnel: {
+    pentestPath: "/pentest",
+    ctaLabel: "Pentest — Umfang und Ablauf ansehen",
+    bookingUrl:
+      "https://outlook.office.com/bookwithme/user/99dfe8391d044c208563dd3afbc7439f@reineke-technik.de?anonymous&ismsaljsauthenabled&ep=plink",
+  },
 
   // Text/domain anchors equal the default brand → those replaceAlls are no-ops;
   // the visible difference comes from the asset/partner/report fields below.
@@ -18,7 +26,7 @@ export const reineke: Brand = {
   faviconIcon: "/assets/favicon.png",
   partnerLogoTag: "", // single-brand: no Sharp partner logo in the header
   reportPageLogo: "/assets/reineke-logo.png",
-  contactHref: "https://www.reineke-technik.de/kontakt/",
+  contactHref: "/pentest", // primärer CTA führt in die Pentest-Strecke, kein Absprung
   footerStreetCity: "Geseker Straße 26 · 33154 Salzkotten",
   footerTelHref: "tel:+4952589878282",
   footerTelText: "+49 (0) 5258 987-282",

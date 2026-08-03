@@ -45,6 +45,9 @@ const LETTERHEAD_LOGO = BRAND.letterheadLogo ?? "/assets/reineke-logo.png";
 const LEAD_CONSENT_COMPANY = BRAND.leadConsentCompany ?? "Reineke Technik GmbH";
 const LEAD_DATENSCHUTZ_HREF =
   BRAND.leadDatenschutzHref ?? "https://www.reineke-technik.de/datenschutz/";
+// Pentest-Lead-Strecke (nur Marken mit brand.funnel, z.B. Reineke): fester
+// Einordnungs-Block unter jedem Ergebnis + Verweis auf /pentest.
+const FUNNEL = BRAND.funnel ?? null;
 
 function reportLink(domain, check) {
   const p = new URLSearchParams({ d: domain });
@@ -270,6 +273,34 @@ function maybeFlagNonSending(view, data) {
   body.insertBefore(note, body.firstChild);
 }
 
+// Fester Block unter jedem Ergebnis: was ein 30-Sekunden-Check prinzipiell
+// nicht sehen kann — und dass die Folgefrage ein Penetrationstest beantwortet.
+function renderScopeNote(view) {
+  if (!FUNNEL) return;
+  let host = view.querySelector("[data-scope-note]");
+  if (!host) {
+    host = document.createElement("div");
+    host.className = "scope-note";
+    host.setAttribute("data-scope-note", "");
+    view.appendChild(host);
+  }
+  host.innerHTML = `
+    <h3>Was dieser Check nicht sehen kann.</h3>
+    <p>Diese Prüfung nutzt ausschließlich öffentlich abfragbare Daten — sie sieht, was ein
+      Angreifer in dreißig Sekunden ohne Anmeldung sieht. Nicht sichtbar sind:</p>
+    <ul>
+      <li>alles hinter einer Anmeldung: Kundenportale, Adminoberflächen, interne Anwendungen</li>
+      <li>Angriffspfade im internen Netz und im Active Directory bis zur Rechteausweitung</li>
+      <li>die Geschäftslogik Ihrer Anwendungen: Rollen, Freigaben, Preise, Mandantentrennung</li>
+      <li>exponierte Dienste jenseits von Web und Mail: VPN, Fernwartung, RDP, Testsysteme</li>
+      <li>die Verkettung: einzeln harmlose Schwächen, die zusammen einen Weg bis zum
+        Domänenadministrator ergeben</li>
+    </ul>
+    <p>Was hier fehlt, ist meist in Stunden behoben. Die interessantere Frage ist, was sich
+      hinter der Anmeldung findet — das beantwortet ein Penetrationstest.</p>
+    <a class="scope-note-link" href="${FUNNEL.pentestPath}">${escapeHtml(FUNNEL.ctaLabel)} →</a>`;
+}
+
 function renderEmailResults(view, data) {
   renderCard($("#card-dmarc", view), data.dmarc, renderDmarcBody);
   renderCard($("#card-spf", view), data.spf, renderSpfBody);
@@ -278,10 +309,12 @@ function renderEmailResults(view, data) {
   renderCard($("#card-mtaSts", view), data.mtaSts, renderMtaStsBody);
   renderCard($("#card-tlsRpt", view), data.tlsRpt, renderTlsRptBody);
   maybeFlagNonSending(view, data);
+  renderScopeNote(view);
 }
 
 function renderDnssecResults(view, data) {
   renderCard($("#card-dnssec", view), data.dnssec, renderDnssecBody);
+  renderScopeNote(view);
 }
 
 function renderObservatoryResults(view, data) {
@@ -316,6 +349,7 @@ function renderObservatoryResults(view, data) {
 
   // benchmark chart (loaded once, highlights the current grade)
   if (d && d.grade) void loadBenchmark(view, d.grade);
+  renderScopeNote(view);
 }
 
 let benchmarkData = null; // cached global grade distribution
@@ -749,6 +783,46 @@ function reportAreaPage(area, F) {
     </section>`;
 }
 
+// Abschlussseite "Der nächste Schritt" (nur brand.funnel): Varianten, Ablauf,
+// /pentest-Verweis und Kontakt — der Bericht ist das Artefakt, das beim
+// Interessenten liegen bleibt. Kein Preis, keine Proof-Zahlen.
+function reportNextStep() {
+  if (!FUNNEL) return "";
+  const c = REPORT_CONTACT;
+  const pentestUrl = location.host + FUNNEL.pentestPath;
+  return `
+    <section class="report-section report-next-step">
+      <h2>Der nächste Schritt</h2>
+      <p>Dieser Bericht zeigt, was ein Angreifer in dreißig Sekunden ohne Anmeldung sieht.
+        Die Folgefrage beantwortet ein Penetrationstest: Was findet jemand, der dreißig
+        Stunden investiert, sich anmeldet und Schwachstellen zu Angriffspfaden verkettet?</p>
+      <h3>Wählbar nach Bedarf</h3>
+      <ul>
+        <li><strong>Extern</strong> — Ihre von außen erreichbaren Systeme: Perimeter,
+          exponierte Dienste.</li>
+        <li><strong>Intern / Active Directory</strong> — was ein Angreifer im Netz erreicht:
+          AD-Härtung, Rechteausweitung.</li>
+        <li><strong>Web-Applikation</strong> — Ihre Anwendungen und Portale entlang
+          anerkannter Prüfmethodik.</li>
+      </ul>
+      <h3>So läuft Ihr Pentest ab</h3>
+      <ol>
+        <li><strong>Scoping</strong> — gemeinsam Ziele, Systeme und Testtiefe festlegen,
+          Zeitfenster betriebsschonend abstimmen.</li>
+        <li><strong>Test</strong> — wir prüfen manuell und mit eigenen Tools, dokumentieren
+          jeden Schritt nachvollziehbar.</li>
+        <li><strong>Report &amp; Besprechung</strong> — priorisierte Findings, konkrete
+          Behebungsempfehlungen, Durchsprache mit Ihrem Team.</li>
+        <li><strong>Retest</strong> — nach Ihrer Nachbesserung bestätigen wir die
+          Wirksamkeit.</li>
+      </ol>
+      <p class="ns-ref">Umfang, Ablauf und Anfrage: <strong>${escapeHtml(pentestUrl)}</strong>
+        · <a href="${escapeHtml(FUNNEL.bookingUrl)}" rel="noopener">Termin direkt buchen</a></p>
+      <p class="ns-contact"><strong>${escapeHtml(c.name)}</strong> · ${escapeHtml(c.company)} ·
+        Tel. ${escapeHtml(c.phone)} · ${escapeHtml(c.email)}</p>
+    </section>`;
+}
+
 function buildReportHtml(domain, isSingle, singleLabel, findings) {
   const now = new Date().toLocaleDateString("de-DE", {
     day: "2-digit",
@@ -785,6 +859,7 @@ function buildReportHtml(domain, isSingle, singleLabel, findings) {
       letterhead +
       titleBlock +
       `<section class="report-section report-findings">${reportFindingHtml(key, fc)}</section>` +
+      reportNextStep() +
       footer
     );
   }
@@ -797,7 +872,7 @@ function buildReportHtml(domain, isSingle, singleLabel, findings) {
       <div class="report-areas">${REPORT_AREAS.map((a) => reportAreaOverview(a, F)).join("")}</div>
     </section>`;
   const areaPages = REPORT_AREAS.map((a) => reportAreaPage(a, F)).join("");
-  return letterhead + titleBlock + overview + areaPages + footer;
+  return letterhead + titleBlock + overview + areaPages + reportNextStep() + footer;
 }
 
 function startReportProgress(doc, estMs) {
@@ -855,7 +930,7 @@ function renderLeadGate(doc, domain, onProceed) {
     <div class="lead-gate">
       <p class="eyebrow">Cybersecurity-Report</p>
       <h2>Bericht anfordern</h2>
-      <p class="lead-intro">Gib deine E-Mail-Adresse ein, um den Sicherheitsbericht${
+      <p class="lead-intro">Geben Sie Ihre E-Mail-Adresse ein, um den Sicherheitsbericht${
         domain ? ` für <span class="mono">${escapeHtml(domain)}</span>` : ""
       } zu erstellen und herunterzuladen.</p>
       <form class="lead-form" novalidate>
@@ -877,7 +952,7 @@ function renderLeadGate(doc, domain, onProceed) {
         <button type="submit" class="btn btn-primary lead-submit">
           <span class="btn-label">Bericht erstellen</span><span class="spinner"></span>
         </button>
-        <p class="lead-note">Wir verwenden deine E-Mail-Adresse ausschließlich für den
+        <p class="lead-note">Wir verwenden Ihre E-Mail-Adresse ausschließlich für den
           angeforderten Bericht und eine etwaige Rückfrage. Keine Weitergabe an Dritte.</p>
       </form>
     </div>`;
@@ -894,8 +969,8 @@ function renderLeadGate(doc, domain, onProceed) {
     errEl.hidden = true;
     const email = form.email.value.trim();
     const consent = form.consent.checked;
-    if (!consent) return showErr("Bitte stimme der Verarbeitung deiner E-Mail-Adresse zu.");
-    if (!LEAD_EMAIL_RE.test(email)) return showErr("Bitte gib eine gültige E-Mail-Adresse ein.");
+    if (!consent) return showErr("Bitte stimmen Sie der Verarbeitung Ihrer E-Mail-Adresse zu.");
+    if (!LEAD_EMAIL_RE.test(email)) return showErr("Bitte geben Sie eine gültige E-Mail-Adresse ein.");
     btn.classList.add("loading");
     btn.disabled = true;
     try {
@@ -1078,7 +1153,7 @@ TABS.forEach((tab) => {
     const input = $("[data-domain-input]", views[tab]);
     const domain = input.value.trim();
     if (!domain) {
-      setError(tab, "Bitte gib eine Domain ein.");
+      setError(tab, "Bitte geben Sie eine Domain ein.");
       return;
     }
     currentDomain = domain;

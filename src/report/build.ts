@@ -287,7 +287,7 @@ function domainPage(
         <table class="mini">${mini}</table>
       </div>
       <div class="angle"><div class="angle-k">Was das für ${esc(domain)} bedeutet</div>${angle}</div>
-      ${foot(date, brand, emblem ? 1 : undefined, 3)}
+      ${foot(date, brand, emblem ? 1 : undefined, pageTotal(brand))}
     </section>`;
 }
 
@@ -300,7 +300,7 @@ function empfehlungPage(domain: string, date: string, L: ReportLogos, brand: Bra
     ohne Betriebsunterbrechung schließen. So gehen wir gemeinsam vor:</p>
   ${offerBlock(brand)}
   ${contactsBlock(brand)}
-  ${foot(date, brand, emblem ? 2 : undefined, 3)}
+  ${foot(date, brand, emblem ? 2 : undefined, pageTotal(brand))}
 </section>`;
 }
 
@@ -344,7 +344,7 @@ function methodPage(date: string, L: ReportLogos, brand: Brand): string {
       <div class="bf-contact">${bfContact}</div>
     </div>
   </div>
-  ${foot(date, brand, 3, 3)}`
+  ${foot(date, brand, 3, pageTotal(brand))}`
       : `<div class="brandfoot">
     ${bfFox}
     <div class="bf-body">
@@ -355,6 +355,48 @@ function methodPage(date: string, L: ReportLogos, brand: Brand): string {
     <img class="bf-wordmark" src="${L.wordmark}" alt="${esc(brand.report.wordmarkAlt)}">
   </div>`
   }
+</section>`;
+}
+
+function pageTotal(brand: Brand): number {
+  return brand.funnel ? 4 : 3;
+}
+
+// ─── Abschlussseite "Der nächste Schritt" (nur brand.funnel) ──────────────────
+// Der Bericht ist das einzige Artefakt, das beim Interessenten liegen bleibt:
+// die drei Pentest-Varianten, der vierstufige Ablauf, der Verweis auf /pentest
+// und die Kontaktdaten. Kein Preis, keine Proof-Zahlen.
+function nextStepPage(date: string, L: ReportLogos, brand: Brand): string {
+  const f = brand.funnel;
+  if (!f) return "";
+  const c = brand.report.conductor;
+  const pentestUrl = `${brand.report.toolUrl}${f.pentestPath}`;
+  return `<section class="page next-step">
+  <h2 class="sum-h">Der nächste Schritt</h2>
+  <p>Dieser Bericht zeigt, was ein Angreifer in dreißig Sekunden ohne Anmeldung sieht. Die
+    Folgefrage beantwortet ein Penetrationstest: Was findet jemand, der dreißig Stunden
+    investiert, sich anmeldet und Schwachstellen zu Angriffspfaden verkettet?</p>
+  <h3>Wählbar nach Bedarf</h3>
+  <div class="method-grid">
+    <div><h4>Extern</h4><p>Ihre von außen erreichbaren Systeme: Perimeter, exponierte Dienste.</p></div>
+    <div><h4>Intern / Active Directory</h4><p>Was ein Angreifer im Netz erreicht: AD-Härtung, Rechteausweitung.</p></div>
+    <div><h4>Web-Applikation</h4><p>Ihre Anwendungen und Portale entlang anerkannter Prüfmethodik.</p></div>
+  </div>
+  <h3>So läuft Ihr Pentest ab</h3>
+  <div class="offer"><ol>
+    <li><strong>Scoping</strong> — gemeinsam Ziele, Systeme und Testtiefe festlegen, Zeitfenster
+      betriebsschonend abstimmen.</li>
+    <li><strong>Test</strong> — wir prüfen manuell und mit eigenen Tools, dokumentieren jeden
+      Schritt nachvollziehbar.</li>
+    <li><strong>Report &amp; Besprechung</strong> — priorisierte Findings, konkrete
+      Behebungsempfehlungen, Durchsprache mit Ihrem Team.</li>
+    <li><strong>Retest</strong> — nach Ihrer Nachbesserung bestätigen wir die Wirksamkeit.</li>
+  </ol></div>
+  <p class="ns-ref">Umfang, Ablauf und Anfrage: <strong>${esc(pentestUrl)}</strong>
+    &nbsp;·&nbsp; <a href="${esc(f.bookingUrl)}">Termin direkt buchen</a></p>
+  <h3 class="contact-h">Ihr Ansprechpartner</h3>
+  <div class="contacts">${contactCard(c)}</div>
+  ${foot(date, brand, 4, pageTotal(brand))}
 </section>`;
 }
 
@@ -371,7 +413,8 @@ export function buildReportBody(
     coverPage(domain, date, logos, brand) +
     domainPage(domain, analyze, observatory, date, logos, brand) +
     empfehlungPage(domain, date, logos, brand) +
-    methodPage(date, logos, brand);
+    methodPage(date, logos, brand) +
+    nextStepPage(date, logos, brand);
   // Wrap only the emblem layout so the default output stays byte-identical.
   return brand.report.layout === "emblem"
     ? `<div class="layout-emblem">${sections}</div>`

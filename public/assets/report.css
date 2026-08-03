@@ -170,3 +170,8 @@ table.mini td{ border-bottom:1px solid var(--rt-border); padding:2.5px 6px; font
 .layout-emblem .brandfoot{ border-top:1px solid #333; gap:14px; }
 .layout-emblem .bf-emblem{ height:46px; }
 .layout-emblem .bf-org{ color:var(--rt-black); }
+
+/* ---------------- NEXT-STEP (Abschlussseite der Funnel-Marken) ---------------- */
+.next-step h3{ font-size:13px; color:var(--rt-red-dark); margin-top:14px; }
+.ns-ref{ margin-top:12px; font-size:11px; }
+.ns-ref a{ color:var(--rt-red); text-decoration:none; font-weight:700; }
