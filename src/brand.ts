@@ -36,7 +36,6 @@ export interface Brand {
   // literals, i.e. behave like the default brand.
   analytics?: {
     umamiId: string | null; // Umami website-id (cookieless page analytics)
-    leadfeederId: string | null; // Leadfeeder/Dealfront tracker id (firm identification)
   };
   // Pentest-Lead-Strecke (nur Reineke): schaltet die /pentest-Route frei, ersetzt
   // den primären CTA und hängt die "Der nächste Schritt"-Seite ans Besucher-PDF.

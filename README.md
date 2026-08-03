@@ -98,11 +98,10 @@ Ist Odoo nicht konfiguriert oder schlägt der Push fehl, wird der Lead in den
 Worker-Logs (`wrangler tail`) protokolliert und der Nutzer **trotzdem** zum
 Bericht durchgelassen — kein Lead geht verloren, keine Sackgasse für den Nutzer.
 
-> Analytics: **Leadfeeder/Dealfront** (Firmen-Identifikation) + **Umami**
-> (cookieloses Page-Tracking). Beide werden **consent-gesteuert** in
-> `public/app.js` geladen (Opt-out: laufen, sofern der Nutzer im unauffälligen
-> Cookie-Banner nicht „Ablehnen" wählt; bei Ablehnung wird der `_lfa`-Cookie
-> entfernt und die Wahl in `localStorage` gemerkt).
+> Analytics: **Umami** (cookieloses Page-Tracking), je Marke konfigurierbar
+> über `Brand.analytics`. Marken mit eigener Analytics-Konfiguration laden
+> **erst nach aktiver Einwilligung** (Opt-in); die Wahl wird in `localStorage`
+> gemerkt. Leadfeeder/Dealfront wurde am 03.08.2026 vollständig entfernt.
 
 ### Gescannte Domains in Odoo
 

@@ -52,8 +52,8 @@ const app = new Hono<{ Bindings: Bindings }>();
 // Security headers on EVERY response — including the static assets served via the
 // ASSETS binding (so we rebuild the response to attach them reliably). Hardens the
 // tool itself and fixes its own HTTP-Observatory grade. The CSP allows our own
-// origin plus the brand's consent-gated analytics (Umami + Leadfeeder) — brands
-// without analytics get a CSP with no third-party origin at all; script-src stays
+// origin plus the brand's consent-gated analytics (Umami) — brands without
+// analytics get a CSP with no third-party origin at all; script-src stays
 // free of 'unsafe-inline'. Brand files never change at runtime → cache per id.
 const CSP_CACHE = new Map<string, string>();
 function cspFor(brand: Brand): string {
@@ -63,12 +63,11 @@ function cspFor(brand: Brand): string {
   // the default brand (see Brand.analytics), so mirror its origins here too.
   const a = brand.analytics ?? DEFAULT_BRAND.analytics;
   const umami = a?.umamiId ? " https://cloud.umami.is" : "";
-  const lf = a?.leadfeederId ? " https://*.lfeeder.com" : "";
   const csp = [
     "default-src 'self'",
-    `script-src 'self'${umami}${lf}`,
-    `connect-src 'self'${umami}${lf}`,
-    `img-src 'self' data:${lf}`,
+    `script-src 'self'${umami}`,
+    `connect-src 'self'${umami}`,
+    "img-src 'self' data:",
     "style-src 'self' 'unsafe-inline'",
     "font-src 'self'",
     "object-src 'none'",
