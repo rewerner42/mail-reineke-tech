@@ -34,10 +34,9 @@ export const sharp: Brand = {
   id: "sharp",
   hosts: ["sharp.reineke.tech", "localhost"],
   privateAssets: ["/assets/sharp-logo.png"], // Sharp co-brand asset — not for other brands
-  analytics: {
-    umamiId: null, // Umami-Site am 2026-08-03 auf scan.reineke.tech umgezogen (Site-Limit)
-    leadfeederId: "bElvO732oZG8ZMqj",
-  },
+  // Leadfeeder/Dealfront am 2026-08-03 vollständig entfernt; Umami-Site liegt
+  // seit demselben Tag bei scan.reineke.tech (Site-Limit).
+  analytics: { umamiId: null },
 
   shortName: "Reineke Technik",
   domain: "reineke-technik.de",

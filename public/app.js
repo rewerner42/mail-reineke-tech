@@ -1224,32 +1224,8 @@ const CONSENT_KEY = "rt-consent"; // "accepted" | "rejected"
 // an active consent. The default brand keeps its existing behavior.
 const ANALYTICS = BRAND.analytics ?? {
   umamiId: null, // Umami-Site liegt seit 2026-08-03 bei scan.reineke.tech (Site-Limit)
-  leadfeederId: "bElvO732oZG8ZMqj",
 };
 const ANALYTICS_OPT_IN = Boolean(BRAND.analytics);
-
-function loadLeadfeeder() {
-  if (!ANALYTICS.leadfeederId) return;
-  if (window.__lfLoaded) return;
-  window.__lfLoaded = true;
-  (function (ss, ex) {
-    window.ldfdr =
-      window.ldfdr ||
-      function () {
-        (ldfdr._q = ldfdr._q || []).push([].slice.call(arguments));
-      };
-    (function (d, s) {
-      const fs = d.getElementsByTagName(s)[0];
-      function ce(src) {
-        const cs = d.createElement(s);
-        cs.src = src;
-        cs.async = 1;
-        fs.parentNode.insertBefore(cs, fs);
-      }
-      ce("https://sc.lfeeder.com/lftracker_v1_" + ss + (ex ? "_" + ex : "") + ".js");
-    })(document, "script");
-  })(ANALYTICS.leadfeederId);
-}
 
 // Umami — cookieless, privacy-friendly page analytics.
 function loadUmami() {
@@ -1264,7 +1240,6 @@ function loadUmami() {
 }
 
 function loadTrackers() {
-  loadLeadfeeder();
   loadUmami();
 }
 
@@ -1294,10 +1269,6 @@ function readConsent() {
     }
     banner.hidden = true;
     if (val === "accepted") loadTrackers();
-    if (val === "rejected") {
-      // Best-effort: expire the Leadfeeder first-party cookie.
-      document.cookie = "_lfa=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
-    }
   };
   $("[data-cookie-accept]", banner)?.addEventListener("click", () => choose("accepted"));
   $("[data-cookie-reject]", banner)?.addEventListener("click", () => choose("rejected"));

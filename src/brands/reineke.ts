@@ -10,7 +10,7 @@ export const reineke: Brand = {
   privateAssets: ["/pentest.html", "/pentest.js"], // Pentest-Strecke — nicht auf anderen Brands
   // Umami-Site (vormals sharp.reineke.tech, umgezogen 2026-08-03) — lädt als
   // Nicht-Default-Brand erst NACH aktiver Einwilligung (Opt-in in app.js).
-  analytics: { umamiId: "705faf06-6f2a-4905-8605-1fee670f68b1", leadfeederId: null },
+  analytics: { umamiId: "705faf06-6f2a-4905-8605-1fee670f68b1" },
   // Pentest-Lead-Strecke: /pentest ersetzt den Kontakt-Absprung als einziger CTA.
   funnel: {
     pentestPath: "/pentest",
