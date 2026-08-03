@@ -117,6 +117,12 @@ app.use("*", async (c, next) => {
     const html = applyBrandToHtml(await res.text(), brand);
     const headers = new Headers(res.headers);
     headers.delete("content-length"); // body changed — let the runtime recompute
+    // The asset validators describe the static file, not this rewritten body —
+    // keeping them would let a 304 serve an un-rewritten copy from the browser
+    // cache, and the same ETag would be shared across brands.
+    headers.delete("etag");
+    headers.delete("last-modified");
+    headers.set("Cache-Control", "no-cache");
     res = new Response(html, { status: res.status, statusText: res.statusText, headers });
   }
   c.res = res;
@@ -747,7 +753,16 @@ app.post("/api/generate-report", async (c) => {
 
 // Static assets fallback (frontend)
 app.get("*", async (c) => {
-  return c.env.ASSETS.fetch(c.req.raw);
+  const brand = resolveBrand(c.env, new URL(c.req.url).host);
+  if (brand.id === DEFAULT_BRAND.id) return c.env.ASSETS.fetch(c.req.raw);
+  // Rewriting brands: the asset ETag describes the FILE, not our per-brand
+  // rewrite, so a conditional request would get a 304 and leave the browser on
+  // a stale, un-rewritten copy (e.g. missing the Pentest tab) forever. Always
+  // ask for the full body; the rewrite step then strips the stale validators.
+  const req = new Request(c.req.raw);
+  req.headers.delete("If-None-Match");
+  req.headers.delete("If-Modified-Since");
+  return c.env.ASSETS.fetch(req);
 });
 
 export default app;
