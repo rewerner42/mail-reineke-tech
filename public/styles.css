@@ -1421,3 +1421,14 @@ body.is-report .site-footer { display: none; }
   .pt-scoping { grid-template-columns: 1fr; }
   .pt-form-grid { grid-template-columns: 1fr; }
 }
+
+/* ─── Besucher-Report: Abschlussseite "Der nächste Schritt" (brand.funnel) ──── */
+.report-next-step { border-top: 3px solid var(--rt-red); padding-top: 1.4rem; margin-top: 2rem; }
+.report-next-step h3 { margin: 1rem 0 0.5rem; font-size: 1.05rem; color: var(--rt-red-dark); }
+.report-next-step ul, .report-next-step ol { padding-left: 1.3rem; }
+.report-next-step li { margin-bottom: 0.4rem; line-height: 1.5; }
+.report-next-step .ns-ref strong { color: var(--rt-red); }
+.report-next-step a { color: var(--rt-red); font-weight: 700; text-decoration: none; }
+@media print {
+  .report-next-step { break-before: page; }
+}

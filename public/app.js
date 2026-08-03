@@ -783,6 +783,46 @@ function reportAreaPage(area, F) {
     </section>`;
 }
 
+// Abschlussseite "Der nächste Schritt" (nur brand.funnel): Varianten, Ablauf,
+// /pentest-Verweis und Kontakt — der Bericht ist das Artefakt, das beim
+// Interessenten liegen bleibt. Kein Preis, keine Proof-Zahlen.
+function reportNextStep() {
+  if (!FUNNEL) return "";
+  const c = REPORT_CONTACT;
+  const pentestUrl = location.host + FUNNEL.pentestPath;
+  return `
+    <section class="report-section report-next-step">
+      <h2>Der nächste Schritt</h2>
+      <p>Dieser Bericht zeigt, was ein Angreifer in dreißig Sekunden ohne Anmeldung sieht.
+        Die Folgefrage beantwortet ein Penetrationstest: Was findet jemand, der dreißig
+        Stunden investiert, sich anmeldet und Schwachstellen zu Angriffspfaden verkettet?</p>
+      <h3>Wählbar nach Bedarf</h3>
+      <ul>
+        <li><strong>Extern</strong> — Ihre von außen erreichbaren Systeme: Perimeter,
+          exponierte Dienste.</li>
+        <li><strong>Intern / Active Directory</strong> — was ein Angreifer im Netz erreicht:
+          AD-Härtung, Rechteausweitung.</li>
+        <li><strong>Web-Applikation</strong> — Ihre Anwendungen und Portale entlang
+          anerkannter Prüfmethodik.</li>
+      </ul>
+      <h3>So läuft Ihr Pentest ab</h3>
+      <ol>
+        <li><strong>Scoping</strong> — gemeinsam Ziele, Systeme und Testtiefe festlegen,
+          Zeitfenster betriebsschonend abstimmen.</li>
+        <li><strong>Test</strong> — wir prüfen manuell und mit eigenen Tools, dokumentieren
+          jeden Schritt nachvollziehbar.</li>
+        <li><strong>Report &amp; Besprechung</strong> — priorisierte Findings, konkrete
+          Behebungsempfehlungen, Durchsprache mit Ihrem Team.</li>
+        <li><strong>Retest</strong> — nach Ihrer Nachbesserung bestätigen wir die
+          Wirksamkeit.</li>
+      </ol>
+      <p class="ns-ref">Umfang, Ablauf und Anfrage: <strong>${escapeHtml(pentestUrl)}</strong>
+        · <a href="${escapeHtml(FUNNEL.bookingUrl)}" rel="noopener">Termin direkt buchen</a></p>
+      <p class="ns-contact"><strong>${escapeHtml(c.name)}</strong> · ${escapeHtml(c.company)} ·
+        Tel. ${escapeHtml(c.phone)} · ${escapeHtml(c.email)}</p>
+    </section>`;
+}
+
 function buildReportHtml(domain, isSingle, singleLabel, findings) {
   const now = new Date().toLocaleDateString("de-DE", {
     day: "2-digit",
@@ -819,6 +859,7 @@ function buildReportHtml(domain, isSingle, singleLabel, findings) {
       letterhead +
       titleBlock +
       `<section class="report-section report-findings">${reportFindingHtml(key, fc)}</section>` +
+      reportNextStep() +
       footer
     );
   }
@@ -831,7 +872,7 @@ function buildReportHtml(domain, isSingle, singleLabel, findings) {
       <div class="report-areas">${REPORT_AREAS.map((a) => reportAreaOverview(a, F)).join("")}</div>
     </section>`;
   const areaPages = REPORT_AREAS.map((a) => reportAreaPage(a, F)).join("");
-  return letterhead + titleBlock + overview + areaPages + footer;
+  return letterhead + titleBlock + overview + areaPages + reportNextStep() + footer;
 }
 
 function startReportProgress(doc, estMs) {
