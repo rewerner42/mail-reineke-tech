@@ -244,7 +244,8 @@ export async function createLead(
           }>
         >("crm.lead", "search_read", [
           [
-            ["website", "=", domain],
+            // Odoo normalisiert das Website-Feld (Prefix http://) — alle Formen abdecken.
+            ["website", "in", [domain, `http://${domain}`, `https://${domain}`, `http://www.${domain}`, `https://www.${domain}`]],
             ["probability", "<", 100],
           ],
           ["id", "email_from", "x_reineke_kontakt_emails", "x_reineke_kanal"],
