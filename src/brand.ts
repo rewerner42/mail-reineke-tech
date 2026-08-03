@@ -1,14 +1,17 @@
 // ─── Brand layer (white-label) ───────────────────────────────────────────────
-// One codebase serves multiple brands. The DEFAULT brand is "reineke"
-// (sharp.reineke.tech); its values are the EXACT current literals so the default
-// output is unchanged. Other brands live in their own file under src/brands/ and
-// are registered on their client branch (one line in EXTRA below) — keeping the
-// branch diff OFF the shared files.
+// One codebase serves multiple brands from separate Workers. Mainline brands:
+// "sharp" (sharp.reineke.tech, partner channel — the DEFAULT brand: its values
+// are the EXACT literals of the static files, so its output is byte-unchanged)
+// and "reineke" (scan.reineke.tech, pure Reineke). Client white-labels live in
+// their own file under src/brands/ and are registered on their client branch
+// (one line in EXTRA below) — keeping the branch diff OFF the shared files.
 //
-// Selection (resolveBrand): env.BRAND (per-Worker wrangler var) → Host match →
-// default. For NON-default brands the response middleware (src/index.ts) rewrites
-// the served HTML/CSS; for the default brand the middleware is a no-op.
+// Selection (resolveBrand): env.BRAND (set per Wrangler environment — every
+// deployment pins its brand) → Host match (local dev fallback) → default. For
+// NON-default brands the response middleware (src/index.ts) rewrites the served
+// HTML/CSS; for the default brand the middleware is a no-op.
 
+import { sharp } from "./brands/sharp.js";
 import { reineke } from "./brands/reineke.js";
 
 export interface BrandContact {
@@ -26,8 +29,15 @@ export interface BrandContact {
 
 export interface Brand {
   id: string;
-  hosts: string[]; // Host fallback (used when env.BRAND is unset)
+  hosts: string[]; // Host fallback (used when env.BRAND is unset, e.g. local dev)
   privateAssets?: string[]; // asset paths owned by THIS brand; 404 on other brands' Workers
+  // Consent-gated analytics; null id = service disabled for this brand. Absent
+  // (older client-branch brand files) = fall back to the default brand's app.js
+  // literals, i.e. behave like the default brand.
+  analytics?: {
+    umamiId: string | null; // Umami website-id (cookieless page analytics)
+    leadfeederId: string | null; // Leadfeeder/Dealfront tracker id (firm identification)
+  };
 
   // ── Static-HTML rewrite anchors/targets (applied for non-default brands) ──
   shortName: string; // replaceAll text anchor, e.g. "Reineke Technik"
@@ -104,13 +114,13 @@ export interface Brand {
   };
 }
 
-// Registry. `main` ships only the default; client branches append their brand
+// Registry. `main` ships sharp + reineke; client branches append their brand
 // to EXTRA (a single line) so the branch never edits the shared files.
 const EXTRA: Brand[] = [];
 
-export const DEFAULT_BRAND = reineke;
+export const DEFAULT_BRAND = sharp;
 export const BRANDS: Record<string, Brand> = Object.fromEntries(
-  [reineke, ...EXTRA].map((b) => [b.id, b]),
+  [sharp, reineke, ...EXTRA].map((b) => [b.id, b]),
 );
 
 /** Resolve the active brand: env.BRAND var → Host match → default. */
@@ -153,6 +163,7 @@ function brandDataScript(brand: Brand): string {
     leadDatenschutzHref: brand.app.leadDatenschutzHref,
     filenameFull: brand.app.filenameFull,
     filenameSingle: brand.app.filenameSingle,
+    analytics: brand.analytics ?? null,
   };
   // Escape `<` so the JSON can never break out of the <script> element.
   const json = JSON.stringify(data).replace(/</g, "\\u003c");

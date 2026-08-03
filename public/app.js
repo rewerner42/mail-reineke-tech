@@ -1143,7 +1143,18 @@ window.addEventListener("popstate", () => {
  * Banner erscheint nur, solange noch keine Wahl getroffen wurde. */
 const CONSENT_KEY = "rt-consent"; // "accepted" | "rejected"
 
+// Per-brand analytics. Brand-data (white-label Workers) overrides the default
+// (Sharp) literals below; a null id disables that service for the brand.
+// Brands that ship their own analytics config are OPT-IN: nothing loads before
+// an active consent. The default brand keeps its existing behavior.
+const ANALYTICS = BRAND.analytics ?? {
+  umamiId: "705faf06-6f2a-4905-8605-1fee670f68b1",
+  leadfeederId: "bElvO732oZG8ZMqj",
+};
+const ANALYTICS_OPT_IN = Boolean(BRAND.analytics);
+
 function loadLeadfeeder() {
+  if (!ANALYTICS.leadfeederId) return;
   if (window.__lfLoaded) return;
   window.__lfLoaded = true;
   (function (ss, ex) {
@@ -1162,17 +1173,18 @@ function loadLeadfeeder() {
       }
       ce("https://sc.lfeeder.com/lftracker_v1_" + ss + (ex ? "_" + ex : "") + ".js");
     })(document, "script");
-  })("bElvO732oZG8ZMqj");
+  })(ANALYTICS.leadfeederId);
 }
 
 // Umami — cookieless, privacy-friendly page analytics.
 function loadUmami() {
+  if (!ANALYTICS.umamiId) return;
   if (window.__umamiLoaded) return;
   window.__umamiLoaded = true;
   const s = document.createElement("script");
   s.defer = true;
   s.src = "https://cloud.umami.is/script.js";
-  s.setAttribute("data-website-id", "705faf06-6f2a-4905-8605-1fee670f68b1");
+  s.setAttribute("data-website-id", ANALYTICS.umamiId);
   document.head.appendChild(s);
 }
 
@@ -1191,8 +1203,9 @@ function readConsent() {
 
 (function initConsent() {
   const consent = readConsent();
-  // Assume consent unless explicitly rejected.
-  if (consent !== "rejected") loadTrackers();
+  // Opt-in brands: nothing loads before an active consent. The default brand
+  // keeps its existing assume-unless-rejected behavior.
+  if (ANALYTICS_OPT_IN ? consent === "accepted" : consent !== "rejected") loadTrackers();
   if (consent) return; // choice already made → no banner
 
   const banner = $("[data-cookie-banner]");
@@ -1205,6 +1218,7 @@ function readConsent() {
       /* storage unavailable */
     }
     banner.hidden = true;
+    if (val === "accepted") loadTrackers();
     if (val === "rejected") {
       // Best-effort: expire the Leadfeeder first-party cookie.
       document.cookie = "_lfa=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
