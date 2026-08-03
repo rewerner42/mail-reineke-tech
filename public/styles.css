@@ -1358,3 +1358,66 @@ body.is-report .site-footer { display: none; }
   .card-primary h3, .card-header h3 { font-size: 1.3rem; }
   .tab { padding: 0.85rem 0.7rem; font-size: 0.82rem; }
 }
+
+/* ─── Scope-Note: "Was dieser Check nicht sehen kann" (nur brand.funnel) ────── */
+.scope-note {
+  margin-top: 2rem;
+  border: 1px solid var(--rt-border);
+  border-left: 4px solid var(--rt-red);
+  background: var(--rt-bg, #f7f7f8);
+  padding: 1.5rem 1.6rem;
+}
+.scope-note h3 { margin: 0 0 0.6rem; font-size: 1.1rem; }
+.scope-note p { margin: 0 0 0.7rem; line-height: 1.55; }
+.scope-note ul { margin: 0 0 0.8rem; padding-left: 1.2rem; }
+.scope-note li { margin-bottom: 0.35rem; line-height: 1.5; }
+.scope-note-link { color: var(--rt-red); font-weight: 700; text-decoration: none; }
+.scope-note-link:hover { color: var(--rt-red-dark); text-decoration: underline; }
+
+/* ─── /pentest — Lead-Strecke (nur auf dem Reineke-Worker ausgeliefert) ─────── */
+.pt-page h1 { font-size: clamp(2rem, 5vw, 3rem); line-height: 1.12; margin: 0.4rem 0 1rem; }
+.pt-page h2 { font-size: clamp(1.5rem, 3.5vw, 2rem); margin-bottom: 1rem; }
+.pt-hero { padding: 4.5rem 0 3rem; }
+.pt-sub { font-size: 1.15rem; color: var(--rt-gray); max-width: 46rem; line-height: 1.6; }
+.pt-hero-cta { display: flex; gap: 1rem; margin-top: 1.8rem; flex-wrap: wrap; }
+.pt-section { padding: 3rem 0; }
+.pt-section-alt { background: var(--rt-bg, #f7f7f8); }
+.pt-section p { max-width: 52rem; line-height: 1.6; }
+.pt-lead-in { font-weight: 700; margin-top: 1.2rem; }
+.pt-list { max-width: 52rem; padding-left: 1.2rem; }
+.pt-list li { margin-bottom: 0.5rem; line-height: 1.55; }
+.pt-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1rem; margin: 1.2rem 0; }
+.pt-card { background: #fff; border: 1px solid var(--rt-border); border-top: 3px solid var(--rt-red); padding: 1.2rem 1.3rem; }
+.pt-card h3 { margin: 0 0 0.4rem; font-size: 1.05rem; }
+.pt-card p { margin: 0; line-height: 1.5; }
+.pt-quote { margin: 1.6rem 0 0; padding: 0.4rem 0 0.4rem 1.1rem; border-left: 4px solid var(--rt-red); font-weight: 700; font-size: 1.1rem; }
+.pt-steps { max-width: 52rem; padding-left: 1.4rem; counter-reset: step; }
+.pt-steps li { margin-bottom: 0.9rem; line-height: 1.55; }
+.pt-faq { max-width: 52rem; }
+.pt-faq details { border-bottom: 1px solid var(--rt-border); padding: 0.9rem 0; }
+.pt-faq summary { font-weight: 700; cursor: pointer; }
+.pt-faq p { margin: 0.7rem 0 0; }
+.pt-scoping { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(240px, 1fr); gap: 2rem; align-items: start; margin-top: 1.5rem; }
+.pt-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem 1.2rem; margin-bottom: 1.2rem; }
+.pt-span2 { grid-column: 1 / -1; }
+.lead-field select,
+.lead-field textarea {
+  width: 100%;
+  border: 1px solid var(--rt-border);
+  border-radius: 0;
+  padding: 0.9rem 1rem;
+  font-family: var(--rt-mono);
+  font-size: 1rem;
+  background: #fff;
+}
+.lead-field select:focus,
+.lead-field textarea:focus { border-color: var(--rt-red); outline: none; box-shadow: 0 0 0 1px var(--rt-red); }
+.pt-contact { background: #fff; border: 1px solid var(--rt-border); border-top: 3px solid var(--rt-red); padding: 1.4rem 1.5rem; }
+.pt-contact h3 { margin: 0 0 0.7rem; }
+.pt-contact p { margin: 0 0 0.9rem; line-height: 1.5; }
+.pt-success { background: #fff; border: 1px solid var(--rt-border); border-left: 4px solid var(--rt-red); padding: 1.6rem 1.7rem; }
+.pt-legal { margin-top: 2rem; font-size: 0.85rem; color: var(--rt-gray); font-style: italic; }
+@media (max-width: 860px) {
+  .pt-scoping { grid-template-columns: 1fr; }
+  .pt-form-grid { grid-template-columns: 1fr; }
+}

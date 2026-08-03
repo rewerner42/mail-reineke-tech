@@ -14,6 +14,42 @@ export interface LeadInput {
   email: string;
   domain?: string;
   consent: boolean;
+  /** Einstiegskanal (Kanalmarker je Einstieg; Marken-Trennung läuft über `referred`). */
+  channel?: "freier-check" | "pentest-scoping";
+  /** Ausgefülltes Scoping-Formular von /pentest (nur channel "pentest-scoping"). */
+  scoping?: ScopingInput;
+}
+
+/** Felder des /pentest-Scoping-Formulars — qualifizieren den Lead strukturiert. */
+export interface ScopingInput {
+  company: string;
+  contactName: string;
+  role?: string;
+  phone?: string;
+  testart?: string;
+  umfang?: string;
+  anlass?: string;
+  frist?: string;
+  freitext?: string;
+}
+
+// ─── Technik-Ampel ────────────────────────────────────────────────────────────
+// Technischer Vorfilter für die Bearbeitungsreihenfolge — KEIN Vertriebs-Score.
+export type Ampel = "rot" | "gelb" | "grün";
+
+export interface AmpelInput {
+  dmarcPolicy: string | null; // "none" | "quarantine" | "reject" | null (fehlt)
+  dnssecGrade: string | null; // Note des DNSSEC-Checks (A+ = signiert + verankert)
+  obsGrade: string | null; // HTTP-Observatory-Note (A+…F) oder null
+}
+
+export function ampelFor(i: AmpelInput): Ampel {
+  const enforcing = i.dmarcPolicy === "quarantine" || i.dmarcPolicy === "reject";
+  if (!enforcing || i.obsGrade === "F") return "rot";
+  const dnssecOk = (i.dnssecGrade ?? "").startsWith("A");
+  const obsOk = /^[AB]/.test(i.obsGrade ?? "");
+  if (enforcing && dnssecOk && obsOk) return "grün";
+  return "gelb";
 }
 
 export type LeadCode =
@@ -72,17 +108,26 @@ export function buildLeadValues(
   const email = lead.email.trim();
   const domain = lead.domain?.trim();
   const stamp = now.toISOString();
-  const name = domain
-    ? `Sicherheits-Check: ${domain}`
-    : `Sicherheits-Check Anfrage: ${email}`;
+  const s = lead.scoping;
+  const name = s
+    ? `Pentest-Anfrage: ${s.company.trim()}`
+    : domain
+      ? `Sicherheits-Check: ${domain}`
+      : `Sicherheits-Check Anfrage: ${email}`;
+  const scopingLines = s
+    ? (s.umfang ? `Ungefährer Umfang: ${s.umfang}\n` : "") +
+      (s.freitext ? `Freitext: ${s.freitext}\n` : "")
+    : "";
   const description =
     `Lead über das ${marketing.toolLabel} Sicherheits-Analyse-Tool (${marketing.referred}).\n` +
+    `Kanal: ${lead.channel ?? "freier-check"}\n` +
     (domain ? `Analysierte Domain: ${domain}\n` : "") +
     `E-Mail: ${email}\n` +
+    scopingLines +
     `DSGVO-Einwilligung erteilt: ${stamp}`;
   const values: Record<string, unknown> = {
     name,
-    contact_name: email,
+    contact_name: s?.contactName?.trim() || email,
     email_from: email,
     // "opportunity" → erscheint direkt in der CRM-Pipeline (ohne dass die
     // separate "Leads"-Funktion in Odoo aktiviert sein muss).
@@ -90,10 +135,29 @@ export function buildLeadValues(
     description,
     // Free-text channel marker; avoids depending on specific source_id records.
     referred: marketing.referred,
+    // Strukturierte Zusatzfelder (x_reineke_* auf crm.lead; angelegt 2026-08-03).
+    // createLead fällt auf die Basisfelder zurück, wenn sie fehlen sollten.
+    x_reineke_kanal: lead.channel ?? "freier-check",
+    x_reineke_kontakte: 1,
+    x_reineke_kontakt_emails: email,
   };
+  if (s) {
+    values.partner_name = s.company.trim();
+    if (s.role) values.function = s.role;
+    if (s.phone) values.phone = s.phone;
+    if (s.role) values.x_reineke_rolle = s.role;
+    if (s.testart) values.x_reineke_testart = s.testart;
+    if (s.anlass) values.x_reineke_anlass = s.anlass;
+    if (s.frist) values.x_reineke_frist = s.frist;
+  }
   // Store the analysed domain in the structured Website field, too.
   if (domain) values.website = domain;
   return values;
+}
+
+/** Strip the custom x_reineke_* fields (fallback when the instance lacks them). */
+function baseValues(values: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(values).filter(([k]) => !k.startsWith("x_reineke_")));
 }
 
 interface JsonRpcResponse<T> {
@@ -155,14 +219,98 @@ export async function createLead(
         message: "Odoo-Authentifizierung fehlgeschlagen (URL/DB/Login/API-Key prüfen).",
       };
     }
-    const leadId = await jsonRpc<number>(
-      cfg.url,
-      "object",
-      "execute_kw",
-      [cfg.db, uid, cfg.apiKey, "crm.lead", "create", [buildLeadValues(lead, opts.now, opts.marketing)]],
-      fetchImpl,
-      controller.signal,
-    );
+    const exec = <T>(model: string, method: string, args: unknown[], kwargs?: Record<string, unknown>) =>
+      jsonRpc<T>(
+        cfg.url,
+        "object",
+        "execute_kw",
+        [cfg.db, uid, cfg.apiKey, model, method, args, ...(kwargs ? [kwargs] : [])],
+        fetchImpl,
+        controller.signal,
+      );
+
+    // ── Dublettenzusammenführung (Schlüssel: Domain) ──────────────────────────
+    // Existiert ein offener Vorgang zu dieser Domain, wird er um den neuen
+    // Kontakt/Scan ergänzt statt ein zweiter angelegt (probability<100 = offen).
+    const domain = lead.domain?.trim();
+    if (domain) {
+      try {
+        const existing = await exec<
+          Array<{
+            id: number;
+            email_from?: string;
+            x_reineke_kontakt_emails?: string | false;
+            x_reineke_kanal?: string | false;
+          }>
+        >("crm.lead", "search_read", [
+          [
+            ["website", "=", domain],
+            ["probability", "<", 100],
+          ],
+          ["id", "email_from", "x_reineke_kontakt_emails", "x_reineke_kanal"],
+        ]);
+        const ex = existing[0];
+        if (ex) {
+          const email = lead.email.trim().toLowerCase();
+          const known = String(ex.x_reineke_kontakt_emails || ex.email_from || "")
+            .toLowerCase()
+            .split(/[,\s]+/)
+            .filter(Boolean);
+          const isNewPerson = !known.includes(email);
+          const emails = isNewPerson ? [...known, email] : known;
+          const upd: Record<string, unknown> = {
+            x_reineke_kontakt_emails: emails.join(", "),
+            x_reineke_kontakte: emails.length,
+          };
+          // /pentest-Scoping ist der stärkere Einstieg — Kanal hochstufen.
+          if (lead.channel === "pentest-scoping") upd.x_reineke_kanal = "pentest-scoping";
+          const s = lead.scoping;
+          if (s) {
+            upd.partner_name = s.company.trim();
+            upd.contact_name = s.contactName.trim();
+            if (s.phone) upd.phone = s.phone;
+            if (s.role) upd.x_reineke_rolle = s.role;
+            if (s.testart) upd.x_reineke_testart = s.testart;
+            if (s.anlass) upd.x_reineke_anlass = s.anlass;
+            if (s.frist) upd.x_reineke_frist = s.frist;
+          }
+          try {
+            await exec("crm.lead", "write", [[ex.id], upd]);
+          } catch {
+            await exec("crm.lead", "write", [[ex.id], baseValues(upd)]);
+          }
+          const stamp = (opts.now ?? new Date()).toISOString();
+          const note =
+            `Erneute Anfrage über ${opts.marketing?.referred ?? DEFAULT_MARKETING.referred} ` +
+            `(Kanal: ${lead.channel ?? "freier-check"}): ${lead.email.trim()}` +
+            (isNewPerson ? " — neue Kontaktperson (mögliches Buying Center)." : ".") +
+            (s ? ` Scoping: ${[s.testart, s.anlass, s.frist].filter(Boolean).join(" · ")}` : "") +
+            ` DSGVO-Einwilligung: ${stamp}`;
+          try {
+            await exec("crm.lead", "message_post", [[ex.id]], { body: note });
+          } catch {
+            /* chatter note is best-effort */
+          }
+          try {
+            await createLeadActivity(cfg, uid, ex.id, lead, fetchImpl, controller.signal, opts.now, opts.marketing);
+          } catch {
+            /* notification is best-effort */
+          }
+          return { ok: true, code: "OK", message: "Bestehender Vorgang ergänzt.", leadId: ex.id };
+        }
+      } catch {
+        /* Dubletten-Suche best-effort — im Zweifel neuen Lead anlegen */
+      }
+    }
+
+    const values = buildLeadValues(lead, opts.now, opts.marketing);
+    let leadId: number;
+    try {
+      leadId = await exec<number>("crm.lead", "create", [values]);
+    } catch {
+      // Fallback ohne die x_reineke_*-Felder — der Lead darf nie verloren gehen.
+      leadId = await exec<number>("crm.lead", "create", [baseValues(values)]);
+    }
     // Best-effort: drop a To-Do activity on the lead so the team is notified in
     // Odoo (Activities bell + "My Activities"). Never fails the lead.
     try {
@@ -285,6 +433,49 @@ export async function recordScannedDomain(
     }
   } catch {
     // best-effort — domain logging must never affect the scan itself
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// ─── Lead-Anreicherung: Befunde + Ampel + Scan-Zähler ─────────────────────────
+// Läuft NACH der Lead-Antwort (executionCtx.waitUntil): der Nutzer wartet nie
+// auf die serverseitigen Scans, und ein Fehler hier kostet keinen Bericht.
+export async function writeLeadFindings(
+  cfg: OdooConfig,
+  leadId: number,
+  input: { befunde: string; ampel: Ampel; domain?: string },
+  opts: { fetchImpl?: typeof fetch; timeoutMs?: number } = {},
+): Promise<void> {
+  const fetchImpl = opts.fetchImpl ?? fetch;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), opts.timeoutMs ?? 20000);
+  try {
+    const uid = await authUid(cfg, fetchImpl, controller.signal);
+    if (!uid) return;
+    const exec = <T>(model: string, method: string, args: unknown[]) =>
+      jsonRpc<T>(cfg.url, "object", "execute_kw", [cfg.db, uid, cfg.apiKey, model, method, args], fetchImpl, controller.signal);
+
+    const upd: Record<string, unknown> = {
+      x_reineke_befunde: input.befunde,
+      x_reineke_ampel: input.ampel,
+    };
+    // Scan-Zähler aus dem Scan-Protokoll (x_reineke_scanned_domain) übernehmen —
+    // Wiederholung ist ein Kaufsignal und gehört sichtbar in den Vorgang.
+    if (input.domain) {
+      try {
+        const rows = await exec<Array<{ x_scan_count?: number }>>(SCANNED_MODEL, "search_read", [
+          [["x_name", "=", input.domain]],
+          ["x_scan_count"],
+        ]);
+        if (rows[0]?.x_scan_count) upd.x_reineke_scans = rows[0].x_scan_count;
+      } catch {
+        /* Zähler best-effort */
+      }
+    }
+    await exec("crm.lead", "write", [[leadId], upd]);
+  } catch {
+    // best-effort — enrichment must never break anything user-facing
   } finally {
     clearTimeout(timer);
   }

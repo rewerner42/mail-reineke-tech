@@ -8,11 +8,21 @@ import { analyzeMtaSts } from "./analyzers/mta-sts.js";
 import { analyzeTlsRpt } from "./analyzers/tls-rpt.js";
 import { analyzeDnssec } from "./analyzers/dnssec.js";
 import { analyzeObservatory, fetchGradeDistribution } from "./observatory.js";
-import { createLead, odooConfigFromEnv, recordScannedDomain, validateEmail } from "./leads/odoo.js";
+import {
+  ampelFor,
+  createLead,
+  odooConfigFromEnv,
+  recordScannedDomain,
+  validateEmail,
+  writeLeadFindings,
+  type OdooConfig,
+  type ScopingInput,
+} from "./leads/odoo.js";
 import { MAX_HTML_BYTES, renderReportPdf } from "./pdf/render.js";
 import { buildReportBody } from "./report/build.js";
 import {
   resolveBrand,
+  BRANDS,
   DEFAULT_BRAND,
   applyBrandToHtml,
   sitePaletteCss,
@@ -84,9 +94,12 @@ const SECURITY_HEADERS: Record<string, string> = {
 app.use("*", async (c, next) => {
   const url = new URL(c.req.url);
   const brand = resolveBrand(c.env, url.host);
-  // White-label: don't serve the default brand's private assets (e.g. the Sharp
-  // partner logo) from another brand's Worker.
-  if (brand.id !== DEFAULT_BRAND.id && (DEFAULT_BRAND.privateAssets ?? []).includes(url.pathname)) {
+  // White-label: never serve another brand's private assets (e.g. the Sharp
+  // partner logo or the Reineke /pentest page) from this brand's Worker.
+  const foreignAsset = Object.values(BRANDS).some(
+    (b) => b.id !== brand.id && (b.privateAssets ?? []).includes(url.pathname),
+  );
+  if (foreignAsset) {
     c.res = new Response("Not found", { status: 404 });
   } else {
     await next();
@@ -130,7 +143,7 @@ function normalizeDomain(input: string): string | null {
 
 const INVALID_DOMAIN = {
   error: "INVALID_DOMAIN",
-  message: "Bitte gib eine gültige Domain ein (z.B. reineke-technik.de).",
+  message: "Bitte geben Sie eine gültige Domain ein (z.B. reineke-technik.de).",
 } as const;
 
 function parseSelectors(param: string | undefined): string[] {
@@ -334,7 +347,7 @@ app.post("/api/lead", async (c) => {
       {
         ok: false,
         code: "NO_CONSENT",
-        message: "Bitte stimme der Verarbeitung deiner E-Mail-Adresse zu.",
+        message: "Bitte stimmen Sie der Verarbeitung Ihrer E-Mail-Adresse zu.",
       },
       400,
     );
@@ -344,7 +357,7 @@ app.post("/api/lead", async (c) => {
       {
         ok: false,
         code: "INVALID_EMAIL",
-        message: "Bitte gib eine gültige E-Mail-Adresse ein.",
+        message: "Bitte geben Sie eine gültige E-Mail-Adresse ein.",
       },
       400,
     );
@@ -353,7 +366,7 @@ app.post("/api/lead", async (c) => {
   const email = (body.email as string).trim();
   const domain =
     typeof body.domain === "string" ? (normalizeDomain(body.domain) ?? undefined) : undefined;
-  const lead = { email, domain, consent: true };
+  const lead = { email, domain, consent: true, channel: "freier-check" as const };
 
   const cfg = odooConfigFromEnv(c.env);
   if (!cfg) {
@@ -369,7 +382,115 @@ app.post("/api/lead", async (c) => {
     // Best-effort: still let the user through to their report.
     return c.json({ ok: true, code: result.code, message: "Bericht wird erstellt." });
   }
+  // Lead-Substanz: Befunde + Ampel + Scan-Zähler NACH der Antwort anreichern —
+  // serverseitig erhoben (autoritativ), kostet den Nutzer keine Wartezeit.
+  if (domain && result.leadId) c.executionCtx.waitUntil(enrichLead(cfg, result.leadId, domain));
   return c.json({ ok: true, code: "OK", message: "Bericht wird erstellt.", leadId: result.leadId });
+});
+
+// ─── Befunde im Klartext + Technik-Ampel (serverseitige Erhebung) ─────────────
+async function enrichLead(cfg: OdooConfig, leadId: number, domain: string): Promise<void> {
+  try {
+    const [email, dnssec, observatory] = await Promise.all([
+      runEmailChecks(domain, []),
+      analyzeDnssec(domain),
+      analyzeObservatory(domain),
+    ]);
+    const obs = observatory?.data ?? null;
+    const dmarcPolicy = (email.dmarc.data?.p as string | undefined) ?? null;
+    const ampel = ampelFor({
+      dmarcPolicy,
+      dnssecGrade: dnssec.grade ?? null,
+      obsGrade: obs?.grade ?? null,
+    });
+    const line = (label: string, check: { grade?: string | null; summary?: string }): string =>
+      `${label}: ${check.grade ? `Note ${check.grade} — ` : ""}${check.summary ?? "—"}`;
+    const befunde = [
+      `Domain: ${domain}`,
+      `DMARC-Policy: ${dmarcPolicy ?? "fehlt"}`,
+      line("DMARC", email.dmarc),
+      line("SPF", email.spf),
+      line("DKIM", email.dkim),
+      line("MX", email.mx),
+      line("MTA-STS", email.mtaSts),
+      line("TLS-RPT", email.tlsRpt),
+      line("DNSSEC", dnssec),
+      `Website (HTTP Observatory): ${obs ? `Note ${obs.grade} (${obs.testsPassed}/${obs.testsQuantity} Tests bestanden)` : "—"}`,
+      `Technik-Ampel: ${ampel}`,
+    ].join("\n");
+    await writeLeadFindings(cfg, leadId, { befunde, ampel, domain });
+  } catch (err) {
+    console.warn("Lead-Anreicherung fehlgeschlagen:", err instanceof Error ? err.message : String(err));
+  }
+}
+
+// ─── /pentest-Scoping: qualifizierte Pentest-Anfrage → Odoo ───────────────────
+const SCOPING_TEXT_MAX = 2000;
+function scopingStr(v: unknown, max = 200): string | undefined {
+  if (typeof v !== "string") return undefined;
+  const t = v.trim().slice(0, max);
+  return t || undefined;
+}
+
+app.post("/api/pentest-lead", async (c) => {
+  if (isCrossOrigin(c.req.header("Origin"), c.req.url)) return c.json(CROSS_ORIGIN_DENIED, 403);
+  const brand = resolveBrand(c.env, new URL(c.req.url).host);
+  if (!brand.funnel) return c.json({ ok: false, code: "NOT_FOUND", message: "Nicht verfügbar." }, 404);
+
+  let body: Record<string, unknown>;
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ ok: false, code: "BAD_REQUEST", message: "Ungültige Anfrage." }, 400);
+  }
+  if (body.consent !== true) {
+    return c.json(
+      { ok: false, code: "NO_CONSENT", message: "Bitte stimmen Sie der Verarbeitung Ihrer Angaben zu." },
+      400,
+    );
+  }
+  if (!validateEmail(body.email)) {
+    return c.json(
+      { ok: false, code: "INVALID_EMAIL", message: "Bitte geben Sie eine gültige E-Mail-Adresse ein." },
+      400,
+    );
+  }
+  const company = scopingStr(body.company);
+  const contactName = scopingStr(body.name);
+  if (!company || !contactName) {
+    return c.json(
+      { ok: false, code: "MISSING_FIELDS", message: "Bitte füllen Sie Firma und Name aus." },
+      400,
+    );
+  }
+  const scoping: ScopingInput = {
+    company,
+    contactName,
+    role: scopingStr(body.role),
+    phone: scopingStr(body.phone, 60),
+    testart: scopingStr(body.testart),
+    umfang: scopingStr(body.umfang, SCOPING_TEXT_MAX),
+    anlass: scopingStr(body.anlass),
+    frist: scopingStr(body.frist),
+    freitext: scopingStr(body.freitext, SCOPING_TEXT_MAX),
+  };
+  const email = (body.email as string).trim();
+  // Dubletten-/Befund-Schlüssel: die Domain der geschäftlichen Absenderadresse.
+  const domain = normalizeDomain(email.split("@")[1] ?? "") ?? undefined;
+  const lead = { email, domain, consent: true, channel: "pentest-scoping" as const, scoping };
+
+  const cfg = odooConfigFromEnv(c.env);
+  if (!cfg) {
+    console.warn("PENTEST-LEAD (Odoo not configured):", JSON.stringify({ ...lead, at: new Date().toISOString() }));
+    return c.json({ ok: true, code: "NOT_CONFIGURED", message: "Anfrage erhalten." });
+  }
+  const result = await createLead(cfg, lead, { marketing: brand.odoo });
+  if (!result.ok) {
+    console.error("PENTEST-LEAD Odoo push failed:", result.code, result.message, JSON.stringify(lead));
+    return c.json({ ok: true, code: result.code, message: "Anfrage erhalten." });
+  }
+  if (domain && result.leadId) c.executionCtx.waitUntil(enrichLead(cfg, result.leadId, domain));
+  return c.json({ ok: true, code: "OK", message: "Anfrage erhalten.", leadId: result.leadId });
 });
 
 // Server-side PDF export: the client posts the already-built report HTML and we
@@ -460,6 +581,13 @@ app.post("/api/report-pdf", async (c) => {
 // ── Report-Generator (passwortgeschützte Seite) ───────────────────────────────
 // Saubere URL für die geschützte Seite (liefert report.html aus den Assets).
 app.get("/report", (c) => c.env.ASSETS.fetch(new Request(new URL("/report.html", c.req.url))));
+
+// Pentest-Seite (nur Marken mit Lead-Strecke; sonst greift der SPA-Fallback).
+app.get("/pentest", async (c, next) => {
+  const brand = resolveBrand(c.env, new URL(c.req.url).host);
+  if (!brand.funnel) return next();
+  return c.env.ASSETS.fetch(new Request(new URL("/pentest.html", c.req.url)));
+});
 
 // Login: nur Passwort (kein Benutzername) → signiertes HttpOnly-Cookie.
 app.post("/api/report-auth", async (c) => {

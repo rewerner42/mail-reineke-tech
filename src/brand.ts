@@ -38,6 +38,13 @@ export interface Brand {
     umamiId: string | null; // Umami website-id (cookieless page analytics)
     leadfeederId: string | null; // Leadfeeder/Dealfront tracker id (firm identification)
   };
+  // Pentest-Lead-Strecke (nur Reineke): schaltet die /pentest-Route frei, ersetzt
+  // den primären CTA und hängt die "Der nächste Schritt"-Seite ans Besucher-PDF.
+  funnel?: {
+    pentestPath: string; // Route der Pentest-Seite, z.B. "/pentest"
+    ctaLabel: string; // ersetzt den Default-CTA-Text ("Beratung anfragen")
+    bookingUrl: string; // Terminbuchung (Scoping-Block + PDF-Abschlussseite)
+  };
 
   // ── Static-HTML rewrite anchors/targets (applied for non-default brands) ──
   shortName: string; // replaceAll text anchor, e.g. "Reineke Technik"
@@ -164,6 +171,7 @@ function brandDataScript(brand: Brand): string {
     filenameFull: brand.app.filenameFull,
     filenameSingle: brand.app.filenameSingle,
     analytics: brand.analytics ?? null,
+    funnel: brand.funnel ?? null,
   };
   // Escape `<` so the JSON can never break out of the <script> element.
   const json = JSON.stringify(data).replace(/</g, "\\u003c");
@@ -196,6 +204,8 @@ export function applyBrandToHtml(html: string, brand: Brand): string {
     // broad text + URL anchors (titles, meta, alts, eyebrow, footer brand, links)
     .replaceAll(D.shortName, brand.shortName)
     .replaceAll(D.domain, brand.domain);
+  // Pentest-Funnel: primärer CTA-Text (der Link selbst läuft über contactHref).
+  if (brand.funnel) out = out.replaceAll(">Beratung anfragen<", `>${brand.funnel.ctaLabel}<`);
   const style = sitePaletteCss(brand);
   if (style) out = out.replace("</head>", `<style>${style}</style></head>`);
   out = out.replace("</body>", `${brandDataScript(brand)}</body>`);
