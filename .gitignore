@@ -12,3 +12,4 @@ worker-configuration.d.ts
 
 # Zugangsdaten (nie committen)
 .mailer-sec
+.resend

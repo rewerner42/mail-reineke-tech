@@ -175,3 +175,21 @@ table.mini td{ border-bottom:1px solid var(--rt-border); padding:2.5px 6px; font
 .next-step h3{ font-size:13px; color:var(--rt-red-dark); margin-top:14px; }
 .ns-ref{ margin-top:12px; font-size:11px; }
 .ns-ref a{ color:var(--rt-red); text-decoration:none; font-weight:700; }
+
+/* Empfehlungsseite mit integriertem "Der nächste Schritt" — gestrafft, damit
+   Angebot, Pentest-Block und Kontaktkarte auf EINE Seite passen. */
+.summary-merged .sum-intro{ margin-bottom:6px; }
+.summary-merged .offer h3,.summary-merged .next-step h3,.summary-merged .contact-h{ margin-top:9px; font-size:12.5px; }
+.summary-merged .offer li{ margin-bottom:2.5px; font-size:10px; }
+.summary-merged .offer p{ margin-bottom:4px; font-size:10.2px; }
+.next-step p{ font-size:10.2px; margin-bottom:5px; }
+.ns-grid{ gap:8px; margin-bottom:6px; }
+.ns-grid > div{ padding:6px 8px; }
+.ns-grid h4{ font-size:10px; margin-bottom:2px; }
+.ns-grid p{ font-size:9px; margin:0; }
+.ns-steps{ margin:0; padding-left:16px; }
+.ns-steps li{ margin-bottom:2.5px; font-size:10px; }
+.ns-ref{ margin:6px 0 0; font-size:10px; }
+.ns-ref a{ color:var(--rt-red); text-decoration:none; font-weight:700; }
+.summary-merged .contacts .contact-card{ padding:8px 11px; }
+.summary-merged .cc-line{ font-size:9.5px; }

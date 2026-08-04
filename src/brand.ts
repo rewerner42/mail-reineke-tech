@@ -43,6 +43,15 @@ export interface Brand {
     pentestPath: string; // Route der Pentest-Seite, z.B. "/pentest"
     ctaLabel: string; // ersetzt den Default-CTA-Text ("Beratung anfragen")
     bookingUrl: string; // Terminbuchung (Scoping-Block + PDF-Abschlussseite)
+    // Sofort-Benachrichtigung über Resend — unabhängig von Odoo/Microsoft.
+    // Greift nur, wenn das Secret RESEND_API_KEY gesetzt ist; sonst still aus.
+    notify?: {
+      from: string; // Absender; die Domain muss in Resend verifiziert sein
+      to: string; // Empfänger der internen Benachrichtigung
+      // Testschalter: leitet die Kundenbestätigung auf diese Adresse um, statt
+      // sie an den Interessenten zu schicken. Für den Produktivbetrieb entfernen.
+      customerCopyTo?: string;
+    };
   };
 
   // ── Static-HTML rewrite anchors/targets (applied for non-default brands) ──

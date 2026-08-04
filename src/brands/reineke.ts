@@ -17,6 +17,15 @@ export const reineke: Brand = {
     ctaLabel: "Pentest — Umfang und Ablauf ansehen",
     bookingUrl:
       "https://outlook.office.com/bookwithme/user/99dfe8391d044c208563dd3afbc7439f@reineke-technik.de?anonymous&ismsaljsauthenabled&ep=plink",
+    // reineke.tech ist in Resend verifiziert (DKIM + send-Subdomain) und durch
+    // SPF/DMARC (p=reject) gedeckt — siehe DNS der Zone.
+    notify: {
+      from: "Reineke Sicherheits-Check <scan@reineke.tech>",
+      to: "wf.reineke@reineke-technik.de",
+      // TEST: Kundenbestätigung geht vorerst an Werner statt an den Interessenten.
+      // Vor dem Produktivbetrieb entfernen!
+      customerCopyTo: "wf.reineke@reineke-technik.de",
+    },
   },
 
   // Text/domain anchors equal the default brand → those replaceAlls are no-ops;

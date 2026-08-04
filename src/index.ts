@@ -18,6 +18,12 @@ import {
   type OdooConfig,
   type ScopingInput,
 } from "./leads/odoo.js";
+import {
+  buildCustomerEmail,
+  buildPentestEmail,
+  sendMail,
+  type PentestNotification,
+} from "./leads/notify.js";
 import { MAX_HTML_BYTES, renderReportPdf } from "./pdf/render.js";
 import { buildReportBody } from "./report/build.js";
 import {
@@ -43,6 +49,8 @@ type Bindings = {
   BROWSER?: BrowserWorker;
   // Password (no username) gating the internal report generator at /report.
   REPORT_PASSWORD?: string;
+  // Resend-API-Key für die Sofort-Benachrichtigung (optional; ohne ihn still aus).
+  RESEND_API_KEY?: string;
   // White-label brand id (e.g. "wsit") set per Worker env; falls back to Host.
   BRAND?: string;
 };
@@ -394,7 +402,11 @@ app.post("/api/lead", async (c) => {
 });
 
 // ─── Befunde im Klartext + Technik-Ampel (serverseitige Erhebung) ─────────────
-async function enrichLead(cfg: OdooConfig, leadId: number, domain: string): Promise<void> {
+async function enrichLead(
+  cfg: OdooConfig,
+  leadId: number,
+  domain: string,
+): Promise<{ befunde: string; ampel: string } | null> {
   try {
     const [email, dnssec, observatory] = await Promise.all([
       runEmailChecks(domain, []),
@@ -424,8 +436,123 @@ async function enrichLead(cfg: OdooConfig, leadId: number, domain: string): Prom
       `Technik-Ampel: ${ampel}`,
     ].join("\n");
     await writeLeadFindings(cfg, leadId, { befunde, ampel, domain });
+    return { befunde, ampel };
   } catch (err) {
     console.warn("Lead-Anreicherung fehlgeschlagen:", err instanceof Error ? err.message : String(err));
+    return null;
+  }
+}
+
+// Sofort-Benachrichtigung (Resend) — zweiter Kanal neben Odoo. Läuft NACH der
+// Anreicherung, damit Befunde und Ampel enthalten sind; scheitert sie, ist das
+// für den Nutzer folgenlos.
+async function notifyPentestLead(
+  env: Bindings,
+  origin: string,
+  brand: Brand,
+  base: PentestNotification,
+  enrich: Promise<{ befunde: string; ampel: string } | null>,
+): Promise<void> {
+  const cfg = brand.funnel?.notify;
+  const key = env.RESEND_API_KEY;
+  if (!cfg || !key) return;
+
+  const [found, logo] = await Promise.all([
+    enrich.catch(() => null),
+    brandLogoBase64(env, origin, brand),
+  ]);
+  const n: PentestNotification = { ...base, befunde: found?.befunde, ampel: found?.ampel };
+
+  // 1) Interne Benachrichtigung — Antworten geht direkt an den Interessenten.
+  const intern = buildPentestEmail(n, logo ?? undefined);
+  const a = await sendMail(key, {
+    from: cfg.from,
+    to: cfg.to,
+    replyTo: n.email,
+    subject: intern.subject,
+    html: intern.html,
+    attachments: intern.attachments,
+  });
+  if (!a.ok) console.warn("Resend (intern) fehlgeschlagen:", a.error);
+
+  // 2) Eingangsbestätigung an den Interessenten — mit Sicherheitsbericht im Anhang.
+  const to = cfg.customerCopyTo ?? n.email;
+  let pdf: Uint8Array | null = null;
+  if (n.domain) {
+    try {
+      pdf = await buildReportPdf(env, origin, n.domain, brand);
+    } catch (err) {
+      console.warn("Bericht für Kundenmail nicht erstellt:", err instanceof Error ? err.message : String(err));
+    }
+  }
+  const kunde = buildCustomerEmail(n, {
+    bookingUrl: brand.funnel!.bookingUrl,
+    hasReport: Boolean(pdf),
+    logoBase64: logo ?? undefined,
+  });
+  const attachments = [...(logo ? buildPentestEmail(n, logo).attachments : [])];
+  if (pdf && n.domain) {
+    attachments.push({
+      filename: `${brand.report.filenamePrefix}-${n.domain}.pdf`,
+      content: bufToBase64(pdf.buffer as ArrayBuffer),
+      content_type: "application/pdf",
+    });
+  }
+  const b = await sendMail(key, {
+    from: cfg.from,
+    to,
+    replyTo: cfg.to,
+    subject: kunde.subject,
+    html: kunde.html,
+    attachments,
+  });
+  if (!b.ok) console.warn("Resend (Kunde) fehlgeschlagen:", b.error);
+}
+
+// ─── Bericht als PDF (wiederverwendbar: /api/generate-report + Kundenmail) ────
+async function buildReportPdf(
+  env: Bindings,
+  origin: string,
+  domain: string,
+  brand: Brand,
+): Promise<Uint8Array | null> {
+  if (!env.BROWSER) return null;
+  const [email, dnssec, observatory] = await Promise.all([
+    runEmailChecks(domain, []),
+    analyzeDnssec(domain),
+    analyzeObservatory(domain),
+  ]);
+  const analyze: AnalysisResponse = { domain, queriedAt: new Date().toISOString(), ...email, dnssec };
+  const wordmarkMime = brand.report.wordmarkAsset.endsWith(".svg") ? "image/svg+xml" : "image/png";
+  const foxMime = brand.report.foxAsset.endsWith(".svg") ? "image/svg+xml" : "image/png";
+  let css = "";
+  let logoWordmark = "";
+  let logoFox = "";
+  try {
+    const [cssResp, wmResp, foxResp] = await Promise.all([
+      env.ASSETS.fetch(new Request(`${origin}/assets/report.css`)),
+      env.ASSETS.fetch(new Request(`${origin}${brand.report.wordmarkAsset}`)),
+      env.ASSETS.fetch(new Request(`${origin}${brand.report.foxAsset}`)),
+    ]);
+    if (cssResp.ok) css = (await cssResp.text()) + reportPaletteCss(brand);
+    if (wmResp.ok) logoWordmark = `data:${wordmarkMime};base64,${bufToBase64(await wmResp.arrayBuffer())}`;
+    if (foxResp.ok) logoFox = `data:${foxMime};base64,${bufToBase64(await foxResp.arrayBuffer())}`;
+  } catch {
+    /* lieber ungestylt rendern als gar nicht */
+  }
+  const html = buildReportBody(domain, analyze, observatory, { wordmark: logoWordmark, fox: logoFox }, brand);
+  if (html.length > MAX_HTML_BYTES) return null;
+  return renderReportPdf(env.BROWSER, { html, origin, css });
+}
+
+/** Markenlogo als base64 — wird der Mail angehängt und per cid: eingebettet. */
+async function brandLogoBase64(env: Bindings, origin: string, brand: Brand): Promise<string | null> {
+  try {
+    const r = await env.ASSETS.fetch(new Request(`${origin}${brand.app.letterheadLogo}`));
+    if (!r.ok) return null;
+    return bufToBase64(await r.arrayBuffer());
+  } catch {
+    return null;
   }
 }
 
@@ -484,17 +611,42 @@ app.post("/api/pentest-lead", async (c) => {
   const domain = normalizeDomain(email.split("@")[1] ?? "") ?? undefined;
   const lead = { email, domain, consent: true, channel: "pentest-scoping" as const, scoping };
 
+  const origin = new URL(c.req.url).origin;
+  const notifyBase: PentestNotification = {
+    company,
+    contactName,
+    role: scoping.role,
+    email,
+    phone: scoping.phone,
+    testart: scoping.testart,
+    umfang: scoping.umfang,
+    anlass: scoping.anlass,
+    frist: scoping.frist,
+    freitext: scoping.freitext,
+    domain,
+    toolUrl: brand.report.toolUrl,
+  };
+
   const cfg = odooConfigFromEnv(c.env);
   if (!cfg) {
     console.warn("PENTEST-LEAD (Odoo not configured):", JSON.stringify({ ...lead, at: new Date().toISOString() }));
+    // Ohne CRM bleibt die Benachrichtigung der einzige Kanal — trotzdem senden.
+    c.executionCtx.waitUntil(notifyPentestLead(c.env, origin, brand, notifyBase, Promise.resolve(null)));
     return c.json({ ok: true, code: "NOT_CONFIGURED", message: "Anfrage erhalten." });
   }
   const result = await createLead(cfg, lead, { marketing: brand.odoo });
   if (!result.ok) {
     console.error("PENTEST-LEAD Odoo push failed:", result.code, result.message, JSON.stringify(lead));
+    c.executionCtx.waitUntil(notifyPentestLead(c.env, origin, brand, notifyBase, Promise.resolve(null)));
     return c.json({ ok: true, code: result.code, message: "Anfrage erhalten." });
   }
-  if (domain && result.leadId) c.executionCtx.waitUntil(enrichLead(cfg, result.leadId, domain));
+  // Anreicherung einmal starten; Odoo schreibt sie, die Benachrichtigung wartet darauf.
+  const enrich =
+    domain && result.leadId ? enrichLead(cfg, result.leadId, domain) : Promise.resolve(null);
+  c.executionCtx.waitUntil(enrich);
+  c.executionCtx.waitUntil(
+    notifyPentestLead(c.env, origin, brand, { ...notifyBase, leadId: result.leadId }, enrich),
+  );
   return c.json({ ok: true, code: "OK", message: "Anfrage erhalten.", leadId: result.leadId });
 });
 
