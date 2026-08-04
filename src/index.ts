@@ -697,10 +697,14 @@ app.post("/api/pentest-lead", async (c) => {
   // Postfächer zumüllen kann.
   const throttled = await rateLimitExceeded(origin, c.req.header("CF-Connecting-IP"));
   const company = scopingStr(body.company);
-  const contactName = scopingStr(body.name);
+  // Vorname/Nachname getrennt erfasst; `name` bleibt als Rückfallebene erhalten,
+  // damit ältere Formularstände weiterhin angenommen werden.
+  const firstName = scopingStr(body.firstName, 100);
+  const lastName = scopingStr(body.lastName, 100);
+  const contactName = [firstName, lastName].filter(Boolean).join(" ") || scopingStr(body.name);
   if (!company || !contactName) {
     return c.json(
-      { ok: false, code: "MISSING_FIELDS", message: "Bitte füllen Sie Firma und Name aus." },
+      { ok: false, code: "MISSING_FIELDS", message: "Bitte füllen Sie Firma, Vorname und Nachname aus." },
       400,
     );
   }
