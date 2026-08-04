@@ -51,6 +51,8 @@ type Bindings = {
   REPORT_PASSWORD?: string;
   // Resend-API-Key für die Sofort-Benachrichtigung (optional; ohne ihn still aus).
   RESEND_API_KEY?: string;
+  // Turnstile-Secret zur Prüfung des Formular-Tokens (optional).
+  TURNSTILE_SECRET?: string;
   // White-label brand id (e.g. "wsit") set per Worker env; falls back to Host.
   BRAND?: string;
 };
@@ -71,10 +73,13 @@ function cspFor(brand: Brand): string {
   // the default brand (see Brand.analytics), so mirror its origins here too.
   const a = brand.analytics ?? DEFAULT_BRAND.analytics;
   const umami = a?.umamiId ? " https://cloud.umami.is" : "";
+  // Turnstile lädt sein Skript und rendert die Challenge in einem iframe.
+  const ts = brand.funnel?.turnstileSiteKey ? " https://challenges.cloudflare.com" : "";
   const csp = [
     "default-src 'self'",
-    `script-src 'self'${umami}`,
-    `connect-src 'self'${umami}`,
+    `script-src 'self'${umami}${ts}`,
+    `connect-src 'self'${umami}${ts}`,
+    `frame-src 'self'${ts}`,
     "img-src 'self' data:",
     "style-src 'self' 'unsafe-inline'",
     "font-src 'self'",
@@ -556,6 +561,41 @@ async function brandLogoBase64(env: Bindings, origin: string, brand: Brand): Pro
   }
 }
 
+// ─── Turnstile: Bot-Abwehr am Scoping-Formular ───────────────────────────────
+// Bewusst zweigeteilt: ein FALSCHER Token wird abgewiesen (das ist der
+// Angriffsfall), ein NICHT ERREICHBARER Dienst nicht — sonst kostet uns eine
+// Störung bei Cloudflare echte Anfragen. Der Lead wird dann als ungeprüft
+// markiert, damit der Unterschied im CRM sichtbar bleibt.
+type TurnstileResult = "ok" | "invalid" | "unverified";
+
+async function verifyTurnstile(
+  secret: string,
+  token: unknown,
+  ip: string | undefined,
+): Promise<TurnstileResult> {
+  if (typeof token !== "string" || !token) return "invalid";
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+  try {
+    const form = new FormData();
+    form.append("secret", secret);
+    form.append("response", token);
+    if (ip) form.append("remoteip", ip);
+    const r = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+      method: "POST",
+      body: form,
+      signal: controller.signal,
+    });
+    if (!r.ok) return "unverified";
+    const body = (await r.json()) as { success?: boolean };
+    return body.success ? "ok" : "invalid";
+  } catch {
+    return "unverified"; // Dienststörung darf keine Anfrage kosten
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // ─── /pentest-Scoping: qualifizierte Pentest-Anfrage → Odoo ───────────────────
 const SCOPING_TEXT_MAX = 2000;
 function scopingStr(v: unknown, max = 200): string | undefined {
@@ -580,6 +620,24 @@ app.post("/api/pentest-lead", async (c) => {
       { ok: false, code: "NO_CONSENT", message: "Bitte stimmen Sie der Verarbeitung Ihrer Angaben zu." },
       400,
     );
+  }
+  let botCheck: TurnstileResult = "ok";
+  if (brand.funnel.turnstileSiteKey && c.env.TURNSTILE_SECRET) {
+    botCheck = await verifyTurnstile(
+      c.env.TURNSTILE_SECRET,
+      body["cf-turnstile-response"],
+      c.req.header("CF-Connecting-IP"),
+    );
+    if (botCheck === "invalid") {
+      return c.json(
+        {
+          ok: false,
+          code: "BOT_CHECK_FAILED",
+          message: "Die Sicherheitsprüfung ist fehlgeschlagen. Bitte laden Sie die Seite neu.",
+        },
+        403,
+      );
+    }
   }
   if (!validateEmail(body.email)) {
     return c.json(
@@ -609,7 +667,16 @@ app.post("/api/pentest-lead", async (c) => {
   const email = (body.email as string).trim();
   // Dubletten-/Befund-Schlüssel: die Domain der geschäftlichen Absenderadresse.
   const domain = normalizeDomain(email.split("@")[1] ?? "") ?? undefined;
-  const lead = { email, domain, consent: true, channel: "pentest-scoping" as const, scoping };
+  const lead = {
+    email,
+    domain,
+    consent: true,
+    channel: "pentest-scoping" as const,
+    scoping:
+      botCheck === "unverified"
+        ? { ...scoping, freitext: `${scoping.freitext ?? ""}\n[Hinweis: Bot-Prüfung war nicht erreichbar]`.trim() }
+        : scoping,
+  };
 
   const origin = new URL(c.req.url).origin;
   const notifyBase: PentestNotification = {

@@ -43,6 +43,10 @@ export interface Brand {
     pentestPath: string; // Route der Pentest-Seite, z.B. "/pentest"
     ctaLabel: string; // ersetzt den Default-CTA-Text ("Beratung anfragen")
     bookingUrl: string; // Terminbuchung (Scoping-Block + PDF-Abschlussseite)
+    // Cloudflare Turnstile am Scoping-Formular (Bot-Abwehr). Sitekey ist
+    // öffentlich; das Secret liegt als Worker-Secret TURNSTILE_SECRET.
+    // Gesetzt → CSP erlaubt challenges.cloudflare.com, Endpunkt prüft den Token.
+    turnstileSiteKey?: string;
     // Sofort-Benachrichtigung über Resend — unabhängig von Odoo/Microsoft.
     // Greift nur, wenn das Secret RESEND_API_KEY gesetzt ist; sonst still aus.
     notify?: {
