@@ -9,3 +9,7 @@ node_modules/
 dist/
 worker-configuration.d.ts
 .claude/
+
+# Zugangsdaten (nie committen)
+.mailer-sec
+.resend
