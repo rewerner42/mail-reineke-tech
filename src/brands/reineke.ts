@@ -22,9 +22,6 @@ export const reineke: Brand = {
     notify: {
       from: "Reineke Sicherheits-Check <scan@reineke.tech>",
       to: "wf.reineke@reineke-technik.de",
-      // TEST: Kundenbestätigung geht vorerst an Werner statt an den Interessenten.
-      // Vor dem Produktivbetrieb entfernen!
-      customerCopyTo: "wf.reineke@reineke-technik.de",
     },
   },
 
