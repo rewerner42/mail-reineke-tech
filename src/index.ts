@@ -457,6 +457,7 @@ async function notifyPentestLead(
   brand: Brand,
   base: PentestNotification,
   enrich: Promise<{ befunde: string; ampel: string } | null>,
+  skipCustomerMail = false,
 ): Promise<void> {
   const cfg = brand.funnel?.notify;
   const key = env.RESEND_API_KEY;
@@ -481,6 +482,7 @@ async function notifyPentestLead(
   if (!a.ok) console.warn("Resend (intern) fehlgeschlagen:", a.error);
 
   // 2) Eingangsbestätigung an den Interessenten — mit Sicherheitsbericht im Anhang.
+  if (skipCustomerMail) return;
   const to = cfg.customerCopyTo ?? n.email;
   let pdf: Uint8Array | null = null;
   if (n.domain) {
@@ -561,6 +563,50 @@ async function brandLogoBase64(env: Bindings, origin: string, brand: Brand): Pro
   }
 }
 
+// ─── Zählgrenze pro IP ───────────────────────────────────────────────────────
+// Zweck: verhindern, dass eine einzelne Quelle in Serie Bestätigungsmails an
+// fremde Adressen auslöst. Turnstile fängt Skripte ab, diese Grenze den Rest.
+//
+// Speicher ist der Edge-Cache (kein KV/Durable Object nötig). Bewusste
+// Einschränkung: Der Zähler gilt je Rechenzentrum. Eine einzelne IP wird
+// normalerweise stets zum selben Standort geleitet, ein weltweit verteilter
+// Angreifer könnte die Grenze aber umgehen — für den Missbrauchsfall hinter
+// Turnstile reicht das, exakte Buchführung wäre KV-Sache.
+const RATE_LIMIT = 6; // Anfragen …
+const RATE_WINDOW_SEC = 3600; // … je Stunde und IP
+
+async function rateLimitExceeded(origin: string, ip: string | undefined): Promise<boolean> {
+  if (!ip) return false; // ohne IP nicht raten — lieber durchlassen
+  try {
+    const cache = caches.default;
+    // Der Edge-Cache akzeptiert nur Schlüssel innerhalb der eigenen Zone —
+    // ein Fantasie-Host würde still verworfen.
+    const key = new Request(`${origin}/__ratelimit/pentest/${encodeURIComponent(ip)}`);
+    const now = Math.floor(Date.now() / 1000);
+    let count = 0;
+    let expires = now + RATE_WINDOW_SEC;
+    const hit = await cache.match(key);
+    if (hit) {
+      const [c, e] = (await hit.text()).split("|");
+      const storedExpiry = Number(e);
+      if (storedExpiry > now) {
+        count = Number(c) || 0;
+        expires = storedExpiry; // Fenster NICHT verlängern
+      }
+    }
+    if (count >= RATE_LIMIT) return true;
+    await cache.put(
+      key,
+      new Response(`${count + 1}|${expires}`, {
+        headers: { "Cache-Control": `max-age=${Math.max(1, expires - now)}` },
+      }),
+    );
+    return false;
+  } catch {
+    return false; // Zählfehler darf keine Anfrage kosten
+  }
+}
+
 // ─── Turnstile: Bot-Abwehr am Scoping-Formular ───────────────────────────────
 // Bewusst zweigeteilt: ein FALSCHER Token wird abgewiesen (das ist der
 // Angriffsfall), ein NICHT ERREICHBARER Dienst nicht — sonst kostet uns eine
@@ -606,6 +652,7 @@ function scopingStr(v: unknown, max = 200): string | undefined {
 
 app.post("/api/pentest-lead", async (c) => {
   if (isCrossOrigin(c.req.header("Origin"), c.req.url)) return c.json(CROSS_ORIGIN_DENIED, 403);
+  const origin = new URL(c.req.url).origin;
   const brand = resolveBrand(c.env, new URL(c.req.url).host);
   if (!brand.funnel) return c.json({ ok: false, code: "NOT_FOUND", message: "Nicht verfügbar." }, 404);
 
@@ -645,6 +692,10 @@ app.post("/api/pentest-lead", async (c) => {
       400,
     );
   }
+  // Über der Grenze: Anfrage wird trotzdem erfasst und intern gemeldet — nur die
+  // Bestätigungsmail an den Interessenten entfällt, damit niemand fremde
+  // Postfächer zumüllen kann.
+  const throttled = await rateLimitExceeded(origin, c.req.header("CF-Connecting-IP"));
   const company = scopingStr(body.company);
   const contactName = scopingStr(body.name);
   if (!company || !contactName) {
@@ -678,7 +729,6 @@ app.post("/api/pentest-lead", async (c) => {
         : scoping,
   };
 
-  const origin = new URL(c.req.url).origin;
   const notifyBase: PentestNotification = {
     company,
     contactName,
@@ -698,13 +748,13 @@ app.post("/api/pentest-lead", async (c) => {
   if (!cfg) {
     console.warn("PENTEST-LEAD (Odoo not configured):", JSON.stringify({ ...lead, at: new Date().toISOString() }));
     // Ohne CRM bleibt die Benachrichtigung der einzige Kanal — trotzdem senden.
-    c.executionCtx.waitUntil(notifyPentestLead(c.env, origin, brand, notifyBase, Promise.resolve(null)));
+    c.executionCtx.waitUntil(notifyPentestLead(c.env, origin, brand, notifyBase, Promise.resolve(null), throttled));
     return c.json({ ok: true, code: "NOT_CONFIGURED", message: "Anfrage erhalten." });
   }
   const result = await createLead(cfg, lead, { marketing: brand.odoo });
   if (!result.ok) {
     console.error("PENTEST-LEAD Odoo push failed:", result.code, result.message, JSON.stringify(lead));
-    c.executionCtx.waitUntil(notifyPentestLead(c.env, origin, brand, notifyBase, Promise.resolve(null)));
+    c.executionCtx.waitUntil(notifyPentestLead(c.env, origin, brand, notifyBase, Promise.resolve(null), throttled));
     return c.json({ ok: true, code: result.code, message: "Anfrage erhalten." });
   }
   // Anreicherung einmal starten; Odoo schreibt sie, die Benachrichtigung wartet darauf.
@@ -712,9 +762,16 @@ app.post("/api/pentest-lead", async (c) => {
     domain && result.leadId ? enrichLead(cfg, result.leadId, domain) : Promise.resolve(null);
   c.executionCtx.waitUntil(enrich);
   c.executionCtx.waitUntil(
-    notifyPentestLead(c.env, origin, brand, { ...notifyBase, leadId: result.leadId }, enrich),
+    notifyPentestLead(c.env, origin, brand, { ...notifyBase, leadId: result.leadId }, enrich, throttled),
   );
-  return c.json({ ok: true, code: "OK", message: "Anfrage erhalten.", leadId: result.leadId });
+  return c.json({
+    ok: true,
+    code: throttled ? "RATE_LIMITED" : "OK",
+    message: throttled
+      ? "Ihre Anfrage liegt uns bereits vor — wir melden uns innerhalb von 2 Werktagen. Wenn es eilt, buchen Sie direkt einen Termin oder rufen Sie an: +49 172 2872390."
+      : "Anfrage erhalten.",
+    leadId: result.leadId,
+  });
 });
 
 // Server-side PDF export: the client posts the already-built report HTML and we
