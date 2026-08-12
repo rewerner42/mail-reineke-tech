@@ -1446,3 +1446,34 @@ body.is-report .site-footer { display: none; }
 
 /* Turnstile-Widget im Scoping-Formular */
 .pt-turnstile { margin: 0.2rem 0 1rem; min-height: 65px; }
+
+/* ─── Kopfzeile auf schmalen Bildschirmen ──────────────────────────────────────
+   Marken mit eigenem Logo-Aufbau (brand.headerLogoTag) liefern zusätzlich einen
+   .brand-lockup: Fuchs links, Schriftzug über die restliche Breite. Ohne diesen
+   Block bleibt alles wie bisher — der Sharp-Auftritt ist damit unberührt. */
+.brand-lockup { display: none; }
+
+@media (max-width: 860px) {
+  .brand:has(.brand-lockup) {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+  .brand:has(.brand-lockup) .brand-logo { display: none; }
+  .brand-lockup {
+    display: flex;
+    align-items: center;
+    width: 100%;
+  }
+  .brand-fox { height: 36px; width: auto; display: block; flex: 0 0 auto; }
+  .brand-word { flex: 1 1 auto; min-width: 0; height: auto; display: block; margin-left: 22px; }
+
+  /* Vier Reiter in einer Zeile, mit Reserve statt auf Kante */
+  .header-tabs { justify-content: space-between; }
+  .tab { white-space: nowrap; padding: 0.85rem 0.45rem; font-size: 0.7rem; letter-spacing: 0.02em; }
+}
+
+@media (max-width: 768px) {
+  /* Lange Beschriftungen dürfen umbrechen — sonst spannt der Knopf die Zeile
+     breiter als den Bildschirm und die Seite lässt sich seitlich verschieben. */
+  .btn { white-space: normal; text-align: center; }
+}
