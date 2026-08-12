@@ -35,6 +35,15 @@ export const reineke: Brand = {
   faviconIcon: "/assets/favicon.png",
   partnerLogoTag: "", // single-brand: no Sharp partner logo in the header
   reportPageLogo: "/assets/reineke-logo.png",
+  // Schmale Bildschirme zeigen Fuchs + Schriftzug nebeneinander (CSS blendet je
+  // nach Breite das eine oder andere aus); auf dem Desktop bleibt das bisherige
+  // Logo unverändert.
+  headerLogoTag:
+    '<img src="/assets/reineke-logo.png" alt="Reineke Technik" class="brand-logo" />' +
+    '<span class="brand-lockup" aria-hidden="true">' +
+    '<img src="/assets/reineke-fox.svg" alt="" class="brand-fox" />' +
+    '<img src="/assets/reineke-wordmark.svg" alt="" class="brand-word" />' +
+    "</span>",
   contactHref: "/pentest", // primärer CTA führt in die Pentest-Strecke, kein Absprung
   footerStreetCity: "Geseker Straße 26 · 33154 Salzkotten",
   footerTelHref: "tel:+4952589878282",

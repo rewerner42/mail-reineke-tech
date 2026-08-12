@@ -65,6 +65,9 @@ export interface Brand {
   headerLogo: string; // header brand logo asset path
   faviconIcon: string; // favicon asset path (icon + apple-touch)
   partnerLogoTag: string; // full header partner-logo <img …/> ("" to remove)
+  // Ersetzt das komplette Kopfzeilen-Logo-<img>. Gesetzt = eigener Aufbau,
+  // z.B. Fuchs + Schriftzug nebeneinander (nur schmale Bildschirme, siehe CSS).
+  headerLogoTag?: string;
   reportPageLogo: string; // report.html login-page logo asset path
   contactHref: string; // CTA primary link
   footerStreetCity: string; // footer address line 1
@@ -200,7 +203,10 @@ function brandDataScript(brand: Brand): string {
 export function applyBrandToHtml(html: string, brand: Brand): string {
   if (brand.id === DEFAULT_BRAND.id) return html;
   const D = DEFAULT_BRAND;
+  // Kompletter Logo-Block zuerst — er enthält den Pfad, der unten ersetzt würde.
+  const headerLogoTag = `<img src="${D.headerLogo}" alt="${D.shortName}" class="brand-logo" />`;
   let out = html
+    .replaceAll(headerLogoTag, brand.headerLogoTag ?? headerLogoTag)
     // full-string anchors first (they contain shorter anchors handled below)
     .replaceAll(D.contactHref, brand.contactHref)
     .replaceAll(D.partnerLogoTag, brand.partnerLogoTag)
