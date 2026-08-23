@@ -72,14 +72,21 @@ function cspFor(brand: Brand): string {
   // Older client-branch brand files have no `analytics` field — they behave like
   // the default brand (see Brand.analytics), so mirror its origins here too.
   const a = brand.analytics ?? DEFAULT_BRAND.analytics;
-  const umami = a?.umamiId ? " https://cloud.umami.is" : "";
+  // Umami lädt das Skript von cloud.umami.is, sendet die Ereignisse aber an
+  // gateway.umami.is — ohne beide Herkünfte blockiert die CSP still die Messung.
+  const umamiScript = a?.umamiId ? " https://cloud.umami.is" : "";
+  const umamiSend = a?.umamiId ? " https://cloud.umami.is https://gateway.umami.is" : "";
   // Turnstile lädt sein Skript und rendert die Challenge in einem iframe.
   const ts = brand.funnel?.turnstileSiteKey ? " https://challenges.cloudflare.com" : "";
+  // PostHog lädt Zusatzmodule nach und wechselt seine Hosts über die Zeit —
+  // deshalb empfiehlt der Anbieter die Platzhalter-Schreibweise *.posthog.com.
+  const ph = a?.posthogToken ? " https://*.posthog.com" : "";
   const csp = [
     "default-src 'self'",
-    `script-src 'self'${umami}${ts}`,
-    `connect-src 'self'${umami}${ts}`,
+    `script-src 'self'${umamiScript}${ts}${ph}`,
+    `connect-src 'self'${umamiSend}${ts}${ph}`,
     `frame-src 'self'${ts}`,
+    ...(ph ? ["worker-src 'self' blob:"] : []),
     "img-src 'self' data:",
     "style-src 'self' 'unsafe-inline'",
     "font-src 'self'",
