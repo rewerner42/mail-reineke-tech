@@ -36,6 +36,10 @@ export interface Brand {
   // literals, i.e. behave like the default brand.
   analytics?: {
     umamiId: string | null; // Umami website-id (cookieless page analytics)
+    // PostHog: der phc_-Schlüssel ist ein ÖFFENTLICHER Projektschlüssel — er
+    // steht ohnehin im Quelltext jeder Seite. Host je nach Region (EU/US).
+    posthogToken?: string | null;
+    posthogHost?: string;
   };
   // Pentest-Lead-Strecke (nur Reineke): schaltet die /pentest-Route frei, ersetzt
   // den primären CTA und hängt die "Der nächste Schritt"-Seite ans Besucher-PDF.

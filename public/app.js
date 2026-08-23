@@ -1239,8 +1239,38 @@ function loadUmami() {
   document.head.appendChild(s);
 }
 
+// PostHog — Produktanalyse. Der offizielle Schnipsel ist ein Inline-Skript und
+// würde von unserer CSP blockiert; wir laden die Bibliothek deshalb als externe
+// Datei und rufen init() im onload auf. Sitzungsaufzeichnung ist bewusst aus:
+// nicht nötig für Reichweitenmessung und datenschutzseitig heikel.
+function loadPosthog() {
+  if (!ANALYTICS.posthogToken) return;
+  if (window.__posthogLoaded) return;
+  window.__posthogLoaded = true;
+  const host = ANALYTICS.posthogHost || "https://eu.i.posthog.com";
+  const s = document.createElement("script");
+  s.src = host + "/static/array.js";
+  s.defer = true;
+  s.onload = () => {
+    if (!window.posthog || typeof window.posthog.init !== "function") return;
+    try {
+      window.posthog.init(ANALYTICS.posthogToken, {
+        api_host: host,
+        person_profiles: "identified_only",
+        disable_session_recording: true,
+        capture_pageview: true,
+        capture_pageleave: true,
+      });
+    } catch {
+      /* Analyse darf die Seite nie beeinträchtigen */
+    }
+  };
+  document.head.appendChild(s);
+}
+
 function loadTrackers() {
   loadUmami();
+  loadPosthog();
 }
 
 function readConsent() {
