@@ -37,12 +37,10 @@ run_worker_first = true
 
 # ─── Reineke Technik (pentest funnel) ────────────────────────────────────────
 # Deploy with:  wrangler deploy --env reineke
-# mail.reineke.tech is an alias of the Reineke Worker (decision 2026-08-03).
 [env.reineke]
 name = "scan-reineke-tech"
 routes = [
-  { pattern = "scan.reineke.tech", custom_domain = true },
-  { pattern = "mail.reineke.tech", custom_domain = true }
+  { pattern = "scan.reineke.tech", custom_domain = true }
 ]
 browser = { binding = "BROWSER" }
 
