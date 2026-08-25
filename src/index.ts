@@ -872,6 +872,11 @@ app.post("/api/report-pdf", async (c) => {
 
 // ── Report-Generator (passwortgeschützte Seite) ───────────────────────────────
 // Saubere URL für die geschützte Seite (liefert report.html aus den Assets).
+// Die drei Prüf-Ansichten sind EINE Datei; die Routen existieren nur, damit
+// Deep-Links funktionieren. Ohne sie würde die 404-Behandlung sie verschlucken.
+app.get("/website", (c) => c.env.ASSETS.fetch(new Request(new URL("/index.html", c.req.url))));
+app.get("/dnssec", (c) => c.env.ASSETS.fetch(new Request(new URL("/index.html", c.req.url))));
+
 app.get("/report", (c) => c.env.ASSETS.fetch(new Request(new URL("/report.html", c.req.url))));
 
 // Pentest-Seite (nur Marken mit Lead-Strecke; sonst greift der SPA-Fallback).

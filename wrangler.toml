@@ -50,7 +50,11 @@ BRAND = "reineke"
 [env.reineke.assets]
 directory = "./public"
 binding = "ASSETS"
-not_found_handling = "single-page-application"
+# Echte 404 statt Startseite: vorher lieferte JEDE unbekannte URL Status 200 mit
+# der Startseite — Google sah dadurch beliebig viele Duplikate. Die drei
+# SPA-Ansichten haben eigene Routen (src/index.ts). Sharp bleibt bewusst beim
+# bisherigen Verhalten, damit sich der Partner-Auftritt nicht ändert.
+not_found_handling = "404-page"
 run_worker_first = true
 
 # Observability
