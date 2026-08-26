@@ -23,6 +23,7 @@ import {
   buildPentestEmail,
   buildReportFailureAlert,
   sendMail,
+  type Attachment,
   type LeadKind,
   type PentestNotification,
 } from "./leads/notify.js";
@@ -405,6 +406,40 @@ async function notifyPentestLead(
   ]);
   const n: PentestNotification = { ...base, befunde: found?.befunde, ampel: found?.ampel };
 
+  // Bericht ZUERST bauen, damit er BEIDEN Mails beiliegt — intern wie beim
+  // Interessenten. Vorher ging die interne Meldung sofort raus und der Bericht
+  // nur an den Kunden; wer die Anfrage bearbeitet, sah den Befund nicht.
+  //
+  // Der Bericht gilt der GEPRÜFTEN Domain; nur wenn keine angefordert wurde,
+  // fällt er auf die Domain der E-Mail-Adresse zurück.
+  const berichtsDomain = n.reportDomain ?? n.domain;
+  let pdf: Uint8Array | null = null;
+  let pdfFehler: string | null = null;
+  if (!skipCustomerMail && berichtsDomain) {
+    try {
+      // Zeitgrenze: Ohne sie könnte ein hängender Scan die Laufzeit sprengen und
+      // BEIDE Mails mitreißen. Lieber ohne Anhang melden als gar nicht.
+      pdf = await withTimeout(
+        buildReportPdf(env, origin, berichtsDomain, reportBrandFor(brand, n.kind)),
+        PDF_TIMEOUT_MS,
+      );
+      if (!pdf) pdfFehler = "Browser Rendering nicht verfügbar, Report zu groß oder Zeitgrenze erreicht.";
+    } catch (err) {
+      pdfFehler = err instanceof Error ? err.message : String(err);
+      console.warn("Bericht nicht erstellt:", pdfFehler);
+    }
+  }
+  const berichtAnhang: Attachment[] =
+    pdf && berichtsDomain
+      ? [
+          {
+            filename: `${brand.report.filenamePrefix}-${berichtsDomain}.pdf`,
+            content: bufToBase64(pdf.buffer as ArrayBuffer),
+            content_type: "application/pdf",
+          },
+        ]
+      : [];
+
   // 1) Interne Benachrichtigung — Antworten geht direkt an den Interessenten.
   const intern = buildPentestEmail(n, logo ?? undefined);
   const a = await sendMail(key, {
@@ -413,27 +448,10 @@ async function notifyPentestLead(
     replyTo: n.email,
     subject: intern.subject,
     html: intern.html,
-    attachments: intern.attachments,
+    attachments: [...intern.attachments, ...berichtAnhang],
   });
   if (!a.ok) console.warn("Resend (intern) fehlgeschlagen:", a.error);
 
-  // 2) Eingangsbestätigung an den Interessenten — mit Sicherheitsbericht im Anhang.
-  if (skipCustomerMail) return;
-  const to = cfg.customerCopyTo ?? n.email;
-  let pdf: Uint8Array | null = null;
-  let pdfFehler: string | null = null;
-  // Der Bericht gilt der GEPRÜFTEN Domain; nur wenn keine angefordert wurde,
-  // fällt er auf die Domain der E-Mail-Adresse zurück.
-  const berichtsDomain = n.reportDomain ?? n.domain;
-  if (berichtsDomain) {
-    try {
-      pdf = await buildReportPdf(env, origin, berichtsDomain, reportBrandFor(brand, n.kind));
-      if (!pdf) pdfFehler = "Browser Rendering nicht verfügbar oder Report zu groß.";
-    } catch (err) {
-      pdfFehler = err instanceof Error ? err.message : String(err);
-      console.warn("Bericht für Kundenmail nicht erstellt:", pdfFehler);
-    }
-  }
   // Wer einen Bericht ANGEFORDERT hat und keinen bekommt, erzeugt Nacharbeit —
   // die muss jemand mitbekommen, nicht nur das Protokoll.
   if (pdfFehler && n.kind === "bericht") {
@@ -441,28 +459,30 @@ async function notifyPentestLead(
     const al = await sendMail(key, { from: cfg.from, to: cfg.to, subject: alarm.subject, html: alarm.html });
     if (!al.ok) console.error("Alarmmail fehlgeschlagen:", al.error);
   }
+
+  // 2) Eingangsbestätigung an den Interessenten — mit demselben Bericht.
+  if (skipCustomerMail) return;
   const kunde = buildCustomerEmail(n, {
     bookingUrl: brand.funnel!.bookingUrl,
     hasReport: Boolean(pdf),
     logoBase64: logo ?? undefined,
   });
-  const attachments = [...(logo ? buildPentestEmail(n, logo).attachments : [])];
-  if (pdf && berichtsDomain) {
-    attachments.push({
-      filename: `${brand.report.filenamePrefix}-${berichtsDomain}.pdf`,
-      content: bufToBase64(pdf.buffer as ArrayBuffer),
-      content_type: "application/pdf",
-    });
-  }
   const b = await sendMail(key, {
     from: cfg.from,
-    to,
+    to: cfg.customerCopyTo ?? n.email,
     replyTo: cfg.to,
     subject: kunde.subject,
     html: kunde.html,
-    attachments,
+    attachments: [...(logo ? buildPentestEmail(n, logo).attachments : []), ...berichtAnhang],
   });
   if (!b.ok) console.warn("Resend (Kunde) fehlgeschlagen:", b.error);
+}
+
+/** Der Bericht darf die Mails nicht aufhalten — nach dieser Zeit geht es ohne ihn. */
+const PDF_TIMEOUT_MS = 45_000;
+
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T | null> {
+  return Promise.race([p, new Promise<null>((r) => setTimeout(() => r(null), ms))]);
 }
 
 /**
