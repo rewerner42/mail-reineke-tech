@@ -29,7 +29,11 @@ function logoBlock(logoBase64?: string): string {
   return `<p style="margin:10px 0 0"><img src="cid:${LOGO_CID}" alt="Reineke Technik" width="120" style="width:120px;height:auto;border:0" /></p>`;
 }
 
+/** Welche Strecke die Meldung ausgeloest hat — steuert Betreff und Textbausteine. */
+export type LeadKind = "pentest" | "bericht";
+
 export interface PentestNotification {
+  kind?: LeadKind;
   company: string;
   contactName: string;
   role?: string;
@@ -41,6 +45,11 @@ export interface PentestNotification {
   frist?: string;
   freitext?: string;
   domain?: string;
+  /** Domain, fuer die der Bericht gebaut wird. Kann von `domain` (aus der
+   *  E-Mail-Adresse) abweichen; dann beschreibt die Ampel das Unternehmen des
+   *  Interessenten und der Anhang eine andere Domain — beide muessen getrennt
+   *  beschriftet sein, sonst ist die Meldung irrefuehrend. */
+  reportDomain?: string;
   ampel?: string;
   befunde?: string;
   leadId?: number;
@@ -96,7 +105,8 @@ export function buildPentestEmail(
     row("Anlass", n.anlass),
     row("Frist", n.frist),
     row("Technik-Ampel", n.ampel),
-    row("Domain", n.domain),
+    row("Domain (aus der E-Mail-Adresse)", n.domain),
+    row("Bericht angefordert für", n.reportDomain && n.reportDomain !== n.domain ? n.reportDomain : undefined),
   ].join("");
   const freitext = n.freitext
     ? `<p style="margin:14px 0 4px"><strong>Freitext</strong></p><div style="white-space:pre-wrap">${esc(n.freitext)}</div>`
@@ -107,13 +117,15 @@ export function buildPentestEmail(
   const lead = n.leadId ? `<p style="margin:14px 0 0">Odoo-Vorgang: #${n.leadId}</p>` : "";
   const html = `<div style="${FONT}">
 <p>Hallo Werner,</p>
-<p>über <strong>${esc(n.toolUrl)}</strong> ist eine neue Pentest-Anfrage eingegangen:</p>
+<p>über <strong>${esc(n.toolUrl)}</strong> ist eine neue ${
+    n.kind === "bericht" ? "Berichtsanfrage" : "Pentest-Anfrage"
+  } eingegangen:</p>
 <table cellpadding="0" cellspacing="0" style="${FONT};border-collapse:collapse;margin:12px 0">${rows}</table>
 ${freitext}${befunde}${lead}
 ${signature(logoBase64)}
 </div>`;
   return {
-    subject: `Neue Pentest-Anfrage: ${n.company}`,
+    subject: `${n.kind === "bericht" ? "Neue Berichtsanfrage" : "Neue Pentest-Anfrage"}: ${n.company}`,
     html,
     attachments: logoAttachment(logoBase64),
   };
@@ -124,29 +136,48 @@ export function buildCustomerEmail(
   n: PentestNotification,
   opts: { bookingUrl: string; hasReport: boolean; logoBase64?: string },
 ): { subject: string; html: string } {
-  const rueck = [row("Firma", n.company), row("Testart", n.testart), row("Anlass", n.anlass), row("Frist", n.frist)]
-    .join("");
+  const istBericht = n.kind === "bericht";
+  const dom = n.reportDomain ?? n.domain ?? "";
+  const rueck = istBericht
+    ? [row("Geprüfte Domain", dom), row("Firma", n.company)].join("")
+    : [row("Firma", n.company), row("Testart", n.testart), row("Anlass", n.anlass), row("Frist", n.frist)].join("");
+
+  // Neutrale Sprache: Die geprüfte Domain muss NICHT dem Empfänger gehören
+  // (IT-Dienstleister prüfen Kundendomains). "Ihre Domain" wäre dann falsch
+  // und läse sich wie ein Vorwurf.
   const bericht = opts.hasReport
-    ? `<p>Als erste Orientierung haben wir Ihnen einen <strong>Sicherheitsbericht zu ${esc(n.domain ?? "")}</strong>
-       angehängt. Er zeigt, was ein Angreifer ohne Anmeldung in dreißig Sekunden über Ihre Domain
-       sehen kann — E-Mail-Authentifizierung, DNS-Absicherung und Website-Header. Ausgewertet wurden
-       ausschließlich öffentlich abrufbare Informationen; es gab keine Eingriffe in Ihre Systeme.</p>`
-    : "";
+    ? `<p>Im Anhang finden Sie den <strong>Sicherheitsbericht zu ${esc(dom)}</strong>. Er zeigt, was
+       ohne Anmeldung von außen sichtbar ist — E-Mail-Authentifizierung, DNS-Absicherung und
+       Website-Header. Ausgewertet wurden ausschließlich öffentlich abrufbare Informationen;
+       es gab keine Eingriffe in laufende Systeme.</p>`
+    : `<p>Den Bericht zu <strong>${esc(dom)}</strong> konnten wir nicht automatisch erstellen —
+       das kommt gelegentlich vor, wenn eine Prüfung zu lange braucht. Wir stellen ihn von Hand
+       zusammen und melden uns damit bei Ihnen.</p>`;
+
+  const weiter = istBericht
+    ? `<p><strong>Wie es weitergeht:</strong> Der Bericht sagt Ihnen, <em>was</em> offensteht — nicht,
+was es für Sie bedeutet. Wenn Sie die Punkte einordnen möchten, gehe ich sie in einem kurzen
+Gespräch mit Ihnen durch, unverbindlich.</p>`
+    : `<p><strong>Wie es weitergeht:</strong> Ich melde mich innerhalb von 2 Werktagen persönlich bei Ihnen, um das
+Scoping-Gespräch zu terminieren. Darin legen wir gemeinsam Ziele, Systeme und Testtiefe fest und
+stimmen das Zeitfenster betriebsschonend ab. Den Festpreis erhalten Sie, bevor Sie beauftragen.</p>`;
+
   const html = `<div style="${FONT}">
 <p>Guten Tag ${esc(n.contactName)},</p>
-<p>vielen Dank für Ihre Anfrage über ${esc(n.toolUrl)}. Ihre Angaben sind bei uns eingegangen:</p>
+<p>vielen Dank für Ihre Anfrage über ${esc(n.toolUrl)}.${istBericht ? "" : " Ihre Angaben sind bei uns eingegangen:"}</p>
 <table cellpadding="0" cellspacing="0" style="${FONT};border-collapse:collapse;margin:12px 0">${rueck}</table>
 ${bericht}
-<p><strong>Wie es weitergeht:</strong> Ich melde mich innerhalb von 2 Werktagen persönlich bei Ihnen, um das
-Scoping-Gespräch zu terminieren. Darin legen wir gemeinsam Ziele, Systeme und Testtiefe fest und
-stimmen das Zeitfenster betriebsschonend ab. Den Festpreis erhalten Sie, bevor Sie beauftragen.</p>
+${weiter}
 <p>Wenn es schneller gehen soll, buchen Sie sich direkt einen Termin:<br/>
 <a href="${esc(opts.bookingUrl)}" style="color:#0563C1">Termin direkt buchen</a></p>
-<p>Falls Sie diese Anfrage nicht ausgelöst haben, antworten Sie bitte kurz auf diese E-Mail —
-dann löschen wir Ihre Angaben umgehend.</p>
+<p style="color:#666">Sie möchten von uns nichts weiter hören? Eine kurze Antwort auf diese E-Mail
+genügt — dann melden wir uns nicht wieder und löschen Ihre Angaben.</p>
 ${signature(opts.logoBase64)}
 </div>`;
-  return { subject: `Ihre Pentest-Anfrage bei Reineke Technik`, html };
+  return {
+    subject: istBericht ? `Sicherheitsbericht für ${dom}` : `Ihre Pentest-Anfrage bei Reineke Technik`,
+    html,
+  };
 }
 
 export interface MailInput {

@@ -60,6 +60,45 @@ describe("buildLeadValues", () => {
     expect(v.name).toBe("Sicherheits-Check Anfrage: a@b.de");
     expect(v.website).toBeUndefined();
   });
+
+  // ── Sicherheitsnetz vor dem Umbau: Das /pentest-Scoping ist eine laufende
+  // Vertriebsstrecke. Diese Zusicherungen halten ihr HEUTIGES Verhalten fest,
+  // damit die Berichtsanfrage es nicht still verändert.
+  const SCOPING = {
+    company: "Muster GmbH",
+    contactName: "Erika Muster",
+    role: "IT-Leitung",
+    phone: "+49 123 456",
+    testart: "extern",
+    anlass: "Cyber-Versicherung",
+    frist: "Q3",
+    umfang: "12 Systeme",
+    freitext: "bitte betriebsschonend",
+  };
+  it("names a pentest lead after the company", () => {
+    const v = buildLeadValues(
+      { email: "a@b.de", domain: "b.de", consent: true, channel: "pentest-scoping", scoping: SCOPING },
+      now,
+    );
+    expect(v.name).toBe("Pentest-Anfrage: Muster GmbH");
+    expect(v.partner_name).toBe("Muster GmbH");
+    expect(v.contact_name).toBe("Erika Muster");
+    expect(v.function).toBe("IT-Leitung");
+    expect(v.phone).toBe("+49 123 456");
+    expect(v.x_reineke_kanal).toBe("pentest-scoping");
+    expect(v.x_reineke_rolle).toBe("IT-Leitung");
+    expect(v.x_reineke_testart).toBe("extern");
+    expect(v.x_reineke_anlass).toBe("Cyber-Versicherung");
+    expect(v.x_reineke_frist).toBe("Q3");
+    expect(String(v.description)).toContain("Ungefährer Umfang: 12 Systeme");
+    expect(String(v.description)).toContain("Freitext: bitte betriebsschonend");
+  });
+  it("keeps the scan title when a lead carries no scoping block", () => {
+    const v = buildLeadValues({ email: "a@b.de", domain: "b.de", consent: true }, now);
+    expect(v.name).toBe("Sicherheits-Check: b.de");
+    expect(v.partner_name).toBeUndefined();
+    expect(v.x_reineke_kanal).toBe("freier-check");
+  });
 });
 
 /** Mock fetch that answers the login then the create JSON-RPC calls. */

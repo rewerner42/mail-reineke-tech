@@ -49,10 +49,13 @@ const LEAD_DATENSCHUTZ_HREF =
 // Einordnungs-Block unter jedem Ergebnis + Verweis auf /pentest.
 const FUNNEL = BRAND.funnel ?? null;
 
-function reportLink(domain, check) {
+// Marken mit Lead-Strecke (FUNNEL) fuehren zum Anfrageformular; die Standardmarke
+// behaelt den bisherigen Weg auf den passwortgeschuetzten Generator.
+// Der `check`-Parameter entfaellt bewusst: Es wird immer der GESAMTBERICHT
+// verschickt — der Server kennt keinen Einzelbefund.
+function reportLink(domain) {
   const p = new URLSearchParams({ d: domain });
-  if (check) p.set("check", check);
-  return `/report?${p.toString()}`;
+  return FUNNEL ? `/bericht?${p.toString()}` : `/report?${p.toString()}`;
 }
 
 const views = {
@@ -221,9 +224,8 @@ function renderCard(card, check, bodyRenderer) {
   addCardExport(card);
 }
 
-/** Append a "single finding → PDF" export link to a result card. */
+/** Append a "request the full report" link to a result card. */
 function addCardExport(card) {
-  const checkId = card.id.replace(/^card-/, "");
   let actions = card.querySelector(".card-actions");
   if (!actions) {
     actions = document.createElement("div");
@@ -231,7 +233,9 @@ function addCardExport(card) {
     card.appendChild(actions);
   }
   actions.innerHTML = currentDomain
-    ? `<a class="card-export" href="${reportLink(currentDomain, checkId)}">Befund als PDF exportieren →</a>`
+    ? `<a class="card-export" href="${reportLink(currentDomain)}">${
+        FUNNEL ? "Gesamtbericht anfordern →" : "Befund als PDF exportieren →"
+      }</a>`
     : "";
 }
 
@@ -485,10 +489,10 @@ function ensureReportButton(view, domain) {
     btn = document.createElement("a");
     btn.className = "btn btn-secondary btn-sm";
     btn.dataset.reportLink = "";
-    btn.textContent = "Gesamtbericht (PDF)";
+    btn.textContent = FUNNEL ? "Gesamtbericht anfordern" : "Gesamtbericht (PDF)";
     header.appendChild(btn);
   }
-  btn.href = reportLink(domain, "");
+  btn.href = reportLink(domain);
 }
 
 /* ─────────────── scanning ─────────────── */
@@ -574,578 +578,7 @@ function switchTab(tab) {
   if (currentDomain) runScan(tab, currentDomain);
 }
 
-/* ─────────────── cybersecurity report (PDF export) ─────────────── */
-// The report is grouped into three areas: one summary page, then one page each.
-const REPORT_AREAS = [
-  {
-    title: "E-Mail-Sicherheit",
-    intro:
-      "Diese Prüfungen bestimmen, ob Dritte in Ihrem Namen E-Mails versenden können (Spoofing) und ob Ihre Nachrichten zuverlässig und verschlüsselt zugestellt werden. DMARC ist dabei der zentrale Schutz.",
-    checks: ["dmarc", "spf", "dkim", "mx", "mtaSts", "tlsRpt"],
-    gradeFrom: "dmarc",
-  },
-  {
-    title: "Website-Sicherheit",
-    intro:
-      "Bewertung der HTTP-Security-Header Ihrer Website durch das MDN HTTP Observatory — Schutz vor Cross-Site-Scripting, Clickjacking und unverschlüsselten Verbindungen.",
-    checks: ["observatory"],
-    gradeFrom: "observatory",
-  },
-  {
-    title: "DNSSEC",
-    intro:
-      "Kryptografische Absicherung Ihrer DNS-Zone gegen Manipulation wie Cache-Poisoning und DNS-Spoofing.",
-    checks: ["dnssec"],
-    gradeFrom: "dnssec",
-  },
-];
-
-function reportBadge(c) {
-  const status = c?.status ?? "info";
-  return c?.grade
-    ? `<span class="report-grade" data-status="${status}">${escapeHtml(c.grade)}</span>`
-    : `<span class="report-grade report-grade-icon" data-status="${status}">${SEVERITY_ICON[status] ?? "•"}</span>`;
-}
-
-// Compact technical facts per check — kept short so each area fits one print page.
-function reportFacts(key, c) {
-  const d = c.data;
-  const f = [];
-  if (key === "dmarc" && d) {
-    f.push(`Policy: ${d.p ?? "—"}`);
-    if (d.pct !== undefined && d.pct !== 100) f.push(`pct=${d.pct}`);
-    f.push(`Reporting: ${d.rua?.length ? "aktiv" : "fehlt"}`);
-    if (d.adkim || d.aspf)
-      f.push(`Alignment: dkim=${d.adkim ?? "r"} / spf=${d.aspf ?? "r"}`);
-  } else if (key === "spf" && d) {
-    f.push(`${d.dnsLookupCount}/10 DNS-Lookups`);
-    if (d.all) f.push(`${d.all}all`);
-    f.push(`${d.mechanisms?.length ?? 0} Mechanismen`);
-  } else if (key === "dkim" && Array.isArray(d)) {
-    if (d.length === 0) f.push("keine Selektoren gefunden");
-    d.forEach((s) => f.push(`${s.selector}${s.keySize ? ` (${s.keySize}-Bit)` : ""}`));
-  } else if (key === "mx" && Array.isArray(d)) {
-    d.forEach((m) => {
-      const ips = [...(m.ips?.a ?? []), ...(m.ips?.aaaa ?? [])];
-      f.push(`${m.exchange}${ips.length ? ` → ${ips.join(", ")}` : ""}`);
-    });
-  } else if (key === "mtaSts" && d) {
-    f.push(d.mode ? `Modus: ${d.mode}` : "nicht konfiguriert");
-  } else if (key === "tlsRpt" && d) {
-    f.push(d.rua?.length ? `Reports an: ${d.rua.join(", ")}` : "nicht konfiguriert");
-  } else if (key === "dnssec" && d) {
-    f.push(`Signiert & validiert: ${d.secure ? "ja" : "nein"}`);
-    f.push(`DNSKEY: ${d.dnskeyCount}`);
-    f.push(`DS beim Parent: ${d.dsPresent ? "ja" : "nein"}`);
-  } else if (key === "observatory" && d && d.grade) {
-    f.push(`Score: ${d.score}`);
-    f.push(`${d.testsPassed}/${d.testsQuantity} Tests bestanden`);
-  }
-  return f;
-}
-
-// Compact issue list for the report: only actionable items (skip plain "OK"),
-// capped, and recommendations shown only for failures to keep each area ≤ 1 page.
-function reportIssues(issues) {
-  const items = (issues || []).filter((i) => i.severity !== "pass").slice(0, 3);
-  if (!items.length) return "";
-  return `<ul class="report-issues">${items
-    .map((i) => {
-      const rec =
-        i.severity === "fail" && i.recommendation
-          ? `<span class="rec">${escapeHtml(i.recommendation)}</span>`
-          : "";
-      return `<li data-severity="${i.severity}"><strong>${escapeHtml(i.message)}</strong>${rec}</li>`;
-    })
-    .join("")}</ul>`;
-}
-
-function reportFindingHtml(key, c) {
-  const label = CHECK_LABELS[key] ?? key;
-  const status = c.status ?? "info";
-  const facts = reportFacts(key, c);
-  const factsHtml = facts.length
-    ? `<p class="report-facts">${facts.map((x) => `<span>${escapeHtml(x)}</span>`).join("")}</p>`
-    : "";
-  let obsTests = "";
-  if (key === "observatory" && Array.isArray(c.data?.tests)) {
-    const failed = c.data.tests.filter((t) => t.pass === false);
-    if (failed.length) {
-      obsTests = `<ul class="report-issues">${failed
-        .map(
-          (t) =>
-            `<li data-severity="fail"><strong>${escapeHtml(t.title)} (${escapeHtml(fmtScore(t.scoreModifier))})</strong>${t.recommendation ? `<span class="rec">${escapeHtml(t.recommendation)}</span>` : ""}</li>`,
-        )
-        .join("")}</ul>`;
-    }
-  }
-  return `
-    <section class="report-finding" data-status="${status}">
-      <div class="report-finding-head">
-        ${reportBadge(c)}
-        <div class="report-finding-meta">
-          <h3>${escapeHtml(label)}</h3>
-          <p class="report-finding-summary">${escapeHtml(c.summary ?? "")}</p>
-        </div>
-      </div>
-      ${factsHtml}${reportIssues(c.issues)}${obsTests}
-    </section>`;
-}
-
-function reportAreaOverview(area, F) {
-  const gc = F[area.gradeFrom];
-  const gStatus = gc?.status ?? "info";
-  const chips = area.checks
-    .map((k) => {
-      const c = F[k];
-      if (!c) return "";
-      const st = c.status ?? "info";
-      const verdict = c.grade ?? SEVERITY_LABEL[st] ?? "—";
-      return `<span class="report-chip" data-status="${st}">${escapeHtml(CHECK_LABELS[k] ?? k)}: ${escapeHtml(verdict)}</span>`;
-    })
-    .join("");
-  return `
-    <div class="report-area-card" data-status="${gStatus}">
-      ${reportBadge(gc)}
-      <div class="report-area-card-body">
-        <h3>${escapeHtml(area.title)}</h3>
-        <div class="report-chips">${chips}</div>
-      </div>
-    </div>`;
-}
-
-// Collect the actionable recommendations for an area (deduped, fail before warn).
-function reportAreaRecs(area, F) {
-  const recs = [];
-  for (const k of area.checks) {
-    const c = F[k];
-    if (!c) continue;
-    const label = CHECK_LABELS[k] ?? k;
-    for (const i of c.issues || []) {
-      if (i.severity === "fail" || i.severity === "warn") {
-        recs.push({ sev: i.severity, label, text: i.recommendation || i.message });
-      }
-    }
-    if (k === "observatory" && Array.isArray(c.data?.tests)) {
-      for (const t of c.data.tests.filter((x) => x.pass === false)) {
-        recs.push({ sev: "fail", label: t.title, text: t.recommendation || t.reason });
-      }
-    }
-  }
-  recs.sort((a, b) => (a.sev === "fail" ? -1 : 1) - (b.sev === "fail" ? -1 : 1));
-  return recs;
-}
-
-// Trim a recommendation to ~2 printed lines, breaking on a word boundary.
-function truncateRec(text, max = 165) {
-  if (!text || text.length <= max) return text || "";
-  const cut = text.slice(0, max);
-  const lastSpace = cut.lastIndexOf(" ");
-  return `${(lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).trimEnd()} …`;
-}
-
-// One print page per area: short intro + compact verdict table + recommendations.
-function reportAreaPage(area, F) {
-  const rows = area.checks
-    .filter((k) => F[k])
-    .map((k) => {
-      const c = F[k];
-      const status = c.status ?? "info";
-      const verdict = c.grade ?? SEVERITY_LABEL[status] ?? "—";
-      const facts = reportFacts(k, c).join(" · ");
-      return `<tr>
-        <td class="rt-check">${escapeHtml(CHECK_LABELS[k] ?? k)}</td>
-        <td><span class="report-status" data-status="${status}">${escapeHtml(verdict)}</span></td>
-        <td><span class="rt-summary">${escapeHtml(c.summary ?? "")}</span>${facts ? `<span class="rt-facts">${escapeHtml(facts)}</span>` : ""}</td>
-      </tr>`;
-    })
-    .join("");
-  const recs = reportAreaRecs(area, F);
-  const recList = recs.length
-    ? `<h3 class="rt-rec-title">Empfehlungen</h3>
-       <ul class="report-issues">${recs
-         .slice(0, 5)
-         .map(
-           (r) =>
-             `<li data-severity="${r.sev}"><strong>${escapeHtml(r.label)}:</strong> ${escapeHtml(truncateRec(r.text))}</li>`,
-         )
-         .join("")}</ul>`
-    : `<p class="rt-allgood">Keine offenen Punkte in diesem Bereich.</p>`;
-  return `
-    <section class="report-page">
-      <h2 class="report-area-title">${escapeHtml(area.title)}</h2>
-      <p class="report-area-intro">${escapeHtml(area.intro)}</p>
-      <table class="report-detail-table">
-        <thead><tr><th>Prüfung</th><th>Bewertung</th><th>Befund</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-      ${recList}
-    </section>`;
-}
-
-// Abschlussseite "Der nächste Schritt" (nur brand.funnel): Varianten, Ablauf,
-// /pentest-Verweis und Kontakt — der Bericht ist das Artefakt, das beim
-// Interessenten liegen bleibt. Kein Preis, keine Proof-Zahlen.
-function reportNextStep() {
-  if (!FUNNEL) return "";
-  const c = REPORT_CONTACT;
-  const pentestUrl = location.host + FUNNEL.pentestPath;
-  return `
-    <section class="report-section report-next-step">
-      <h2>Der nächste Schritt</h2>
-      <p>Dieser Bericht zeigt, was ein Angreifer in dreißig Sekunden ohne Anmeldung sieht.
-        Die Folgefrage beantwortet ein Penetrationstest: Was findet jemand, der dreißig
-        Stunden investiert, sich anmeldet und Schwachstellen zu Angriffspfaden verkettet?</p>
-      <h3>Wählbar nach Bedarf</h3>
-      <ul>
-        <li><strong>Extern</strong> — Ihre von außen erreichbaren Systeme: Perimeter,
-          exponierte Dienste.</li>
-        <li><strong>Intern / Active Directory</strong> — was ein Angreifer im Netz erreicht:
-          AD-Härtung, Rechteausweitung.</li>
-        <li><strong>Web-Applikation</strong> — Ihre Anwendungen und Portale entlang
-          anerkannter Prüfmethodik.</li>
-      </ul>
-      <h3>So läuft Ihr Pentest ab</h3>
-      <ol>
-        <li><strong>Scoping</strong> — gemeinsam Ziele, Systeme und Testtiefe festlegen,
-          Zeitfenster betriebsschonend abstimmen.</li>
-        <li><strong>Test</strong> — wir prüfen manuell und mit eigenen Tools, dokumentieren
-          jeden Schritt nachvollziehbar.</li>
-        <li><strong>Report &amp; Besprechung</strong> — priorisierte Findings, konkrete
-          Behebungsempfehlungen, Durchsprache mit Ihrem Team.</li>
-        <li><strong>Retest</strong> — nach Ihrer Nachbesserung bestätigen wir die
-          Wirksamkeit.</li>
-      </ol>
-      <p class="ns-ref">Umfang, Ablauf und Anfrage: <strong>${escapeHtml(pentestUrl)}</strong>
-        · <a href="${escapeHtml(FUNNEL.bookingUrl)}" rel="noopener">Termin direkt buchen</a></p>
-      <p class="ns-contact"><strong>${escapeHtml(c.name)}</strong> · ${escapeHtml(c.company)} ·
-        Tel. ${escapeHtml(c.phone)} · ${escapeHtml(c.email)}</p>
-    </section>`;
-}
-
-function buildReportHtml(domain, isSingle, singleLabel, findings) {
-  const now = new Date().toLocaleDateString("de-DE", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
-  const c = REPORT_CONTACT;
-  const kind = isSingle ? `Einzelbefund: ${singleLabel}` : "Cybersecurity-Report";
-  const letterhead = `
-    <header class="report-letterhead">
-      <img src="${LETTERHEAD_LOGO}" alt="${escapeHtml(c.company)}" class="report-logo" />
-      <address class="report-contact">
-        <strong>${c.company}</strong><br />
-        ${c.name}<br />
-        ${c.street} · ${c.city}<br />
-        Tel. ${c.phone}<br />
-        <a href="mailto:${c.email}">${c.email}</a>
-      </address>
-    </header>`;
-  const titleBlock = `
-    <div class="report-title-block">
-      <p class="eyebrow">${escapeHtml(kind)}</p>
-      <h1>Sicherheitsanalyse für <span class="mono">${escapeHtml(domain)}</span></h1>
-      <p class="report-date">Erstellt am ${now}</p>
-    </div>`;
-  const footer = `<footer class="report-footer">
-      Erstellt am ${now}. Die Analyse basiert auf öffentlich abfragbaren DNS- und
-      HTTP-Daten zum Abrufzeitpunkt. © ${c.company}.
-    </footer>`;
-
-  if (isSingle) {
-    const [key, fc] = findings[0];
-    return (
-      letterhead +
-      titleBlock +
-      `<section class="report-section report-findings">${reportFindingHtml(key, fc)}</section>` +
-      reportNextStep() +
-      footer
-    );
-  }
-
-  // Full report: page 1 = three area overview blocks; then one page per area.
-  const F = Object.fromEntries(findings);
-  const overview = `
-    <section class="report-section">
-      <h2>Zusammenfassung</h2>
-      <div class="report-areas">${REPORT_AREAS.map((a) => reportAreaOverview(a, F)).join("")}</div>
-    </section>`;
-  const areaPages = REPORT_AREAS.map((a) => reportAreaPage(a, F)).join("");
-  return letterhead + titleBlock + overview + areaPages + reportNextStep() + footer;
-}
-
-function startReportProgress(doc, estMs) {
-  doc.innerHTML = `
-    <div class="report-progress">
-      <p class="report-loading">Bericht wird erstellt … Analyse, Website-Scan (MDN HTTP Observatory) und das PDF werden vorbereitet. Das kann ~30 Sekunden dauern.</p>
-      <div class="report-progress-track"><div class="report-progress-bar"></div></div>
-    </div>`;
-  const bar = doc.querySelector(".report-progress-bar");
-  // Animate toward 92% over the estimate; the final 8% is filled when data lands.
-  requestAnimationFrame(() => {
-    bar.style.transition = `width ${estMs}ms cubic-bezier(.15,.75,.3,1)`;
-    bar.style.width = "92%";
-  });
-  return bar;
-}
-
-function finishReportProgress(doc, bar, html) {
-  if (!bar) {
-    doc.innerHTML = html;
-    return;
-  }
-  bar.style.transition = "width .35s ease-out";
-  bar.style.width = "100%";
-  setTimeout(() => {
-    doc.innerHTML = html;
-  }, 380);
-}
-
-const LEAD_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-
-function leadCaptured() {
-  try {
-    return sessionStorage.getItem("rt-lead") === "1";
-  } catch {
-    return false;
-  }
-}
-function markLeadCaptured(email) {
-  try {
-    sessionStorage.setItem("rt-lead", "1");
-    if (email) sessionStorage.setItem("rt-lead-email", email);
-  } catch {
-    /* storage unavailable — gate will simply show again */
-  }
-}
-
-// E-mail + DSGVO consent gate shown before a report is generated/downloaded.
-function renderLeadGate(doc, domain, onProceed) {
-  const printBtn = $("#report-print");
-  // Inline display beats the `.btn { display: inline-flex }` rule (which would
-  // otherwise override the [hidden] attribute). Nothing to print until the report exists.
-  if (printBtn) printBtn.style.display = "none";
-  doc.innerHTML = `
-    <div class="lead-gate">
-      <p class="eyebrow">Cybersecurity-Report</p>
-      <h2>Bericht anfordern</h2>
-      <p class="lead-intro">Geben Sie Ihre E-Mail-Adresse ein, um den Sicherheitsbericht${
-        domain ? ` für <span class="mono">${escapeHtml(domain)}</span>` : ""
-      } zu erstellen und herunterzuladen.</p>
-      <form class="lead-form" novalidate>
-        <label class="lead-field">
-          <span class="lead-label">E-Mail-Adresse</span>
-          <input type="email" name="email" required autocomplete="email" inputmode="email"
-                 placeholder="name@unternehmen.de" />
-        </label>
-        <label class="lead-consent">
-          <input type="checkbox" name="consent" required />
-          <span>Ich willige ein, dass die <strong>${escapeHtml(LEAD_CONSENT_COMPANY)}</strong> meine
-            E-Mail-Adresse zur Bereitstellung des Berichts und zur Kontaktaufnahme
-            verarbeitet. Die <a href="${LEAD_DATENSCHUTZ_HREF}"
-            target="_blank" rel="noopener">Datenschutzerklärung</a> habe ich zur Kenntnis
-            genommen. Diese Einwilligung kann ich jederzeit mit Wirkung für die Zukunft
-            widerrufen.</span>
-        </label>
-        <p class="lead-error" data-lead-error hidden></p>
-        <button type="submit" class="btn btn-primary lead-submit">
-          <span class="btn-label">Bericht erstellen</span><span class="spinner"></span>
-        </button>
-        <p class="lead-note">Wir verwenden Ihre E-Mail-Adresse ausschließlich für den
-          angeforderten Bericht und eine etwaige Rückfrage. Keine Weitergabe an Dritte.</p>
-      </form>
-    </div>`;
-
-  const form = doc.querySelector(".lead-form");
-  const errEl = form.querySelector("[data-lead-error]");
-  const btn = form.querySelector(".lead-submit");
-  const showErr = (m) => {
-    errEl.textContent = m;
-    errEl.hidden = false;
-  };
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    errEl.hidden = true;
-    const email = form.email.value.trim();
-    const consent = form.consent.checked;
-    if (!consent) return showErr("Bitte stimmen Sie der Verarbeitung Ihrer E-Mail-Adresse zu.");
-    if (!LEAD_EMAIL_RE.test(email)) return showErr("Bitte geben Sie eine gültige E-Mail-Adresse ein.");
-    btn.classList.add("loading");
-    btn.disabled = true;
-    try {
-      const r = await fetch("/api/lead", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, domain, consent: true }),
-      });
-      const data = await r.json().catch(() => ({}));
-      if (!r.ok || !data.ok) {
-        btn.classList.remove("loading");
-        btn.disabled = false;
-        return showErr(data.message || "Es ist ein Fehler aufgetreten. Bitte erneut versuchen.");
-      }
-      markLeadCaptured(email);
-      onProceed();
-    } catch {
-      btn.classList.remove("loading");
-      btn.disabled = false;
-      showErr("Verbindungsfehler. Bitte erneut versuchen.");
-    }
-  });
-}
-
-async function renderReport() {
-  const url = new URL(window.location.href);
-  const domain = (url.searchParams.get("d") || "").trim();
-  const check = url.searchParams.get("check") || "";
-  const doc = $("[data-report-doc]");
-  if (!doc) return;
-  if (!domain) {
-    doc.innerHTML = '<p class="report-loading">Keine Domain angegeben.</p>';
-    return;
-  }
-  // Gate: capture an e-mail + consent (once per session) before building the report.
-  if (!leadCaptured()) {
-    renderLeadGate(doc, domain, () => buildAndShowReport(doc, domain, check));
-    return;
-  }
-  buildAndShowReport(doc, domain, check);
-}
-
-async function buildAndShowReport(doc, domain, check) {
-  const printBtn = $("#report-print");
-  if (printBtn) printBtn.style.display = "";
-  const enc = encodeURIComponent(domain);
-  const isSingle = !!check;
-  const slow = !isSingle || check === "observatory"; // Observatory is the slow part
-  // Estimate covers the scan AND the PDF render — the bar is coupled to both.
-  const bar = startReportProgress(doc, slow ? 30000 : 9000);
-  try {
-    let findings;
-    if (check === "observatory") {
-      const o = await fetchJson(`/api/observatory?domain=${enc}`);
-      findings = [["observatory", o.observatory]];
-    } else if (isSingle) {
-      const e = await fetchJson(`/api/analyze?domain=${enc}`);
-      if (!e[check]) throw new Error(`Unbekannter Befund: ${check}`);
-      findings = [[check, e[check]]];
-    } else {
-      const [e, o] = await Promise.all([
-        fetchJson(`/api/analyze?domain=${enc}`),
-        fetchJson(`/api/observatory?domain=${enc}`).catch(() => null),
-      ]);
-      findings = [
-        ["dmarc", e.dmarc],
-        ["spf", e.spf],
-        ["dkim", e.dkim],
-        ["mx", e.mx],
-        ["mtaSts", e.mtaSts],
-        ["tlsRpt", e.tlsRpt],
-        ["dnssec", e.dnssec],
-      ];
-      if (o?.observatory) findings.push(["observatory", o.observatory]);
-    }
-    const html = buildReportHtml(
-      domain,
-      isSingle,
-      isSingle ? CHECK_LABELS[check] ?? check : "",
-      findings,
-    );
-    // Couple the progress bar to the PDF creation: generate it now (while the bar
-    // still runs) so that when the report appears the PDF is ready for instant
-    // download. Capped by a timeout so a slow/failed render never blocks the report.
-    prefetchReportPdf(html, domain, check);
-    await Promise.race([
-      reportPdfCache.promise.catch(() => {}),
-      new Promise((resolve) => setTimeout(resolve, 25000)),
-    ]);
-    finishReportProgress(doc, bar, html);
-  } catch (err) {
-    doc.innerHTML = `<p class="report-loading">Bericht konnte nicht erstellt werden: ${escapeHtml(
-      err instanceof Error ? err.message : String(err),
-    )}</p>`;
-  }
-}
-
-function showReportView() {
-  document.body.classList.add("is-report");
-  TABS.forEach((t) => {
-    views[t].hidden = true;
-  });
-  $("#view-report").hidden = false;
-}
-
-// Server-side PDF (Browser Rendering). The PDF is pre-generated in the background
-// as soon as the report renders (prefetchReportPdf), so the download click is
-// instant. Falls back to the browser print dialog if the PDF service is
-// unavailable (e.g. daily Browser-Rendering limit reached).
-let reportPdfCache = null; // { key, promise<Blob> }
-
-const reportPdfKey = (domain, check) => `${domain}|${check}`;
-
-async function fetchReportPdfBlob(html, domain, check) {
-  const r = await fetch("/api/report-pdf", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ html, domain, check }),
-  });
-  if (!r.ok) throw new Error("PDF-Service nicht verfügbar");
-  return r.blob();
-}
-
-// Kick off PDF generation in the background while the user reads the report.
-function prefetchReportPdf(html, domain, check) {
-  const key = reportPdfKey(domain, check);
-  const promise = fetchReportPdfBlob(html, domain, check);
-  promise.catch(() => {}); // mark handled; downloadReportPdf re-handles on await
-  reportPdfCache = { key, promise };
-}
-
-function triggerBlobDownload(blob, domain, check) {
-  const objUrl = URL.createObjectURL(blob);
-  const safe = domain.replace(/[^a-z0-9.-]/gi, "_");
-  const a = document.createElement("a");
-  a.href = objUrl;
-  a.download = `${check ? `Befund-${check}-${safe}` : `Sicherheitsbericht-${safe}`}.pdf`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(objUrl), 4000);
-}
-
-async function downloadReportPdf(btn) {
-  const doc = $("[data-report-doc]");
-  if (!doc || doc.querySelector(".lead-gate, .report-progress")) return; // not ready
-  const url = new URL(window.location.href);
-  const domain = (url.searchParams.get("d") || "report").trim();
-  const check = url.searchParams.get("check") || "";
-  const key = reportPdfKey(domain, check);
-  btn.classList.add("loading");
-  btn.disabled = true;
-  try {
-    let blob = null;
-    // Use the background-generated PDF if it's for this exact report.
-    if (reportPdfCache && reportPdfCache.key === key) {
-      try {
-        blob = await reportPdfCache.promise;
-      } catch {
-        blob = null; // prefetch failed → retry fresh below
-      }
-    }
-    if (!blob) blob = await fetchReportPdfBlob(doc.innerHTML, domain, check);
-    triggerBlobDownload(blob, domain, check);
-  } catch {
-    window.print(); // graceful fallback
-  } finally {
-    btn.classList.remove("loading");
-    btn.disabled = false;
-  }
-}
-
 /* ─────────────── wire up ─────────────── */
-const printBtn = $("#report-print");
-if (printBtn) printBtn.addEventListener("click", () => downloadReportPdf(printBtn));
 TABS.forEach((tab) => {
   const { form } = viewParts(tab);
   form.addEventListener("submit", (e) => {
@@ -1175,11 +608,6 @@ tabLinks.forEach((a) => {
 });
 
 window.addEventListener("popstate", () => {
-  if (window.location.pathname === "/report") {
-    showReportView();
-    void renderReport();
-    return;
-  }
   const tab = PATH_TAB[window.location.pathname] ?? "email";
   const url = new URL(window.location.href);
   const d = url.searchParams.get("d");
@@ -1192,11 +620,6 @@ window.addEventListener("popstate", () => {
 /* ─────────────── init (shareable links) ─────────────── */
 (function init() {
   const url = new URL(window.location.href);
-  if (url.pathname === "/report") {
-    showReportView();
-    void renderReport();
-    return;
-  }
   const tab = PATH_TAB[url.pathname] ?? "email";
   const d = url.searchParams.get("d");
   const s = url.searchParams.get("s");
