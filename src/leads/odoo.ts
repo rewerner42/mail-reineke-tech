@@ -305,11 +305,15 @@ export async function createLead(
           if (lead.channel === "pentest-scoping") upd.x_reineke_kanal = "pentest-scoping";
           const s = lead.scoping;
           if (s) {
-            // Firma und Ansprechpartner nur FUELLEN, nie ueberschreiben: Eine
-            // spaetere, schwaecher qualifizierte Berichtsanfrage darf die
-            // Angaben eines bestehenden Pentest-Vorgangs nicht verdraengen.
-            if (s.company?.trim() && !ex.partner_name) upd.partner_name = s.company.trim();
-            if (!ex.contact_name) upd.contact_name = s.contactName.trim();
+            // Die Pentest-Anfrage ist der qualifizierte Einstieg und darf Firma
+            // und Ansprechpartner weiterhin korrigieren. Die schwaechere
+            // Berichtsanfrage fuellt nur Luecken — sonst verdraengt sie die
+            // gepflegten Angaben eines bestehenden Pentest-Vorgangs.
+            const darfErsetzen = lead.channel === "pentest-scoping";
+            if (s.company?.trim() && (darfErsetzen || !ex.partner_name)) {
+              upd.partner_name = s.company.trim();
+            }
+            if (darfErsetzen || !ex.contact_name) upd.contact_name = s.contactName.trim();
             if (s.phone) upd.phone = s.phone;
             if (s.role) upd.x_reineke_rolle = s.role;
             if (s.testart) upd.x_reineke_testart = s.testart;
@@ -325,6 +329,8 @@ export async function createLead(
           const note =
             `Erneute Anfrage über ${opts.marketing?.referred ?? DEFAULT_MARKETING.referred} ` +
             `(Kanal: ${lead.channel ?? "freier-check"}): ${lead.email.trim()}` +
+            (lead.reportDomain ? ` — Bericht angefordert für ${lead.reportDomain}` : "") +
+            consentLines(lead.contactConsent) +
             (isNewPerson ? " — neue Kontaktperson (mögliches Buying Center)." : ".") +
             (s ? ` Scoping: ${[s.testart, s.anlass, s.frist].filter(Boolean).join(" · ")}` : "") +
             ` DSGVO-Einwilligung: ${stamp}`;

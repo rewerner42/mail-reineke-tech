@@ -198,9 +198,35 @@ Server nicht.
 2. Keine Vertriebsmitarbeiter-Auswahl: `reportBrandFor()` streicht `partner` und
    `reps`, damit ein Fremder nie bestimmt, welche Person auf dem Dokument steht.
 3. Das PDF steht nie in der Antwort von `/api/report-request`.
-4. Turnstile ist Pflicht: Fehlt `TURNSTILE_SECRET`, obwohl ein Sitekey gesetzt
-   ist, **lehnt** der Endpunkt ab (der Pentest-Pfad lässt hier durch).
+4. Turnstile: Ist ein Sitekey hinterlegt, aber `TURNSTILE_SECRET` fehlt, **lehnt**
+   der Endpunkt ab (der Pentest-Pfad lässt in dem Fall still durch). Ohne
+   hinterlegten Sitekey findet gar keine Prüfung statt — die Marke muss ihn
+   setzen, der Code kann das nicht erzwingen.
 5. Getrennte Zähler je Strecke.
+6. Ohne `RESEND_API_KEY` antwortet der Endpunkt `503 NO_MAILER`, statt eine
+   Zustellung zu versprechen, die nicht stattfinden kann.
+
+#### Bekannte Grenzen
+
+Ehrlich benannt, damit sie niemand für gelöst hält:
+
+- **Geteilte Ressourcen.** Browser Rendering und der Resend-Absender
+  `scan@reineke.tech` werden von beiden Wegen genutzt. Ein ausgeschöpftes
+  Tageskontingent trifft auch den angemeldeten Generator; missbräuchliche
+  Berichtsanfragen belasten die Zustellreputation. Die Zähler begrenzen das,
+  trennen es aber nicht.
+- **Keine Adressverifikation.** Wer eine fremde Adresse einträgt, löst dort eine
+  Mail mit PDF aus. Turnstile und die Zähler begrenzen die Automatisierung, nicht
+  den Einzelfall. Deshalb steht in der Berichtsmail ein ausdrücklicher
+  Widerspruchsweg („Sie haben das nicht angefordert?"). Ein Double-Opt-in für die
+  Zusendung würde die Strecke unbrauchbar machen; für die *Werbeeinwilligung*
+  wäre ein Bestätigungsklick der belastbarere Nachweis — bislang nicht gebaut.
+- **Zähler gelten je Rechenzentrum** (`caches.default`, kein KV). Für den
+  IP-Zähler vertretbar, für den Adresszähler eine echte Lücke: Über mehrere
+  Ausgangsorte vervielfacht sich die Grenze.
+- **Zähler laufen vor dem Erfolg hoch.** Scheitert der Versand im Hintergrund,
+  ist ein Versuch verbraucht. Deshalb erlaubt die Paar-Grenze zwei statt einer
+  Anfrage.
 
 
 Briefkopf: **Reineke Technik GmbH · Werner Francis Reineke · Geseker Straße 26,

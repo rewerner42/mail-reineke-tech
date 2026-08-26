@@ -15,6 +15,7 @@ const errEl = document.querySelector("[data-b-error]");
 const success = document.querySelector("[data-b-success]");
 const successText = document.querySelector("[data-b-success-text]");
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const SUCCESS_HEADING = success?.querySelector("h3")?.textContent ?? "";
 
 function showErr(msg) {
   errEl.textContent = msg;
@@ -23,14 +24,21 @@ function showErr(msg) {
 
 // Geprüfte Domain aus dem Verweis übernehmen und OFFEN anzeigen — kein
 // verstecktes Feld. Fehlt sie, tritt ein Eingabefeld an ihre Stelle.
-const domainFromUrl = (new URL(window.location.href).searchParams.get("d") || "").trim();
+// Grobe Vorprüfung: Was offensichtlich keine Domain ist, wird nicht als
+// Tatsache angezeigt — sonst steht der Nutzer vor einer Serverablehnung ohne
+// ein Feld, in dem er sie korrigieren könnte. Die verbindliche Prüfung bleibt
+// serverseitig (normalizeDomain).
+const LOOKS_LIKE_DOMAIN = /^[a-z0-9.-]+\.[a-z]{2,}$/i;
+const rawDomain = (new URL(window.location.href).searchParams.get("d") || "").trim();
+const domainFromUrl = LOOKS_LIKE_DOMAIN.test(rawDomain) ? rawDomain : "";
 const domainField = document.querySelector("[data-b-domain-field]");
 if (domainFromUrl) {
-  const label = document.querySelector("[data-b-for]");
   document.querySelector("[data-b-domain]").textContent = domainFromUrl;
-  label.hidden = false;
+  document.querySelector("[data-b-for]").hidden = false;
 } else {
   domainField.hidden = false;
+  // Unbrauchbaren Wert trotzdem vorbelegen — meist ein Tippfehler, kein Unsinn.
+  if (rawDomain) form.elements.domain.value = rawDomain;
 }
 
 // Turnstile nachladen und rendern (nur wenn eine Marke ein Widget hinterlegt hat).
@@ -51,6 +59,8 @@ if (SITEKEY) {
 document.querySelector("[data-b-again]")?.addEventListener("click", () => {
   success.hidden = true;
   form.hidden = false;
+  const h = success.querySelector("h3");
+  if (h) h.textContent = SUCCESS_HEADING;
   const btn = form.querySelector(".lead-submit");
   btn.classList.remove("loading");
   btn.disabled = false;

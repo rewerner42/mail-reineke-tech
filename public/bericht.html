@@ -86,17 +86,17 @@
               </label>
 
               <div class="pt-turnstile" data-turnstile hidden></div>
-              <p class="lead-error" data-b-error hidden></p>
+              <p class="lead-error" data-b-error role="alert" aria-live="assertive" hidden></p>
               <button type="submit" class="btn btn-primary lead-submit">
                 <span class="btn-label">Bericht anfordern</span><span class="spinner"></span>
               </button>
             </form>
 
-            <div class="pt-success" data-b-success hidden>
+            <div class="pt-success" data-b-success role="status" aria-live="polite" hidden>
               <h3>Angefordert — der Bericht wird jetzt erstellt.</h3>
               <p data-b-success-text>Wir prüfen Ihre Domain gerade live und schicken das PDF an
                 Ihre Adresse. Das dauert ein bis zwei Minuten.</p>
-              <p class="lead-note">Adresse vertippt? <button type="button" class="rg-link"
+              <p class="lead-note">Adresse vertippt? <button type="button" class="card-export"
                 data-b-again>Noch einmal eingeben</button></p>
             </div>
 

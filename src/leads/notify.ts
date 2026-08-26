@@ -138,13 +138,39 @@ export function buildCustomerEmail(
 ): { subject: string; html: string } {
   const istBericht = n.kind === "bericht";
   const dom = n.reportDomain ?? n.domain ?? "";
-  const rueck = istBericht
-    ? [row("Geprüfte Domain", dom), row("Firma", n.company)].join("")
-    : [row("Firma", n.company), row("Testart", n.testart), row("Anlass", n.anlass), row("Frist", n.frist)].join("");
 
-  // Neutrale Sprache: Die geprüfte Domain muss NICHT dem Empfänger gehören
-  // (IT-Dienstleister prüfen Kundendomains). "Ihre Domain" wäre dann falsch
-  // und läse sich wie ein Vorwurf.
+  // ── Pentest-Strecke: Wortlaut UNVERÄNDERT. Diese Mail läuft im Vertrieb;
+  //    die Berichtsanfrage darf sie nicht nebenbei umformulieren.
+  if (!istBericht) {
+    const rueck = [row("Firma", n.company), row("Testart", n.testart), row("Anlass", n.anlass), row("Frist", n.frist)]
+      .join("");
+    const bericht = opts.hasReport
+      ? `<p>Als erste Orientierung haben wir Ihnen einen <strong>Sicherheitsbericht zu ${esc(n.domain ?? "")}</strong>
+       angehängt. Er zeigt, was ein Angreifer ohne Anmeldung in dreißig Sekunden über Ihre Domain
+       sehen kann — E-Mail-Authentifizierung, DNS-Absicherung und Website-Header. Ausgewertet wurden
+       ausschließlich öffentlich abrufbare Informationen; es gab keine Eingriffe in Ihre Systeme.</p>`
+      : "";
+    const html = `<div style="${FONT}">
+<p>Guten Tag ${esc(n.contactName)},</p>
+<p>vielen Dank für Ihre Anfrage über ${esc(n.toolUrl)}. Ihre Angaben sind bei uns eingegangen:</p>
+<table cellpadding="0" cellspacing="0" style="${FONT};border-collapse:collapse;margin:12px 0">${rueck}</table>
+${bericht}
+<p><strong>Wie es weitergeht:</strong> Ich melde mich innerhalb von 2 Werktagen persönlich bei Ihnen, um das
+Scoping-Gespräch zu terminieren. Darin legen wir gemeinsam Ziele, Systeme und Testtiefe fest und
+stimmen das Zeitfenster betriebsschonend ab. Den Festpreis erhalten Sie, bevor Sie beauftragen.</p>
+<p>Wenn es schneller gehen soll, buchen Sie sich direkt einen Termin:<br/>
+<a href="${esc(opts.bookingUrl)}" style="color:#0563C1">Termin direkt buchen</a></p>
+<p>Falls Sie diese Anfrage nicht ausgelöst haben, antworten Sie bitte kurz auf diese E-Mail —
+dann löschen wir Ihre Angaben umgehend.</p>
+${signature(opts.logoBase64)}
+</div>`;
+    return { subject: `Ihre Pentest-Anfrage bei Reineke Technik`, html };
+  }
+
+  // ── Berichtsanfrage. Neutrale Sprache: Die geprüfte Domain muss NICHT dem
+  //    Empfänger gehören (IT-Dienstleister prüfen Kundendomains). "Ihre Domain"
+  //    wäre dann falsch und läse sich wie ein Vorwurf.
+  const rueck = [row("Geprüfte Domain", dom), row("Firma", n.company)].join("");
   const bericht = opts.hasReport
     ? `<p>Im Anhang finden Sie den <strong>Sicherheitsbericht zu ${esc(dom)}</strong>. Er zeigt, was
        ohne Anmeldung von außen sichtbar ist — E-Mail-Authentifizierung, DNS-Absicherung und
@@ -153,31 +179,22 @@ export function buildCustomerEmail(
     : `<p>Den Bericht zu <strong>${esc(dom)}</strong> konnten wir nicht automatisch erstellen —
        das kommt gelegentlich vor, wenn eine Prüfung zu lange braucht. Wir stellen ihn von Hand
        zusammen und melden uns damit bei Ihnen.</p>`;
-
-  const weiter = istBericht
-    ? `<p><strong>Wie es weitergeht:</strong> Der Bericht sagt Ihnen, <em>was</em> offensteht — nicht,
-was es für Sie bedeutet. Wenn Sie die Punkte einordnen möchten, gehe ich sie in einem kurzen
-Gespräch mit Ihnen durch, unverbindlich.</p>`
-    : `<p><strong>Wie es weitergeht:</strong> Ich melde mich innerhalb von 2 Werktagen persönlich bei Ihnen, um das
-Scoping-Gespräch zu terminieren. Darin legen wir gemeinsam Ziele, Systeme und Testtiefe fest und
-stimmen das Zeitfenster betriebsschonend ab. Den Festpreis erhalten Sie, bevor Sie beauftragen.</p>`;
-
   const html = `<div style="${FONT}">
 <p>Guten Tag ${esc(n.contactName)},</p>
-<p>vielen Dank für Ihre Anfrage über ${esc(n.toolUrl)}.${istBericht ? "" : " Ihre Angaben sind bei uns eingegangen:"}</p>
+<p>vielen Dank für Ihre Anfrage über ${esc(n.toolUrl)}.</p>
 <table cellpadding="0" cellspacing="0" style="${FONT};border-collapse:collapse;margin:12px 0">${rueck}</table>
 ${bericht}
-${weiter}
+<p><strong>Wie es weitergeht:</strong> Der Bericht sagt Ihnen, <em>was</em> offensteht — nicht,
+was es für Sie bedeutet. Wenn Sie die Punkte einordnen möchten, gehe ich sie in einem kurzen
+Gespräch mit Ihnen durch, unverbindlich.</p>
 <p>Wenn es schneller gehen soll, buchen Sie sich direkt einen Termin:<br/>
 <a href="${esc(opts.bookingUrl)}" style="color:#0563C1">Termin direkt buchen</a></p>
-<p style="color:#666">Sie möchten von uns nichts weiter hören? Eine kurze Antwort auf diese E-Mail
-genügt — dann melden wir uns nicht wieder und löschen Ihre Angaben.</p>
+<p><strong>Sie haben das nicht angefordert?</strong> Dann hat jemand Ihre Adresse eingetragen.
+Antworten Sie bitte kurz auf diese E-Mail — wir löschen Ihre Angaben umgehend und schreiben
+Sie nicht wieder an.</p>
 ${signature(opts.logoBase64)}
 </div>`;
-  return {
-    subject: istBericht ? `Sicherheitsbericht für ${dom}` : `Ihre Pentest-Anfrage bei Reineke Technik`,
-    html,
-  };
+  return { subject: `Sicherheitsbericht für ${dom}`, html };
 }
 
 export interface MailInput {

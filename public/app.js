@@ -32,19 +32,6 @@ const BRAND = (() => {
   }
 })();
 
-// Letterhead for the exported cybersecurity reports.
-const REPORT_CONTACT = BRAND.reportContact ?? {
-  company: "Reineke Technik GmbH",
-  name: "Werner Francis Reineke",
-  street: "Geseker Straße 26",
-  city: "33154 Salzkotten",
-  phone: "+49 (0) 5258 987-282",
-  email: "wf.reineke@reineke-technik.de",
-};
-const LETTERHEAD_LOGO = BRAND.letterheadLogo ?? "/assets/reineke-logo.png";
-const LEAD_CONSENT_COMPANY = BRAND.leadConsentCompany ?? "Reineke Technik GmbH";
-const LEAD_DATENSCHUTZ_HREF =
-  BRAND.leadDatenschutzHref ?? "https://www.reineke-technik.de/datenschutz/";
 // Pentest-Lead-Strecke (nur Marken mit brand.funnel, z.B. Reineke): fester
 // Einordnungs-Block unter jedem Ergebnis + Verweis auf /pentest.
 const FUNNEL = BRAND.funnel ?? null;

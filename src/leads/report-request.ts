@@ -22,7 +22,10 @@ export type ReportRequestParse =
 /** Auf `max` Zeichen gekürzter Freitext; leere Eingaben werden zu `undefined`. */
 export function trimField(v: unknown, max = 200): string | undefined {
   if (typeof v !== "string") return undefined;
-  const t = v.trim().slice(0, max);
+  // Zeilenumbrüche raus: Name und Firma landen im Mailbetreff. Resend baut MIME
+  // aus JSON, ein Umbruch dürfte also halten — darauf verlassen wollen wir uns
+  // bei einem Feld aus einem öffentlichen Formular nicht.
+  const t = v.replace(/[\r\n\t]+/g, " ").trim().slice(0, max).trim();
   return t || undefined;
 }
 

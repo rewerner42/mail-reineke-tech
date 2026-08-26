@@ -32,7 +32,6 @@ import {
   BRANDS,
   DEFAULT_BRAND,
   applyBrandToHtml,
-  sitePaletteCss,
   reportPaletteCss,
 } from "./brand.js";
 import type { Brand, BrandContact } from "./brand.js";
@@ -757,7 +756,10 @@ const CONTACT_CONSENT_WORDING =
 
 const REPORT_RATE_IP = 6; // Berichte je Stunde und IP
 const REPORT_RATE_ADDRESS = 3; // … je Stunde und Empfängeradresse
-const REPORT_RATE_PAIR = 1; // dieselbe Adresse + dieselbe Domain: nur einmal
+const REPORT_RATE_PAIR = 2; // dieselbe Adresse + dieselbe Domain
+// Nicht 1: Die Zähler laufen hoch, BEVOR der Bericht im Hintergrund gebaut ist.
+// Bei 1 sperrt ein fehlgeschlagener Versand den Nutzer eine Stunde für genau
+// seine Anfrage aus. Zwei erlaubt den einen Wiederholversuch, stoppt aber Schleifen.
 
 app.post("/api/report-request", async (c) => {
   if (isCrossOrigin(c.req.header("Origin"), c.req.url)) return c.json(CROSS_ORIGIN_DENIED, 403);
@@ -810,8 +812,10 @@ app.post("/api/report-request", async (c) => {
     (await rateLimitExceeded(origin, "bericht-adr", email.toLowerCase(), REPORT_RATE_ADDRESS)) ||
     (await rateLimitExceeded(origin, "bericht-paar", `${email.toLowerCase()}|${reportDomain}`, REPORT_RATE_PAIR));
 
-  // Der Scan hat real stattgefunden — er gehört in den Domain-Zähler, auf dem
-  // das "Wiederholung = Kaufsignal" des Vertriebs beruht.
+  // Angefragte Domain im Zähler vermerken, auf dem das "Wiederholung =
+  // Kaufsignal" des Vertriebs beruht. Der eigentliche Scan läuft erst im
+  // Hintergrund (waitUntil) und kann noch scheitern — für dieses Signal zählt
+  // die Nachfrage, nicht ihr Ergebnis.
   if (!throttled) recordDomainSafe(c, reportDomain);
 
   const scoping: ScopingInput = {
@@ -851,11 +855,27 @@ app.post("/api/report-request", async (c) => {
     toolUrl: brand.report.toolUrl,
   };
 
+  // Ohne Resend gibt es keinen Versandweg. Dann darf die Antwort auch keine
+  // Zustellung versprechen — sonst wartet der Nutzer auf etwas, das nie kommt.
+  if (!c.env.RESEND_API_KEY || !brand.funnel.notify) {
+    console.error("BERICHT: kein Versandweg (RESEND_API_KEY/notify fehlt) —", email, reportDomain);
+    return c.json(
+      {
+        ok: false,
+        code: "NO_MAILER",
+        message:
+          "Der automatische Versand ist gerade nicht verfügbar. Rufen Sie uns kurz an (+49 172 2872390) — " +
+          "dann schicken wir Ihnen den Bericht von Hand.",
+      },
+      503,
+    );
+  }
+
   const cfg = odooConfigFromEnv(c.env);
   if (!cfg) {
     console.warn("BERICHT (Odoo nicht konfiguriert):", JSON.stringify({ ...lead, at: new Date().toISOString() }));
     c.executionCtx.waitUntil(notifyPentestLead(c.env, origin, brand, notifyBase, Promise.resolve(null), throttled));
-    return c.json(reportRequestOk(throttled, email, reportDomain));
+    return c.json(reportRequestOk(throttled, email, reportDomain), 200, NO_STORE);
   }
   const result = await createLead(cfg, lead, { marketing: brand.odoo });
   if (!result.ok) {
@@ -864,15 +884,17 @@ app.post("/api/report-request", async (c) => {
     // wird sie hier laut protokolliert.
     console.error("BERICHT Odoo-Anlage fehlgeschlagen:", result.code, result.message, JSON.stringify(lead));
     c.executionCtx.waitUntil(notifyPentestLead(c.env, origin, brand, notifyBase, Promise.resolve(null), throttled));
-    return c.json(reportRequestOk(throttled, email, reportDomain));
+    return c.json(reportRequestOk(throttled, email, reportDomain), 200, NO_STORE);
   }
   const enrich = domain && result.leadId ? enrichLead(cfg, result.leadId, domain) : Promise.resolve(null);
   c.executionCtx.waitUntil(enrich);
   c.executionCtx.waitUntil(
     notifyPentestLead(c.env, origin, brand, { ...notifyBase, leadId: result.leadId }, enrich, throttled),
   );
-  return c.json(reportRequestOk(throttled, email, reportDomain, result.leadId));
+  return c.json(reportRequestOk(throttled, email, reportDomain, result.leadId), 200, NO_STORE);
 });
+
+const NO_STORE = { "Cache-Control": "no-store" } as const;
 
 function reportRequestOk(throttled: boolean, email: string, domain: string, leadId?: number) {
   return {
