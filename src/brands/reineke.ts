@@ -1,12 +1,12 @@
-// Reineke Technik (scan.reineke.tech + mail.reineke.tech) — the pure Reineke
-// deployment, no Sharp element anywhere: no partner logo, no Sharp contact
+// Reineke Technik (scan.reineke.tech) — the pure Reineke deployment,
+// no Sharp element anywhere: no partner logo, no Sharp contact
 // cards, Reineke wordmark on the report cover. Selected via BRAND="reineke"
 // on the scan-reineke-tech Worker (wrangler deploy --env reineke).
 import type { Brand } from "../brand.js";
 
 export const reineke: Brand = {
   id: "reineke",
-  hosts: ["scan.reineke.tech", "mail.reineke.tech"],
+  hosts: ["scan.reineke.tech"],
   privateAssets: ["/pentest.html", "/pentest.js"], // Pentest-Strecke — nicht auf anderen Brands
   // Umami-Site (vormals sharp.reineke.tech, umgezogen 2026-08-03) — lädt als
   // Nicht-Default-Brand erst NACH aktiver Einwilligung (Opt-in in app.js).
@@ -14,6 +14,13 @@ export const reineke: Brand = {
     umamiId: "705faf06-6f2a-4905-8605-1fee670f68b1",
     posthogToken: "phc_xTC8gQxdjvK4KAS4V9mYJzPi6K86GmKxtVZNisUTUf5J",
     posthogHost: "https://eu.i.posthog.com",
+  },
+  // /report fehlt bewusst: Die Seite trägt noindex. Ein zusätzliches
+  // Disallow in der robots.txt würde verhindern, dass Google dieses noindex
+  // überhaupt liest — die URL könnte dann ohne Inhalt im Index landen.
+  seo: {
+    origin: "https://scan.reineke.tech",
+    sitemapPaths: ["/", "/website", "/dnssec", "/pentest"],
   },
   // Pentest-Lead-Strecke: /pentest ersetzt den Kontakt-Absprung als einziger CTA.
   funnel: {
@@ -50,7 +57,7 @@ export const reineke: Brand = {
     "</span>",
   contactHref: "/pentest", // primärer CTA führt in die Pentest-Strecke, kein Absprung
   footerStreetCity: "Geseker Straße 26 · 33154 Salzkotten",
-  footerTelHref: "tel:+4952589878282",
+  footerTelHref: "tel:+495258987282",
   footerTelText: "+49 (0) 5258 987-282",
 
   sitePalette: {

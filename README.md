@@ -14,7 +14,7 @@ englischer Fallback) und gegen die globale MDN-Notenverteilung gebenchmarkt.
 DMARC steht im Fokus, da Google und Microsoft seit Februar 2024 für Bulk-Sender
 DMARC-Compliance voraussetzen.
 
-**Live:** https://scan.reineke.tech · https://sharp.reineke.tech · https://mail.reineke.tech
+**Live:** https://scan.reineke.tech · https://sharp.reineke.tech
 
 ## Stack
 
@@ -39,7 +39,7 @@ npm run typecheck  # tsc --noEmit
 # Vorschau (Worker auf <name>.<account>.workers.dev)
 npm run deploy
 
-# Produktion mit Custom Domains scan/sharp/mail.reineke.tech
+# Produktion mit Custom Domains scan/sharp.reineke.tech
 npm run deploy:prod
 ```
 
@@ -52,7 +52,6 @@ In `wrangler.toml` sind die Routen bereits konfiguriert:
 routes = [
   { pattern = "scan.reineke.tech",  custom_domain = true },
   { pattern = "sharp.reineke.tech", custom_domain = true },
-  { pattern = "mail.reineke.tech",  custom_domain = true }
 ]
 ```
 
@@ -78,7 +77,7 @@ braucht Schreibrechte auf das CRM (`crm.lead`).
 
 Es gibt **zwei Deployments** (ein Repo, zwei Worker): `--env sharp`
 (`mail-reineke-tech`, sharp.reineke.tech) und `--env reineke`
-(`scan-reineke-tech`, scan.reineke.tech + mail.reineke.tech). Secrets je
+(`scan-reineke-tech`, scan.reineke.tech). Secrets je
 Umgebung setzen:
 
 ```bash
@@ -309,7 +308,7 @@ Rendering: Free-Plan 10 Min/Tag, darüber Workers Paid).
 
 ### `GET /api/health`
 
-Liefert `{ ok: true, service: "mail.reineke.tech" }` zurück.
+Liefert `{ ok: true, service: "<toolUrl der aktiven Marke>" }` zurück.
 
 ## Branding
 

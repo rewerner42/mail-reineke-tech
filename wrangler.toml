@@ -37,12 +37,10 @@ run_worker_first = true
 
 # ─── Reineke Technik (pentest funnel) ────────────────────────────────────────
 # Deploy with:  wrangler deploy --env reineke
-# mail.reineke.tech is an alias of the Reineke Worker (decision 2026-08-03).
 [env.reineke]
 name = "scan-reineke-tech"
 routes = [
-  { pattern = "scan.reineke.tech", custom_domain = true },
-  { pattern = "mail.reineke.tech", custom_domain = true }
+  { pattern = "scan.reineke.tech", custom_domain = true }
 ]
 browser = { binding = "BROWSER" }
 
@@ -52,7 +50,11 @@ BRAND = "reineke"
 [env.reineke.assets]
 directory = "./public"
 binding = "ASSETS"
-not_found_handling = "single-page-application"
+# Echte 404 statt Startseite: vorher lieferte JEDE unbekannte URL Status 200 mit
+# der Startseite — Google sah dadurch beliebig viele Duplikate. Die drei
+# SPA-Ansichten haben eigene Routen (src/index.ts). Sharp bleibt bewusst beim
+# bisherigen Verhalten, damit sich der Partner-Auftritt nicht ändert.
+not_found_handling = "404-page"
 run_worker_first = true
 
 # Observability

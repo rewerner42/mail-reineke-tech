@@ -41,6 +41,12 @@ export interface Brand {
     posthogToken?: string | null;
     posthogHost?: string;
   };
+  // Sitemap + robots.txt werden nur für Marken erzeugt, die das hier setzen.
+  // Ohne das Feld bleibt es beim bisherigen Verhalten (statische robots.txt).
+  seo?: {
+    origin: string; // absolute Basis-URL, z.B. "https://scan.reineke.tech"
+    sitemapPaths: string[]; // indexierbare Pfade, ohne /report (noindex)
+  };
   // Pentest-Lead-Strecke (nur Reineke): schaltet die /pentest-Route frei, ersetzt
   // den primären CTA und hängt die "Der nächste Schritt"-Seite ans Besucher-PDF.
   funnel?: {

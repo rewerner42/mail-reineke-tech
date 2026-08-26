@@ -47,7 +47,7 @@ export const sharp: Brand = {
   reportPageLogo: "/assets/sharp-logo.png",
   contactHref: "https://www.reineke-technik.de/kontakt/",
   footerStreetCity: "Geseker Straße 26 · 33154 Salzkotten",
-  footerTelHref: "tel:+4952589878282",
+  footerTelHref: "tel:+495258987282",
   footerTelText: "+49 (0) 5258 987-282",
 
   sitePalette: {
