@@ -94,6 +94,9 @@ export function buildPentestEmail(
   n: PentestNotification,
   logoBase64?: string,
 ): { subject: string; html: string; attachments: Attachment[] } {
+  // Geprüfte Domain und Domain der Absenderadresse fallen auseinander, wenn
+  // etwa ein IT-Dienstleister die Domain seines Kunden prüft.
+  const abweichend = Boolean(n.reportDomain && n.reportDomain !== n.domain);
   const rows = [
     row("Firma", n.company),
     row("Name", n.contactName),
@@ -104,15 +107,17 @@ export function buildPentestEmail(
     row("Umfang", n.umfang),
     row("Anlass", n.anlass),
     row("Frist", n.frist),
-    row("Technik-Ampel", n.ampel),
-    row("Domain (aus der E-Mail-Adresse)", n.domain),
-    row("Bericht angefordert für", n.reportDomain && n.reportDomain !== n.domain ? n.reportDomain : undefined),
+    row(abweichend ? `Technik-Ampel (zu ${n.domain})` : "Technik-Ampel", n.ampel),
+    row(abweichend ? "Domain des Interessenten" : "Domain", n.domain),
+    row("Bericht angefordert für", abweichend ? n.reportDomain : undefined),
   ].join("");
   const freitext = n.freitext
     ? `<p style="margin:14px 0 4px"><strong>Freitext</strong></p><div style="white-space:pre-wrap">${esc(n.freitext)}</div>`
     : "";
   const befunde = n.befunde
-    ? `<p style="margin:14px 0 4px"><strong>Befunde des Sicherheits-Checks</strong></p><div style="white-space:pre-wrap">${esc(n.befunde)}</div>`
+    ? `<p style="margin:14px 0 4px"><strong>Befunde des Sicherheits-Checks${
+        abweichend ? ` zu ${esc(n.domain ?? "")}` : ""
+      }</strong></p><div style="white-space:pre-wrap">${esc(n.befunde)}</div>`
     : "";
   const lead = n.leadId ? `<p style="margin:14px 0 0">Odoo-Vorgang: #${n.leadId}</p>` : "";
   const html = `<div style="${FONT}">
@@ -195,6 +200,22 @@ Sie nicht wieder an.</p>
 ${signature(opts.logoBase64)}
 </div>`;
   return { subject: `Sicherheitsbericht für ${dom}`, html };
+}
+
+/** Kurze interne Meldung, wenn der Bericht im Hintergrund gescheitert ist.
+ *  Ohne sie erfährt niemand davon — der Interessent bekommt eine Ersatzmail,
+ *  aber die Nacharbeit von Hand fiele sonst niemandem auf. */
+export function buildReportFailureAlert(n: PentestNotification, grund: string): { subject: string; html: string } {
+  const dom = n.reportDomain ?? n.domain ?? "(unbekannt)";
+  return {
+    subject: `NACHARBEIT: Bericht für ${dom} nicht erstellt`,
+    html: `<div style="${FONT}">
+<p>Der Bericht für <strong>${esc(dom)}</strong> konnte nicht automatisch erstellt werden.</p>
+<p>${esc(n.contactName)} &lt;${esc(n.email)}&gt; hat eine Ersatzmail erhalten, in der wir die
+Zusendung von Hand ankündigen. <strong>Der Bericht muss also manuell nachgereicht werden.</strong></p>
+<p>Grund: ${esc(grund)}</p>
+</div>`,
+  };
 }
 
 export interface MailInput {

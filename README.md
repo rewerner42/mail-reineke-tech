@@ -206,6 +206,22 @@ Server nicht.
 6. Ohne `RESEND_API_KEY` antwortet der Endpunkt `503 NO_MAILER`, statt eine
    Zustellung zu versprechen, die nicht stattfinden kann.
 
+#### Feste Regel zu fremden Domains
+
+Ein Besucher darf einen Bericht zu einer Domain anfordern, die ihm nicht gehört —
+IT-Dienstleister prüfen die Domains ihrer Kunden, und das sind gute Anfragen.
+Daraus folgt eine Regel, die technisch nicht erzwingbar ist und deshalb hier
+steht:
+
+> **Ein Befund über eine fremde Domain wird nie zum Anlass, deren Inhaber
+> anzuschreiben.** Der Bericht gehört dem, der ihn angefordert hat. Eine
+> Kaltakquise mit „uns ist aufgefallen, dass Ihr SPF …" ist genau der Fall, in
+> dem aus einer öffentlich abrufbaren Information ein Wettbewerbsverstoß wird.
+
+Die Berichtsmail spricht deshalb neutral von „der geprüften Domain" statt von
+„Ihrer Domain", und die interne Meldung beschriftet Technik-Ampel und Befunde
+mit der Domain, auf die sie sich beziehen.
+
 #### Bekannte Grenzen
 
 Ehrlich benannt, damit sie niemand für gelöst hält:
@@ -224,6 +240,9 @@ Ehrlich benannt, damit sie niemand für gelöst hält:
 - **Zähler gelten je Rechenzentrum** (`caches.default`, kein KV). Für den
   IP-Zähler vertretbar, für den Adresszähler eine echte Lücke: Über mehrere
   Ausgangsorte vervielfacht sich die Grenze.
+- **Widerspruchssperre von Hand.** `SUPPRESSED_EMAILS` (kommagetrennt, als
+  Worker-Variable) verhindert jeden weiteren Versand an eine Adresse. Sie wird
+  gepflegt, wenn jemand widerspricht — es gibt keine automatische Eintragung.
 - **Zähler laufen vor dem Erfolg hoch.** Scheitert der Versand im Hintergrund,
   ist ein Versuch verbraucht. Deshalb erlaubt die Paar-Grenze zwei statt einer
   Anfrage.

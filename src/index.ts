@@ -21,6 +21,7 @@ import {
 import {
   buildCustomerEmail,
   buildPentestEmail,
+  buildReportFailureAlert,
   sendMail,
   type LeadKind,
   type PentestNotification,
@@ -55,6 +56,8 @@ type Bindings = {
   RESEND_API_KEY?: string;
   // Turnstile-Secret zur Prüfung des Formular-Tokens (optional).
   TURNSTILE_SECRET?: string;
+  /** Kommagetrennte Adressen, die Widerspruch eingelegt haben — kein Versand. */
+  SUPPRESSED_EMAILS?: string;
   // White-label brand id (e.g. "wsit") set per Worker env; falls back to Host.
   BRAND?: string;
 };
@@ -418,15 +421,25 @@ async function notifyPentestLead(
   if (skipCustomerMail) return;
   const to = cfg.customerCopyTo ?? n.email;
   let pdf: Uint8Array | null = null;
+  let pdfFehler: string | null = null;
   // Der Bericht gilt der GEPRÜFTEN Domain; nur wenn keine angefordert wurde,
   // fällt er auf die Domain der E-Mail-Adresse zurück.
   const berichtsDomain = n.reportDomain ?? n.domain;
   if (berichtsDomain) {
     try {
       pdf = await buildReportPdf(env, origin, berichtsDomain, reportBrandFor(brand, n.kind));
+      if (!pdf) pdfFehler = "Browser Rendering nicht verfügbar oder Report zu groß.";
     } catch (err) {
-      console.warn("Bericht für Kundenmail nicht erstellt:", err instanceof Error ? err.message : String(err));
+      pdfFehler = err instanceof Error ? err.message : String(err);
+      console.warn("Bericht für Kundenmail nicht erstellt:", pdfFehler);
     }
+  }
+  // Wer einen Bericht ANGEFORDERT hat und keinen bekommt, erzeugt Nacharbeit —
+  // die muss jemand mitbekommen, nicht nur das Protokoll.
+  if (pdfFehler && n.kind === "bericht") {
+    const alarm = buildReportFailureAlert(n, pdfFehler);
+    const al = await sendMail(key, { from: cfg.from, to: cfg.to, subject: alarm.subject, html: alarm.html });
+    if (!al.ok) console.error("Alarmmail fehlgeschlagen:", al.error);
   }
   const kunde = buildCustomerEmail(n, {
     bookingUrl: brand.funnel!.bookingUrl,
@@ -754,6 +767,21 @@ const CONTACT_CONSENT_WORDING =
   "Die Reineke Technik GmbH darf mich zu diesem Bericht und zu ihren Leistungen rund um " +
   "IT-Sicherheit per E-Mail und Telefon kontaktieren. Ich kann das jederzeit widerrufen.";
 
+/** Adressen, die Widerspruch eingelegt haben (Worker-Variable SUPPRESSED_EMAILS,
+ *  kommagetrennt). Bewusst schlicht: Der Fall ist selten und wird von Hand
+ *  gepflegt — aber ohne diese Sperre könnte die Anfrage eines Dritten dieselbe
+ *  Adresse jederzeit erneut anschreiben. */
+function istGesperrt(env: Bindings, email: string): boolean {
+  const list = env.SUPPRESSED_EMAILS;
+  if (!list) return false;
+  const ziel = email.trim().toLowerCase();
+  return list
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean)
+    .includes(ziel);
+}
+
 const REPORT_RATE_IP = 6; // Berichte je Stunde und IP
 const REPORT_RATE_ADDRESS = 3; // … je Stunde und Empfängeradresse
 const REPORT_RATE_PAIR = 2; // dieselbe Adresse + dieselbe Domain
@@ -808,6 +836,7 @@ app.post("/api/report-request", async (c) => {
   // Drei Zähler, kurzschließend: IP gegen Serienmissbrauch, Adresse gegen das
   // Zumüllen eines fremden Postfachs, Paar gegen die versehentliche Doppelanfrage.
   const throttled =
+    istGesperrt(c.env, email) ||
     (await rateLimitExceeded(origin, "bericht-ip", ip, REPORT_RATE_IP)) ||
     (await rateLimitExceeded(origin, "bericht-adr", email.toLowerCase(), REPORT_RATE_ADDRESS)) ||
     (await rateLimitExceeded(origin, "bericht-paar", `${email.toLowerCase()}|${reportDomain}`, REPORT_RATE_PAIR));

@@ -65,7 +65,23 @@ describe("Berichts-Kundenmail", () => {
   it("labels the two domains apart in the internal mail", () => {
     const html = buildPentestEmail(B).html;
     expect(buildPentestEmail(B).subject).toBe("Neue Berichtsanfrage: Muster GmbH");
-    expect(html).toContain("Domain (aus der E-Mail-Adresse)");
+    expect(html).toContain("Domain des Interessenten");
     expect(html).toContain("Bericht angefordert für");
+  });
+
+  // Ampel und Befunde beschreiben die Domain des INTERESSENTEN, der Anhang eine
+  // andere. Ohne Beschriftung liest der Vertrieb sie als dasselbe.
+  it("says which domain the traffic light and findings describe", () => {
+    const html = buildPentestEmail({ ...B, ampel: "gelb", befunde: "SPF fehlt" }).html;
+    expect(html).toContain("Technik-Ampel (zu muster-gmbh.de)");
+    expect(html).toContain("Befunde des Sicherheits-Checks zu muster-gmbh.de");
+  });
+
+  it("keeps the plain labels when both domains are the same", () => {
+    const same = { ...B, reportDomain: "muster-gmbh.de", ampel: "grün" };
+    const html = buildPentestEmail(same).html;
+    expect(html).toContain("<strong>Technik-Ampel</strong>");
+    expect(html).toContain("<strong>Domain</strong>");
+    expect(html).not.toContain("Bericht angefordert für");
   });
 });
