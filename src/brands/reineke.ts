@@ -15,6 +15,13 @@ export const reineke: Brand = {
     posthogToken: "phc_xTC8gQxdjvK4KAS4V9mYJzPi6K86GmKxtVZNisUTUf5J",
     posthogHost: "https://eu.i.posthog.com",
   },
+  // /report fehlt bewusst: Die Seite trägt noindex. Ein zusätzliches
+  // Disallow in der robots.txt würde verhindern, dass Google dieses noindex
+  // überhaupt liest — die URL könnte dann ohne Inhalt im Index landen.
+  seo: {
+    origin: "https://scan.reineke.tech",
+    sitemapPaths: ["/", "/website", "/dnssec", "/pentest"],
+  },
   // Pentest-Lead-Strecke: /pentest ersetzt den Kontakt-Absprung als einziger CTA.
   funnel: {
     pentestPath: "/pentest",

@@ -872,6 +872,35 @@ app.post("/api/report-pdf", async (c) => {
 
 // ── Report-Generator (passwortgeschützte Seite) ───────────────────────────────
 // Saubere URL für die geschützte Seite (liefert report.html aus den Assets).
+// ─── Sitemap + robots.txt ────────────────────────────────────────────────────
+// Beide werden erzeugt, nicht als Datei ausgeliefert — sonst müsste jede Marke
+// ihre eigene Kopie pflegen und würde die fremde Domain nennen. Marken ohne
+// `seo` fallen durch (next()) und bekommen weiterhin die statische Datei.
+app.get("/sitemap.xml", async (c, next) => {
+  const brand = resolveBrand(c.env, new URL(c.req.url).host);
+  if (!brand.seo) return next();
+  // Bewusst ohne <lastmod>: Google ignoriert die Angabe, sobald sie unzuverlässig
+  // ist — ein erfundenes Datum wäre schlechter als gar keines.
+  const urls = brand.seo.sitemapPaths
+    .map((p) => `  <url><loc>${brand.seo!.origin}${p}</loc></url>`)
+    .join("\n");
+  return c.body(
+    `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`,
+    200,
+    { "Content-Type": "application/xml; charset=utf-8", "Cache-Control": "max-age=3600" },
+  );
+});
+
+app.get("/robots.txt", async (c, next) => {
+  const brand = resolveBrand(c.env, new URL(c.req.url).host);
+  if (!brand.seo) return next();
+  return c.body(
+    `User-agent: *\nAllow: /\n\nSitemap: ${brand.seo.origin}/sitemap.xml\n`,
+    200,
+    { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "max-age=3600" },
+  );
+});
+
 // Die drei Prüf-Ansichten sind EINE Datei; die Routen existieren nur, damit
 // Deep-Links funktionieren. Ohne sie würde die 404-Behandlung sie verschlucken.
 app.get("/website", (c) => c.env.ASSETS.fetch(new Request(new URL("/index.html", c.req.url))));
