@@ -7,7 +7,7 @@ import type { Brand } from "../brand.js";
 export const reineke: Brand = {
   id: "reineke",
   hosts: ["scan.reineke.tech"],
-  privateAssets: ["/pentest.html", "/pentest.js"], // Pentest-Strecke — nicht auf anderen Brands
+  privateAssets: ["/pentest.html", "/pentest.js", "/bericht.html", "/bericht.js"], // Lead-Strecken — nicht auf anderen Brands
   // Umami-Site (vormals sharp.reineke.tech, umgezogen 2026-08-03) — lädt als
   // Nicht-Default-Brand erst NACH aktiver Einwilligung (Opt-in in app.js).
   analytics: {

@@ -21,7 +21,9 @@ import {
 import {
   buildCustomerEmail,
   buildPentestEmail,
+  buildReportFailureAlert,
   sendMail,
+  type LeadKind,
   type PentestNotification,
 } from "./leads/notify.js";
 import { MAX_HTML_BYTES, renderReportPdf } from "./pdf/render.js";
@@ -31,12 +33,13 @@ import {
   BRANDS,
   DEFAULT_BRAND,
   applyBrandToHtml,
-  sitePaletteCss,
   reportPaletteCss,
 } from "./brand.js";
 import type { Brand, BrandContact } from "./brand.js";
 import type { BrowserWorker } from "@cloudflare/puppeteer";
 import type { AnalysisResponse } from "./types.js";
+import { normalizeDomain } from "./domain.js";
+import { parseReportRequest } from "./leads/report-request.js";
 
 type Bindings = {
   ASSETS: Fetcher;
@@ -53,6 +56,8 @@ type Bindings = {
   RESEND_API_KEY?: string;
   // Turnstile-Secret zur Prüfung des Formular-Tokens (optional).
   TURNSTILE_SECRET?: string;
+  /** Kommagetrennte Adressen, die Widerspruch eingelegt haben — kein Versand. */
+  SUPPRESSED_EMAILS?: string;
   // White-label brand id (e.g. "wsit") set per Worker env; falls back to Host.
   BRAND?: string;
 };
@@ -149,22 +154,6 @@ app.use("*", async (c, next) => {
 
 app.use("/api/*", cors({ origin: "*", maxAge: 86400 }));
 
-// Domain validation: ASCII labels, optional IDN should be punycoded by client.
-const DOMAIN_REGEX =
-  /^(?=.{1,253}$)([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,63}$/;
-
-function normalizeDomain(input: string): string | null {
-  if (!input) return null;
-  let d = input.trim().toLowerCase();
-  // Strip protocol if user pasted a URL
-  d = d.replace(/^https?:\/\//, "").replace(/\/.*$/, "");
-  // Strip user@ if they pasted an email
-  if (d.includes("@")) d = d.split("@").pop() ?? d;
-  // Strip trailing dot
-  d = d.replace(/\.$/, "");
-  if (!DOMAIN_REGEX.test(d)) return null;
-  return d;
-}
 
 const INVALID_DOMAIN = {
   error: "INVALID_DOMAIN",
@@ -353,66 +342,6 @@ app.get("/api/analyze", async (c) => {
   return c.json(response, 200, { "Cache-Control": "no-store" });
 });
 
-// Lead capture: the report download is gated behind an e-mail + DSGVO consent.
-// We enforce a valid e-mail and explicit consent here, then best-effort push the
-// lead into Odoo CRM. A configuration/Odoo failure must NOT block the user from
-// their report, so we log the lead (observability) and still return ok.
-app.post("/api/lead", async (c) => {
-  if (isCrossOrigin(c.req.header("Origin"), c.req.url)) return c.json(CROSS_ORIGIN_DENIED, 403);
-
-  let body: { email?: unknown; domain?: unknown; consent?: unknown };
-  try {
-    body = await c.req.json();
-  } catch {
-    return c.json({ ok: false, code: "BAD_REQUEST", message: "Ungültige Anfrage." }, 400);
-  }
-
-  if (body.consent !== true) {
-    return c.json(
-      {
-        ok: false,
-        code: "NO_CONSENT",
-        message: "Bitte stimmen Sie der Verarbeitung Ihrer E-Mail-Adresse zu.",
-      },
-      400,
-    );
-  }
-  if (!validateEmail(body.email)) {
-    return c.json(
-      {
-        ok: false,
-        code: "INVALID_EMAIL",
-        message: "Bitte geben Sie eine gültige E-Mail-Adresse ein.",
-      },
-      400,
-    );
-  }
-
-  const email = (body.email as string).trim();
-  const domain =
-    typeof body.domain === "string" ? (normalizeDomain(body.domain) ?? undefined) : undefined;
-  const lead = { email, domain, consent: true, channel: "freier-check" as const };
-
-  const cfg = odooConfigFromEnv(c.env);
-  if (!cfg) {
-    // Not configured yet — don't lose the lead, surface it in the logs.
-    console.warn("LEAD (Odoo not configured):", JSON.stringify({ ...lead, at: new Date().toISOString() }));
-    return c.json({ ok: true, code: "NOT_CONFIGURED", message: "Bericht wird erstellt." });
-  }
-
-  const brand = resolveBrand(c.env, new URL(c.req.url).host);
-  const result = await createLead(cfg, lead, { marketing: brand.odoo });
-  if (!result.ok) {
-    console.error("LEAD Odoo push failed:", result.code, result.message, JSON.stringify(lead));
-    // Best-effort: still let the user through to their report.
-    return c.json({ ok: true, code: result.code, message: "Bericht wird erstellt." });
-  }
-  // Lead-Substanz: Befunde + Ampel + Scan-Zähler NACH der Antwort anreichern —
-  // serverseitig erhoben (autoritativ), kostet den Nutzer keine Wartezeit.
-  if (domain && result.leadId) c.executionCtx.waitUntil(enrichLead(cfg, result.leadId, domain));
-  return c.json({ ok: true, code: "OK", message: "Bericht wird erstellt.", leadId: result.leadId });
-});
-
 // ─── Befunde im Klartext + Technik-Ampel (serverseitige Erhebung) ─────────────
 async function enrichLead(
   cfg: OdooConfig,
@@ -492,12 +421,25 @@ async function notifyPentestLead(
   if (skipCustomerMail) return;
   const to = cfg.customerCopyTo ?? n.email;
   let pdf: Uint8Array | null = null;
-  if (n.domain) {
+  let pdfFehler: string | null = null;
+  // Der Bericht gilt der GEPRÜFTEN Domain; nur wenn keine angefordert wurde,
+  // fällt er auf die Domain der E-Mail-Adresse zurück.
+  const berichtsDomain = n.reportDomain ?? n.domain;
+  if (berichtsDomain) {
     try {
-      pdf = await buildReportPdf(env, origin, n.domain, brand);
+      pdf = await buildReportPdf(env, origin, berichtsDomain, reportBrandFor(brand, n.kind));
+      if (!pdf) pdfFehler = "Browser Rendering nicht verfügbar oder Report zu groß.";
     } catch (err) {
-      console.warn("Bericht für Kundenmail nicht erstellt:", err instanceof Error ? err.message : String(err));
+      pdfFehler = err instanceof Error ? err.message : String(err);
+      console.warn("Bericht für Kundenmail nicht erstellt:", pdfFehler);
     }
+  }
+  // Wer einen Bericht ANGEFORDERT hat und keinen bekommt, erzeugt Nacharbeit —
+  // die muss jemand mitbekommen, nicht nur das Protokoll.
+  if (pdfFehler && n.kind === "bericht") {
+    const alarm = buildReportFailureAlert(n, pdfFehler);
+    const al = await sendMail(key, { from: cfg.from, to: cfg.to, subject: alarm.subject, html: alarm.html });
+    if (!al.ok) console.error("Alarmmail fehlgeschlagen:", al.error);
   }
   const kunde = buildCustomerEmail(n, {
     bookingUrl: brand.funnel!.bookingUrl,
@@ -505,9 +447,9 @@ async function notifyPentestLead(
     logoBase64: logo ?? undefined,
   });
   const attachments = [...(logo ? buildPentestEmail(n, logo).attachments : [])];
-  if (pdf && n.domain) {
+  if (pdf && berichtsDomain) {
     attachments.push({
-      filename: `${brand.report.filenamePrefix}-${n.domain}.pdf`,
+      filename: `${brand.report.filenamePrefix}-${berichtsDomain}.pdf`,
       content: bufToBase64(pdf.buffer as ArrayBuffer),
       content_type: "application/pdf",
     });
@@ -523,7 +465,19 @@ async function notifyPentestLead(
   if (!b.ok) console.warn("Resend (Kunde) fehlgeschlagen:", b.error);
 }
 
-// ─── Bericht als PDF (wiederverwendbar: /api/generate-report + Kundenmail) ────
+/**
+ * Trennungsregel: Ein Selbstbedienungsbericht trägt ausschließlich die feste
+ * Markenkarte. Wer nicht angemeldet ist, darf nie bestimmen, welche Person auf
+ * dem Dokument als Ansprechpartner erscheint. Heute hält das nur zufällig —
+ * `reineke.report.partner` ist `null`; sobald dort eine Karte oder `reps`
+ * stünden, trüge der Bericht sie stillschweigend mit.
+ */
+function reportBrandFor(brand: Brand, kind: LeadKind | undefined): Brand {
+  if (kind !== "bericht") return brand;
+  return { ...brand, report: { ...brand.report, partner: null, reps: undefined } };
+}
+
+// ─── Bericht als PDF (nur Kundenmail; /api/generate-report baut eigenständig) ─
 async function buildReportPdf(
   env: Bindings,
   origin: string,
@@ -580,15 +534,26 @@ async function brandLogoBase64(env: Bindings, origin: string, brand: Brand): Pro
 // Angreifer könnte die Grenze aber umgehen — für den Missbrauchsfall hinter
 // Turnstile reicht das, exakte Buchführung wäre KV-Sache.
 const RATE_LIMIT = 6; // Anfragen …
-const RATE_WINDOW_SEC = 3600; // … je Stunde und IP
+const RATE_WINDOW_SEC = 3600; // … je Stunde und Zähler
 
-async function rateLimitExceeded(origin: string, ip: string | undefined): Promise<boolean> {
-  if (!ip) return false; // ohne IP nicht raten — lieber durchlassen
+/**
+ * Zählt eine Anfrage und meldet, ob die Grenze überschritten ist.
+ * `scope` trennt die Strecken (Pentest / Bericht) und die Bezugsgröße
+ * (IP / Empfängeradresse) in eigene Zähler — sonst verbraucht die
+ * niederschwellige Berichtsanfrage das Kontingent der Pentest-Anfrage.
+ */
+async function rateLimitExceeded(
+  origin: string,
+  scope: string,
+  id: string | undefined,
+  max: number = RATE_LIMIT,
+): Promise<boolean> {
+  if (!id) return false; // ohne Bezugsgröße nicht raten — lieber durchlassen
   try {
     const cache = caches.default;
     // Der Edge-Cache akzeptiert nur Schlüssel innerhalb der eigenen Zone —
     // ein Fantasie-Host würde still verworfen.
-    const key = new Request(`${origin}/__ratelimit/pentest/${encodeURIComponent(ip)}`);
+    const key = new Request(`${origin}/__ratelimit/${scope}/${encodeURIComponent(id)}`);
     const now = Math.floor(Date.now() / 1000);
     let count = 0;
     let expires = now + RATE_WINDOW_SEC;
@@ -601,7 +566,7 @@ async function rateLimitExceeded(origin: string, ip: string | undefined): Promis
         expires = storedExpiry; // Fenster NICHT verlängern
       }
     }
-    if (count >= RATE_LIMIT) return true;
+    if (count >= max) return true;
     await cache.put(
       key,
       new Response(`${count + 1}|${expires}`, {
@@ -702,7 +667,7 @@ app.post("/api/pentest-lead", async (c) => {
   // Über der Grenze: Anfrage wird trotzdem erfasst und intern gemeldet — nur die
   // Bestätigungsmail an den Interessenten entfällt, damit niemand fremde
   // Postfächer zumüllen kann.
-  const throttled = await rateLimitExceeded(origin, c.req.header("CF-Connecting-IP"));
+  const throttled = await rateLimitExceeded(origin, "pentest", c.req.header("CF-Connecting-IP"));
   const company = scopingStr(body.company);
   // Vorname/Nachname getrennt erfasst; `name` bleibt als Rückfallebene erhalten,
   // damit ältere Formularstände weiterhin angenommen werden.
@@ -785,97 +750,194 @@ app.post("/api/pentest-lead", async (c) => {
   });
 });
 
-// Server-side PDF export: the client posts the already-built report HTML and we
-// render it to a real PDF (Browser Rendering) for a true one-click download.
-// On any failure the frontend falls back to the browser print dialog.
-app.post("/api/report-pdf", async (c) => {
-  if (isCrossOrigin(c.req.header("Origin"), c.req.url)) return c.json(CROSS_ORIGIN_DENIED, 403);
-  if (!c.env.BROWSER) {
-    return c.json(
-      { ok: false, code: "NO_BROWSER", message: "PDF-Rendering nicht verfügbar." },
-      503,
-    );
-  }
+// ─── /bericht: Selbstbedienungs-Berichtsanfrage ───────────────────────────────
+// Bewusst von /api/pentest-lead getrennt: eigene Zähler, eigene Pflichtfelder,
+// eigene Texte — und ein eingefrorener Vertrag für die Pentest-Strecke.
+//
+// TRENNUNG zum passwortgeschützten Generator (/report):
+//   • kein Anmeldezustand — `isReportAuthed` wird hier nie aufgerufen
+//   • keine Vertriebsmitarbeiter-Auswahl (siehe `reportBrandFor`)
+//   • das PDF verlässt diesen Weg NUR per E-Mail, nie in der Antwort
+//   • Turnstile + drei Zähler + CRM-Spur statt Passwort
 
-  let body: { html?: unknown; domain?: unknown; check?: unknown };
+/** Wortlaut der Werbeeinwilligung — muss mit public/bericht.html übereinstimmen.
+ *  Bei jeder Textänderung die Fassung hochzählen, sonst ist der Nachweis wertlos. */
+const CONTACT_CONSENT_VERSION = "2026-08-26";
+const CONTACT_CONSENT_WORDING =
+  "Die Reineke Technik GmbH darf mich zu diesem Bericht und zu ihren Leistungen rund um " +
+  "IT-Sicherheit per E-Mail und Telefon kontaktieren. Ich kann das jederzeit widerrufen.";
+
+/** Adressen, die Widerspruch eingelegt haben (Worker-Variable SUPPRESSED_EMAILS,
+ *  kommagetrennt). Bewusst schlicht: Der Fall ist selten und wird von Hand
+ *  gepflegt — aber ohne diese Sperre könnte die Anfrage eines Dritten dieselbe
+ *  Adresse jederzeit erneut anschreiben. */
+function istGesperrt(env: Bindings, email: string): boolean {
+  const list = env.SUPPRESSED_EMAILS;
+  if (!list) return false;
+  const ziel = email.trim().toLowerCase();
+  return list
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean)
+    .includes(ziel);
+}
+
+const REPORT_RATE_IP = 6; // Berichte je Stunde und IP
+const REPORT_RATE_ADDRESS = 3; // … je Stunde und Empfängeradresse
+const REPORT_RATE_PAIR = 2; // dieselbe Adresse + dieselbe Domain
+// Nicht 1: Die Zähler laufen hoch, BEVOR der Bericht im Hintergrund gebaut ist.
+// Bei 1 sperrt ein fehlgeschlagener Versand den Nutzer eine Stunde für genau
+// seine Anfrage aus. Zwei erlaubt den einen Wiederholversuch, stoppt aber Schleifen.
+
+app.post("/api/report-request", async (c) => {
+  if (isCrossOrigin(c.req.header("Origin"), c.req.url)) return c.json(CROSS_ORIGIN_DENIED, 403);
+  const origin = new URL(c.req.url).origin;
+  const brand = resolveBrand(c.env, new URL(c.req.url).host);
+  if (!brand.funnel) return c.json({ ok: false, code: "NOT_FOUND", message: "Nicht verfügbar." }, 404);
+
+  let body: Record<string, unknown>;
   try {
     body = await c.req.json();
   } catch {
     return c.json({ ok: false, code: "BAD_REQUEST", message: "Ungültige Anfrage." }, 400);
   }
 
-  const html = typeof body.html === "string" ? body.html : "";
-  if (!html || html.length > MAX_HTML_BYTES) {
-    return c.json(
-      { ok: false, code: "BAD_HTML", message: "Report-Inhalt fehlt oder ist zu groß." },
-      400,
-    );
-  }
-  // Sanity check: only render our own report markup.
-  if (!html.includes("report-letterhead")) {
-    return c.json(
-      { ok: false, code: "UNEXPECTED_HTML", message: "Unerwarteter Report-Inhalt." },
-      400,
-    );
-  }
-
-  const origin = new URL(c.req.url).origin;
-  const domain =
-    typeof body.domain === "string" ? (normalizeDomain(body.domain) ?? "report") : "report";
-  const check = typeof body.check === "string" ? body.check.replace(/[^a-z0-9]/gi, "") : "";
-
-  // Inline the stylesheet + logo (served via the ASSETS binding) so the headless
-  // browser needs no external fetches — fully self-contained, fast, env-agnostic.
-  const brand = resolveBrand(c.env, new URL(c.req.url).host);
-  const logoPath = brand.app.letterheadLogo;
-  const logoMime = logoPath.endsWith(".svg") ? "image/svg+xml" : "image/png";
-  let css = "";
-  let inlineHtml = html;
-  try {
-    const [cssResp, logoResp] = await Promise.all([
-      c.env.ASSETS.fetch(new Request(`${origin}/styles.css`)),
-      c.env.ASSETS.fetch(new Request(`${origin}${logoPath}`)),
-    ]);
-    if (cssResp.ok) css = (await cssResp.text()) + sitePaletteCss(brand);
-    if (logoResp.ok) {
-      const buf = new Uint8Array(await logoResp.arrayBuffer());
-      let bin = "";
-      for (let i = 0; i < buf.length; i += 0x8000) {
-        bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
-      }
-      inlineHtml = html.replaceAll(logoPath, `data:${logoMime};base64,${btoa(bin)}`);
+  // Bot-Abwehr: Anders als beim Scoping-Formular wird hier ABGELEHNT, wenn die
+  // Prüfung gar nicht eingerichtet ist. Dieser Weg verschickt Anhänge an frei
+  // eingetippte Adressen — ohne Bot-Abwehr darf er nicht laufen.
+  let botCheck: TurnstileResult = "ok";
+  if (brand.funnel.turnstileSiteKey) {
+    if (!c.env.TURNSTILE_SECRET) {
+      console.error("BERICHT abgewiesen: TURNSTILE_SECRET fehlt, Sitekey ist gesetzt.");
+      return c.json(
+        { ok: false, code: "NOT_CONFIGURED", message: "Der Versand ist gerade nicht verfügbar. Bitte rufen Sie uns an." },
+        503,
+      );
     }
-  } catch {
-    /* fall back to linked stylesheet / external logo */
+    botCheck = await verifyTurnstile(
+      c.env.TURNSTILE_SECRET,
+      body["cf-turnstile-response"],
+      c.req.header("CF-Connecting-IP"),
+    );
+    if (botCheck === "invalid") {
+      return c.json(
+        { ok: false, code: "BOT_CHECK_FAILED", message: "Die Sicherheitsprüfung ist fehlgeschlagen. Bitte laden Sie die Seite neu." },
+        403,
+      );
+    }
   }
 
-  try {
-    const pdf = await renderReportPdf(c.env.BROWSER, { html: inlineHtml, origin, css });
-    const base = check
-      ? `${brand.app.filenameSingle}-${check}-${domain}`
-      : `${brand.app.filenameFull}-${domain}`;
-    return new Response(pdf, {
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${base}.pdf"`,
-        "Cache-Control": "no-store",
-      },
-    });
-  } catch (err) {
-    console.error("PDF render failed:", err instanceof Error ? err.message : String(err));
+  const parsed = parseReportRequest(body);
+  if (!parsed.ok) {
+    return c.json({ ok: false, code: parsed.code, message: parsed.message }, parsed.status);
+  }
+  const { email, contactName, reportDomain, company, phone } = parsed.fields;
+  const ip = c.req.header("CF-Connecting-IP");
+  // Drei Zähler, kurzschließend: IP gegen Serienmissbrauch, Adresse gegen das
+  // Zumüllen eines fremden Postfachs, Paar gegen die versehentliche Doppelanfrage.
+  const throttled =
+    istGesperrt(c.env, email) ||
+    (await rateLimitExceeded(origin, "bericht-ip", ip, REPORT_RATE_IP)) ||
+    (await rateLimitExceeded(origin, "bericht-adr", email.toLowerCase(), REPORT_RATE_ADDRESS)) ||
+    (await rateLimitExceeded(origin, "bericht-paar", `${email.toLowerCase()}|${reportDomain}`, REPORT_RATE_PAIR));
+
+  // Angefragte Domain im Zähler vermerken, auf dem das "Wiederholung =
+  // Kaufsignal" des Vertriebs beruht. Der eigentliche Scan läuft erst im
+  // Hintergrund (waitUntil) und kann noch scheitern — für dieses Signal zählt
+  // die Nachfrage, nicht ihr Ergebnis.
+  if (!throttled) recordDomainSafe(c, reportDomain);
+
+  const scoping: ScopingInput = {
+    company,
+    contactName,
+    phone,
+    freitext:
+      botCheck === "unverified" ? "[Hinweis: Bot-Prüfung war nicht erreichbar]" : undefined,
+  };
+  // Dubletten-Schlüssel bleibt die Domain der Absenderadresse: Sie sagt, WER der
+  // Interessent ist. Die geprüfte Domain sagt, WORÜBER er etwas wissen will.
+  const domain = parsed.fields.emailDomain;
+  const lead = {
+    email,
+    domain,
+    consent: true,
+    channel: "bericht-anfrage" as const,
+    scoping,
+    reportDomain,
+    contactConsent: {
+      granted: parsed.fields.contactConsent,
+      at: new Date().toISOString(),
+      ip,
+      wording: CONTACT_CONSENT_WORDING,
+      version: CONTACT_CONSENT_VERSION,
+    },
+  };
+
+  const notifyBase: PentestNotification = {
+    kind: "bericht",
+    company: company ?? contactName,
+    contactName,
+    email,
+    phone,
+    domain,
+    reportDomain,
+    toolUrl: brand.report.toolUrl,
+  };
+
+  // Ohne Resend gibt es keinen Versandweg. Dann darf die Antwort auch keine
+  // Zustellung versprechen — sonst wartet der Nutzer auf etwas, das nie kommt.
+  if (!c.env.RESEND_API_KEY || !brand.funnel.notify) {
+    console.error("BERICHT: kein Versandweg (RESEND_API_KEY/notify fehlt) —", email, reportDomain);
     return c.json(
-      { ok: false, code: "RENDER_FAILED", message: "PDF konnte nicht erstellt werden." },
-      502,
+      {
+        ok: false,
+        code: "NO_MAILER",
+        message:
+          "Der automatische Versand ist gerade nicht verfügbar. Rufen Sie uns kurz an (+49 172 2872390) — " +
+          "dann schicken wir Ihnen den Bericht von Hand.",
+      },
+      503,
     );
   }
+
+  const cfg = odooConfigFromEnv(c.env);
+  if (!cfg) {
+    console.warn("BERICHT (Odoo nicht konfiguriert):", JSON.stringify({ ...lead, at: new Date().toISOString() }));
+    c.executionCtx.waitUntil(notifyPentestLead(c.env, origin, brand, notifyBase, Promise.resolve(null), throttled));
+    return c.json(reportRequestOk(throttled, email, reportDomain), 200, NO_STORE);
+  }
+  const result = await createLead(cfg, lead, { marketing: brand.odoo });
+  if (!result.ok) {
+    // Der Versand hängt bewusst NICHT am CRM: Ein Odoo-Ausfall darf niemanden
+    // seinen Bericht kosten. Damit die Anfrage trotzdem nicht verschwindet,
+    // wird sie hier laut protokolliert.
+    console.error("BERICHT Odoo-Anlage fehlgeschlagen:", result.code, result.message, JSON.stringify(lead));
+    c.executionCtx.waitUntil(notifyPentestLead(c.env, origin, brand, notifyBase, Promise.resolve(null), throttled));
+    return c.json(reportRequestOk(throttled, email, reportDomain), 200, NO_STORE);
+  }
+  const enrich = domain && result.leadId ? enrichLead(cfg, result.leadId, domain) : Promise.resolve(null);
+  c.executionCtx.waitUntil(enrich);
+  c.executionCtx.waitUntil(
+    notifyPentestLead(c.env, origin, brand, { ...notifyBase, leadId: result.leadId }, enrich, throttled),
+  );
+  return c.json(reportRequestOk(throttled, email, reportDomain, result.leadId), 200, NO_STORE);
 });
 
-// ── Report-Generator (passwortgeschützte Seite) ───────────────────────────────
-// Saubere URL für die geschützte Seite (liefert report.html aus den Assets).
-// ─── Sitemap + robots.txt ────────────────────────────────────────────────────
-// Beide werden erzeugt, nicht als Datei ausgeliefert — sonst müsste jede Marke
-// ihre eigene Kopie pflegen und würde die fremde Domain nennen. Marken ohne
-// `seo` fallen durch (next()) und bekommen weiterhin die statische Datei.
+const NO_STORE = { "Cache-Control": "no-store" } as const;
+
+function reportRequestOk(throttled: boolean, email: string, domain: string, leadId?: number) {
+  return {
+    ok: true,
+    code: throttled ? "RATE_LIMITED" : "OK",
+    message: throttled
+      ? `Aus Ihrem Netz wurden in der letzten Stunde schon mehrere Berichte angefordert — deshalb ` +
+        `versenden wir nicht automatisch weiter. Ihre Anfrage liegt uns vor: Wir schicken den Bericht ` +
+        `für ${domain} persönlich. Wenn es eilt: +49 172 2872390.`
+      : `Wir prüfen ${domain} gerade live und schicken das PDF an ${email}. Das dauert ein bis zwei Minuten.`,
+    leadId,
+  };
+}
+
 app.get("/sitemap.xml", async (c, next) => {
   const brand = resolveBrand(c.env, new URL(c.req.url).host);
   if (!brand.seo) return next();
@@ -913,6 +975,14 @@ app.get("/pentest", async (c, next) => {
   const brand = resolveBrand(c.env, new URL(c.req.url).host);
   if (!brand.funnel) return next();
   return c.env.ASSETS.fetch(new Request(new URL("/pentest.html", c.req.url)));
+});
+
+// Berichtsanfrage — dieselbe Bedingung. NICHT zu verwechseln mit /report:
+// das ist der passwortgeschützte Vertriebsgenerator und bleibt unberührt.
+app.get("/bericht", async (c, next) => {
+  const brand = resolveBrand(c.env, new URL(c.req.url).host);
+  if (!brand.funnel) return next();
+  return c.env.ASSETS.fetch(new Request(new URL("/bericht.html", c.req.url)));
 });
 
 // Login: nur Passwort (kein Benutzername) → signiertes HttpOnly-Cookie.

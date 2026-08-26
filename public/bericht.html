@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#dc0d23" />
+    <!-- Reine Konversionsseite: ergibt nur mit ?d= Sinn und soll nicht ranken. -->
+    <meta name="robots" content="noindex, follow" />
+    <meta name="description" content="Sicherheitsbericht anfordern — E-Mail-Authentifizierung, DNS-Absicherung und Website-Header Ihrer Domain als PDF." />
+    <title>Bericht anfordern · Reineke Technik</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="icon" type="image/png" href="/assets/favicon.png" />
+    <link rel="apple-touch-icon" href="/assets/favicon.png" />
+  </head>
+  <body>
+    <!-- ACHTUNG: Die Reiter tragen bewusst KEIN data-tab-link. Der Marken-Umschreiber
+         (src/brand.ts) haengt den Pentest-Reiter an genau diesen Anker — mit ihm
+         entstuende hier ein fuenfter Reiter. Genau wie in pentest.html. -->
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="/" aria-label="Reineke Technik">
+          <img src="/assets/reineke-logo.png" alt="Reineke Technik" class="brand-logo" />
+        </a>
+        <nav class="header-tabs" aria-label="Bereiche">
+          <a href="/" class="tab">E-Mail</a>
+          <a href="/website" class="tab">Website</a>
+          <a href="/dnssec" class="tab">DNSSEC</a>
+          <a href="/pentest" class="tab">Pentest</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="pt-page">
+      <section class="pt-section pt-section-alt" id="anfordern">
+        <div class="container">
+          <p class="section-eyebrow">Sicherheitsbericht</p>
+          <h2>Den vollständigen Bericht anfordern</h2>
+
+          <p class="pt-sub" data-b-for hidden>
+            Bericht für <strong class="mono" data-b-domain></strong>
+          </p>
+
+          <p>Der komplette Befund als PDF: E-Mail-Authentifizierung, DNS-Absicherung und
+            Website-Header — jeweils mit Risiko und nächstem Schritt. Ausgewertet wird
+            ausschließlich, was öffentlich abrufbar ist.</p>
+
+          <div class="pt-scoping">
+            <form class="pt-form" novalidate>
+              <!-- Ohne ?d= tritt dieses Feld an die Stelle der Anzeige oben. -->
+              <!-- Wrapper-div statt hidden am Label: .lead-field setzt display:flex und
+                   wuerde das hidden-Attribut schlagen. -->
+              <div data-b-domain-field hidden>
+                <label class="lead-field">
+                  <span class="lead-label">Domain *</span>
+                  <input type="text" name="domain" autocapitalize="off" autocorrect="off"
+                         spellcheck="false" placeholder="z. B. muster-gmbh.de" />
+                </label>
+              </div>
+
+              <div class="pt-form-grid">
+                <label class="lead-field"><span class="lead-label">Name *</span>
+                  <input type="text" name="name" required autocomplete="name" /></label>
+                <label class="lead-field"><span class="lead-label">E-Mail *</span>
+                  <input type="email" name="email" required autocomplete="email" inputmode="email"
+                         placeholder="name@unternehmen.de" /></label>
+                <label class="lead-field"><span class="lead-label">Firma (optional)</span>
+                  <input type="text" name="company" autocomplete="organization" /></label>
+                <label class="lead-field"><span class="lead-label">Telefon (optional)</span>
+                  <input type="tel" name="phone" autocomplete="tel" /></label>
+              </div>
+
+              <!-- Zusendung braucht keine Einwilligung (Erfuellung der Anfrage) → Hinweis
+                   ohne Kaestchen. Nur der Werbekontakt bekommt ein freiwilliges Kaestchen;
+                   gebuendelt waere er nicht freiwillig und damit unwirksam. -->
+              <p class="lead-note">Wir verwenden Ihre Angaben, um Ihnen den Bericht zuzusenden
+                und Ihre Anfrage zu bearbeiten. Einzelheiten in der
+                <a href="https://www.reineke-technik.de/datenschutz/" target="_blank"
+                   rel="noopener">Datenschutzerklärung</a>.</p>
+
+              <label class="lead-consent">
+                <input type="checkbox" name="contactConsent" />
+                <span>Die <strong>Reineke Technik GmbH</strong> darf mich zu diesem Bericht und
+                  zu ihren Leistungen rund um IT-Sicherheit per E-Mail und Telefon kontaktieren.
+                  Ich kann das jederzeit widerrufen — eine kurze E-Mail an
+                  <a href="mailto:info@reineke-technik.de">info@reineke-technik.de</a> genügt.</span>
+              </label>
+
+              <div class="pt-turnstile" data-turnstile hidden></div>
+              <p class="lead-error" data-b-error role="alert" aria-live="assertive" hidden></p>
+              <button type="submit" class="btn btn-primary lead-submit">
+                <span class="btn-label">Bericht anfordern</span><span class="spinner"></span>
+              </button>
+            </form>
+
+            <div class="pt-success" data-b-success role="status" aria-live="polite" hidden>
+              <h3>Angefordert — der Bericht wird jetzt erstellt.</h3>
+              <p data-b-success-text>Wir prüfen Ihre Domain gerade live und schicken das PDF an
+                Ihre Adresse. Das dauert ein bis zwei Minuten.</p>
+              <p class="lead-note">Adresse vertippt? <button type="button" class="card-export"
+                data-b-again>Noch einmal eingeben</button></p>
+            </div>
+
+            <aside class="pt-contact">
+              <h3>Lieber direkt sprechen?</h3>
+              <p><strong>Werner Reineke</strong><br />Geschäftsführer, Reineke Technik GmbH</p>
+              <p>
+                <a class="btn btn-secondary pt-booking"
+                   href="https://outlook.office.com/bookwithme/user/99dfe8391d044c208563dd3afbc7439f@reineke-technik.de?anonymous&amp;ismsaljsauthenabled&amp;ep=plink"
+                   target="_blank" rel="noopener">Termin direkt buchen</a>
+              </p>
+              <p>Tel. <a href="tel:+491722872390">+49 172 2872390</a><br />
+                <a href="mailto:wf.reineke@reineke-technik.de">wf.reineke@reineke-technik.de</a></p>
+            </aside>
+          </div>
+
+          <p class="pt-legal">Der Bericht ist eine Momentaufnahme öffentlich abrufbarer Daten und
+            trifft keine Aussage über interne Systeme.</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <div class="footer-brand">
+          <strong>Reineke Technik GmbH</strong>
+          <address class="footer-address">
+            Geseker Straße 26 · 33154 Salzkotten<br />
+            Tel. <a href="tel:+495258987282">+49 (0) 5258 987-282</a> ·
+            <a href="mailto:info@reineke-technik.de">info@reineke-technik.de</a>
+          </address>
+        </div>
+        <nav class="footer-nav">
+          <a href="/">Sicherheits-Check</a>
+          <a href="https://www.reineke-technik.de" rel="noopener">Hauptseite</a>
+          <a href="https://www.reineke-technik.de/impressum/" rel="noopener">Impressum</a>
+          <a href="https://www.reineke-technik.de/datenschutz/" rel="noopener">Datenschutz</a>
+        </nav>
+      </div>
+    </footer>
+
+    <script src="/bericht.js" type="module"></script>
+  </body>
+</html>

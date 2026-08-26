@@ -62,8 +62,9 @@ Hostnamen existiert, muss dieser zuerst entfernt werden.
 
 ### Lead-Erfassung (Odoo CRM)
 
-Der Report-Download ist hinter einem **E-Mail-Feld + DSGVO-Einwilligung** (`POST
-/api/lead`). Bestätigte Leads werden per Odoo-JSON-RPC als `crm.lead` mit
+Leads entstehen an zwei Stellen: der **Pentest-Anfrage** (`POST /api/pentest-lead`)
+und der **Berichtsanfrage** (`POST /api/report-request`). Sie werden per
+Odoo-JSON-RPC als `crm.lead` mit
 `type=opportunity` angelegt — sie erscheinen damit direkt in der **CRM-Pipeline**
 (ohne dass die separate „Leads"-Funktion aktiviert sein muss). Die analysierte
 Domain wird im **Website-Feld** des Datensatzes gespeichert; Marker „Empfohlen
@@ -173,22 +174,79 @@ Die Domain wird beim Tab-Wechsel übernommen und (sofern noch nicht im Session-C
 automatisch neu gescannt. Shareable Links: `/dnssec?d=<domain>`, `/website?d=<domain>`,
 `/?d=<domain>&s=<selektoren>`.
 
-### Report-Export (PDF)
+### Bericht als PDF — zwei streng getrennte Wege
 
-Branded **Cybersecurity-Report** unter `/report`, als echter **Ein-Klick-PDF-Download**
-(`POST /api/report-pdf` → Cloudflare Browser Rendering rendert die Report-HTML
-serverseitig zu einem PDF). Fällt der PDF-Dienst aus (z.B. Tageslimit erreicht),
-greift automatisch der Browser-Druck (`window.print()`) als Fallback:
+**1. Interner Generator (`/report`, passwortgeschützt).** Vertriebswerkzeug:
+Anmeldung per `POST /api/report-auth` (signiertes HttpOnly-Cookie), danach
+`POST /api/generate-report` mit frei wählbarer Domain und wählbarer
+Vertriebsmitarbeiter-Karte (`GET /api/report-reps`). Das PDF kommt **synchron als
+Download** zurück. Erzeugt bewusst keinen `crm.lead`.
 
-- **Gesamtbericht:** `/report?d=<domain>` — paginiert: Seite 1 = Zusammenfassung
-  mit drei Bereichs-Blöcken (E-Mail / Website / DNSSEC), danach je eine Seite pro
-  Bereich (`break-before: page`) mit Kurzüberblick + technischen Details. Button
-  „Gesamtbericht (PDF)" in jeder Ergebnis-Leiste.
-- **Einzelbefund:** `/report?d=<domain>&check=<id>` (`id` = `dmarc`, `spf`, `dkim`,
-  `mx`, `mtaSts`, `tlsRpt`, `dnssec`, `observatory`). Button „Befund als PDF
-  exportieren" auf jeder Ergebnis-Karte.
-- Während der Erstellung läuft ein Ladebalken (Website-Scan bis ~25 s); der
-  Report erscheint, sobald die Daten da sind.
+**2. Selbstbedienung (`/bericht`, öffentlich).** Besucher fordern den Bericht zu
+einer geprüften Domain an; das PDF verlässt diesen Weg **ausschließlich per
+E-Mail** an die eingetragene Adresse. Abgesichert durch Turnstile, drei Zähler
+(IP / Empfängeradresse / Adresse+Domain) und eine CRM-Spur.
+
+Die Trennung ist Absicht und muss erhalten bleiben — siehe „Trennungsregeln"
+unten. Es gibt **immer** den Gesamtbericht; einen Einzelbefund-Export kennt der
+Server nicht.
+
+#### Trennungsregeln
+
+1. Der Selbstbedienungsweg ruft `isReportAuthed` **nie** auf; er verhält sich mit
+   und ohne gültiges Report-Cookie identisch.
+2. Keine Vertriebsmitarbeiter-Auswahl: `reportBrandFor()` streicht `partner` und
+   `reps`, damit ein Fremder nie bestimmt, welche Person auf dem Dokument steht.
+3. Das PDF steht nie in der Antwort von `/api/report-request`.
+4. Turnstile: Ist ein Sitekey hinterlegt, aber `TURNSTILE_SECRET` fehlt, **lehnt**
+   der Endpunkt ab (der Pentest-Pfad lässt in dem Fall still durch). Ohne
+   hinterlegten Sitekey findet gar keine Prüfung statt — die Marke muss ihn
+   setzen, der Code kann das nicht erzwingen.
+5. Getrennte Zähler je Strecke.
+6. Ohne `RESEND_API_KEY` antwortet der Endpunkt `503 NO_MAILER`, statt eine
+   Zustellung zu versprechen, die nicht stattfinden kann.
+
+#### Feste Regel zu fremden Domains
+
+Ein Besucher darf einen Bericht zu einer Domain anfordern, die ihm nicht gehört —
+IT-Dienstleister prüfen die Domains ihrer Kunden, und das sind gute Anfragen.
+Daraus folgt eine Regel, die technisch nicht erzwingbar ist und deshalb hier
+steht:
+
+> **Ein Befund über eine fremde Domain wird nie zum Anlass, deren Inhaber
+> anzuschreiben.** Der Bericht gehört dem, der ihn angefordert hat. Eine
+> Kaltakquise mit „uns ist aufgefallen, dass Ihr SPF …" ist genau der Fall, in
+> dem aus einer öffentlich abrufbaren Information ein Wettbewerbsverstoß wird.
+
+Die Berichtsmail spricht deshalb neutral von „der geprüften Domain" statt von
+„Ihrer Domain", und die interne Meldung beschriftet Technik-Ampel und Befunde
+mit der Domain, auf die sie sich beziehen.
+
+#### Bekannte Grenzen
+
+Ehrlich benannt, damit sie niemand für gelöst hält:
+
+- **Geteilte Ressourcen.** Browser Rendering und der Resend-Absender
+  `scan@reineke.tech` werden von beiden Wegen genutzt. Ein ausgeschöpftes
+  Tageskontingent trifft auch den angemeldeten Generator; missbräuchliche
+  Berichtsanfragen belasten die Zustellreputation. Die Zähler begrenzen das,
+  trennen es aber nicht.
+- **Keine Adressverifikation.** Wer eine fremde Adresse einträgt, löst dort eine
+  Mail mit PDF aus. Turnstile und die Zähler begrenzen die Automatisierung, nicht
+  den Einzelfall. Deshalb steht in der Berichtsmail ein ausdrücklicher
+  Widerspruchsweg („Sie haben das nicht angefordert?"). Ein Double-Opt-in für die
+  Zusendung würde die Strecke unbrauchbar machen; für die *Werbeeinwilligung*
+  wäre ein Bestätigungsklick der belastbarere Nachweis — bislang nicht gebaut.
+- **Zähler gelten je Rechenzentrum** (`caches.default`, kein KV). Für den
+  IP-Zähler vertretbar, für den Adresszähler eine echte Lücke: Über mehrere
+  Ausgangsorte vervielfacht sich die Grenze.
+- **Widerspruchssperre von Hand.** `SUPPRESSED_EMAILS` (kommagetrennt, als
+  Worker-Variable) verhindert jeden weiteren Versand an eine Adresse. Sie wird
+  gepflegt, wenn jemand widerspricht — es gibt keine automatische Eintragung.
+- **Zähler laufen vor dem Erfolg hoch.** Scheitert der Versand im Hintergrund,
+  ist ein Versuch verbraucht. Deshalb erlaubt die Paar-Grenze zwei statt einer
+  Anfrage.
+
 
 Briefkopf: **Reineke Technik GmbH · Werner Francis Reineke · Geseker Straße 26,
 33154 Salzkotten · Tel. +49 (0) 5258 987-282 · wf.reineke@reineke-technik.de**
@@ -289,22 +347,17 @@ Globale Observatory-Notenverteilung für die Benchmark-Darstellung (Cache 1 Tag)
 { "distribution": [ { "grade": "A+", "count": 59156 }, … , { "grade": "F", "count": 954615 } ] }
 ```
 
-### `POST /api/lead`
+### `POST /api/report-request`
 
-Lead-Erfassung vor dem Report-Download. Body: `{ "email": "…", "domain": "…",
-"consent": true }`. Erzwingt gültige E-Mail + Einwilligung (sonst `400`
-`INVALID_EMAIL` / `NO_CONSENT`), legt anschließend best-effort einen `crm.lead`
-in Odoo an. Antwort: `{ ok, code, message, leadId? }`.
-
-### `POST /api/report-pdf`
-
-Erzeugt den Report serverseitig als PDF (Cloudflare Browser Rendering). Body:
-`{ "html": "<die gebaute Report-HTML>", "domain": "…", "check": "…" }`. Antwort:
-`application/pdf` mit `Content-Disposition: attachment`. Schutz: HTML-Größenlimit,
-`<script>`/`<iframe>` werden entfernt, der Headless-Browser darf nur unsere eigene
-Origin laden (Request-Interception). Stylesheet + Logo werden inline eingebettet,
-sodass keine externen Fetches nötig sind. Erfordert die `BROWSER`-Bindung (Browser
-Rendering: Free-Plan 10 Min/Tag, darüber Workers Paid).
+Berichtsanfrage der öffentlichen Strecke `/bericht`. Body: `{ "domain": "…",
+"name": "…", "email": "…", "company": "…", "phone": "…", "contactConsent": bool,
+"cf-turnstile-response": "…" }`. `domain` ist die **geprüfte** Domain und kann von
+der Domain der E-Mail-Adresse abweichen (IT-Dienstleister prüfen Kundendomains) —
+der Bericht gilt der geprüften Domain, der CRM-Vorgang wird auf die
+E-Mail-Domain gekeyt. `contactConsent` ist die **freiwillige** Werbeeinwilligung;
+sie blockiert die Anfrage nicht und wird mit Zeitstempel, IP und Textfassung im
+Vorgang protokolliert. Antwort: `{ ok, code, message, leadId? }` — **nie das PDF**.
+Prüflogik: `src/leads/report-request.ts` (rein, unter Node testbar).
 
 ### `GET /api/health`
 

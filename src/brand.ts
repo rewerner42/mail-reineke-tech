@@ -188,13 +188,10 @@ export function reportPaletteCss(brand: Brand): string {
 
 /** Non-executed JSON data block (CSP-safe) that app.js reads for brand content. */
 function brandDataScript(brand: Brand): string {
+  // Nur noch, was der Browser wirklich liest. Briefkopf, Einwilligungstexte und
+  // Dateinamen gehörten zum clientseitigen Bericht-Renderer — der ist entfernt,
+  // die Berichte entstehen serverseitig.
   const data = {
-    reportContact: brand.app.reportContact,
-    letterheadLogo: brand.app.letterheadLogo,
-    leadConsentCompany: brand.app.leadConsentCompany,
-    leadDatenschutzHref: brand.app.leadDatenschutzHref,
-    filenameFull: brand.app.filenameFull,
-    filenameSingle: brand.app.filenameSingle,
     analytics: brand.analytics ?? null,
     funnel: brand.funnel ?? null,
   };

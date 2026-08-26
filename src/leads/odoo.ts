@@ -15,14 +15,30 @@ export interface LeadInput {
   domain?: string;
   consent: boolean;
   /** Einstiegskanal (Kanalmarker je Einstieg; Marken-Trennung läuft über `referred`). */
-  channel?: "freier-check" | "pentest-scoping";
+  channel?: "freier-check" | "pentest-scoping" | "bericht-anfrage";
   /** Ausgefülltes Scoping-Formular von /pentest (nur channel "pentest-scoping"). */
   scoping?: ScopingInput;
+  /** Domain, für die ein Bericht angefordert wurde (channel "bericht-anfrage").
+   *  Kann von der Domain der E-Mail-Adresse abweichen — etwa wenn ein
+   *  IT-Dienstleister die Domain seines Kunden prüft. */
+  reportDomain?: string;
+  /** Nachweis der Werbeeinwilligung. Ohne Zeitstempel, Herkunft und Wortlaut ist
+   *  ein gesetztes Häkchen im Streitfall wertlos. */
+  contactConsent?: ConsentRecord;
+}
+
+/** Belegbarer Einwilligungsnachweis (Art. 7 Abs. 1 DSGVO: Nachweispflicht). */
+export interface ConsentRecord {
+  granted: boolean;
+  at: string; // ISO-Zeitstempel
+  ip?: string;
+  wording: string; // Wortlaut, dem zugestimmt wurde
+  version: string; // Fassung des Textes
 }
 
 /** Felder des /pentest-Scoping-Formulars — qualifizieren den Lead strukturiert. */
 export interface ScopingInput {
-  company: string;
+  company?: string;
   contactName: string;
   role?: string;
   phone?: string;
@@ -109,11 +125,18 @@ export function buildLeadValues(
   const domain = lead.domain?.trim();
   const stamp = now.toISOString();
   const s = lead.scoping;
-  const name = s
-    ? `Pentest-Anfrage: ${s.company.trim()}`
-    : domain
-      ? `Sicherheits-Check: ${domain}`
-      : `Sicherheits-Check Anfrage: ${email}`;
+  // Titel nach KANAL, nicht nach Vorhandensein des Scoping-Blocks: Die
+  // Berichtsanfrage liefert ebenfalls einen Scoping-Block (für Name/Firma),
+  // ist aber der schwächere Einstieg und darf nicht als Pentest erscheinen.
+  const who = s?.company?.trim() || s?.contactName?.trim() || email;
+  const name =
+    lead.channel === "pentest-scoping"
+      ? `Pentest-Anfrage: ${who}`
+      : lead.channel === "bericht-anfrage"
+        ? `Berichtsanfrage: ${who}`
+        : domain
+          ? `Sicherheits-Check: ${domain}`
+          : `Sicherheits-Check Anfrage: ${email}`;
   const scopingLines = s
     ? (s.umfang ? `Ungefährer Umfang: ${s.umfang}\n` : "") +
       (s.freitext ? `Freitext: ${s.freitext}\n` : "")
@@ -122,9 +145,13 @@ export function buildLeadValues(
     `Lead über das ${marketing.toolLabel} Sicherheits-Analyse-Tool (${marketing.referred}).\n` +
     `Kanal: ${lead.channel ?? "freier-check"}\n` +
     (domain ? `Analysierte Domain: ${domain}\n` : "") +
+    (lead.reportDomain && lead.reportDomain !== domain
+      ? `Bericht angefordert für: ${lead.reportDomain}\n`
+      : "") +
     `E-Mail: ${email}\n` +
     scopingLines +
-    `DSGVO-Einwilligung erteilt: ${stamp}`;
+    `DSGVO-Einwilligung erteilt: ${stamp}` +
+    consentLines(lead.contactConsent);
   const values: Record<string, unknown> = {
     name,
     contact_name: s?.contactName?.trim() || email,
@@ -142,7 +169,7 @@ export function buildLeadValues(
     x_reineke_kontakt_emails: email,
   };
   if (s) {
-    values.partner_name = s.company.trim();
+    if (s.company?.trim()) values.partner_name = s.company.trim();
     if (s.role) values.function = s.role;
     if (s.phone) values.phone = s.phone;
     if (s.role) values.x_reineke_rolle = s.role;
@@ -153,6 +180,15 @@ export function buildLeadValues(
   // Store the analysed domain in the structured Website field, too.
   if (domain) values.website = domain;
   return values;
+}
+
+/** Werbeeinwilligung als nachvollziehbarer Block in der Vorgangsbeschreibung. */
+function consentLines(c: ConsentRecord | undefined): string {
+  if (!c) return "";
+  return (
+    `\nWerbliche Kontaktaufnahme: ${c.granted ? "eingewilligt" : "NICHT eingewilligt"}` +
+    (c.granted ? ` am ${c.at}${c.ip ? ` von ${c.ip}` : ""} (Textfassung ${c.version})\n"${c.wording}"` : "")
+  );
 }
 
 /** Strip the custom x_reineke_* fields (fallback when the instance lacks them). */
@@ -241,6 +277,8 @@ export async function createLead(
             email_from?: string;
             x_reineke_kontakt_emails?: string | false;
             x_reineke_kanal?: string | false;
+            partner_name?: string | false;
+            contact_name?: string | false;
           }>
         >("crm.lead", "search_read", [
           [
@@ -248,7 +286,7 @@ export async function createLead(
             ["website", "in", [domain, `http://${domain}`, `https://${domain}`, `http://www.${domain}`, `https://www.${domain}`]],
             ["probability", "<", 100],
           ],
-          ["id", "email_from", "x_reineke_kontakt_emails", "x_reineke_kanal"],
+          ["id", "email_from", "x_reineke_kontakt_emails", "x_reineke_kanal", "partner_name", "contact_name"],
         ]);
         const ex = existing[0];
         if (ex) {
@@ -267,8 +305,15 @@ export async function createLead(
           if (lead.channel === "pentest-scoping") upd.x_reineke_kanal = "pentest-scoping";
           const s = lead.scoping;
           if (s) {
-            upd.partner_name = s.company.trim();
-            upd.contact_name = s.contactName.trim();
+            // Die Pentest-Anfrage ist der qualifizierte Einstieg und darf Firma
+            // und Ansprechpartner weiterhin korrigieren. Die schwaechere
+            // Berichtsanfrage fuellt nur Luecken — sonst verdraengt sie die
+            // gepflegten Angaben eines bestehenden Pentest-Vorgangs.
+            const darfErsetzen = lead.channel === "pentest-scoping";
+            if (s.company?.trim() && (darfErsetzen || !ex.partner_name)) {
+              upd.partner_name = s.company.trim();
+            }
+            if (darfErsetzen || !ex.contact_name) upd.contact_name = s.contactName.trim();
             if (s.phone) upd.phone = s.phone;
             if (s.role) upd.x_reineke_rolle = s.role;
             if (s.testart) upd.x_reineke_testart = s.testart;
@@ -284,6 +329,8 @@ export async function createLead(
           const note =
             `Erneute Anfrage über ${opts.marketing?.referred ?? DEFAULT_MARKETING.referred} ` +
             `(Kanal: ${lead.channel ?? "freier-check"}): ${lead.email.trim()}` +
+            (lead.reportDomain ? ` — Bericht angefordert für ${lead.reportDomain}` : "") +
+            consentLines(lead.contactConsent) +
             (isNewPerson ? " — neue Kontaktperson (mögliches Buying Center)." : ".") +
             (s ? ` Scoping: ${[s.testart, s.anlass, s.frist].filter(Boolean).join(" · ")}` : "") +
             ` DSGVO-Einwilligung: ${stamp}`;
