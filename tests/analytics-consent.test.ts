@@ -16,6 +16,7 @@ import { scrubUrl, scrubEvent } from "../public/scrub.js";
 
 const appJs = readFileSync(new URL("../public/app.js", import.meta.url), "utf8");
 const indexHtml = readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
+const stylesCss = readFileSync(new URL("../public/styles.css", import.meta.url), "utf8");
 
 describe("CSP je Marke", () => {
   it("Reineke: PostHog erlaubt, Umami nicht mehr", () => {
@@ -178,15 +179,36 @@ describe("Einwilligung", () => {
   });
 
   it("der Banner nennt die Aufzeichnung ausdruecklich", () => {
-    expect(indexHtml).toMatch(/zeichnen den Ablauf Ihres Besuchs auf/);
+    // "Analyse-Tools" beschreibt eine Bildschirmaufzeichnung nicht. Eine
+    // Einwilligung muss informiert sein -- also muss das Wort fallen.
+    expect(indexHtml).toMatch(/Aufzeichnung Ihres Besuchsablaufs/);
+    expect(indexHtml).toMatch(/unkenntlich/);
     expect(indexHtml).toContain('data-cat="statistics"');
   });
 
-  it("jeder Knopf im Markup hat einen Zweig im Code und umgekehrt", () => {
-    const imMarkup = [...indexHtml.matchAll(/data-act="([a-z]+)"/g)].map((m) => m[1]).sort();
-    const imCode = [...appJs.matchAll(/act === "([a-z]+)"/g)].map((m) => m[1]).sort();
+  it("sieht aus wie der Banner der Hauptseite", () => {
+    // Gleicher Absender, gleiches Bild: dieselben Klassennamen wie in
+    // reineke-consent.css auf www.reineke-technik.de.
+    for (const k of ["rt-consent", "rt-consent__title", "rt-consent__opts",
+                     "rt-consent__actions", "rt-consent__btn--primary",
+                     "rt-consent__more", "rt-consent-link"]) {
+      expect(indexHtml + stylesCss).toContain(k);
+    }
+    // Die alten, abweichenden Klassen sind restlos weg.
+    expect(indexHtml + stylesCss).not.toContain("cookie-banner");
+    expect(indexHtml + stylesCss).not.toContain("cookie-accept");
+  });
+
+  it("jeder Knopf im Markup hat einen Zweig im Code", () => {
+    const imMarkup = [...new Set([...indexHtml.matchAll(/data-act="([a-z]+)"/g)].map((m) => m[1]))];
+    const imCode = [...new Set([...appJs.matchAll(/act === "([a-z]+)"/g)].map((m) => m[1]))];
     expect(imMarkup.length).toBeGreaterThan(0);
-    expect([...new Set(imMarkup)]).toEqual([...new Set(imCode)]);
+    for (const a of imMarkup) expect(imCode).toContain(a);
+    // "sel" wird erst zur Laufzeit gesetzt (aus "detail"), steht also nicht im
+    // Markup -- muss aber im Code behandelt sein, sonst ist "Auswahl
+    // speichern" ein toter Knopf.
+    expect(imCode).toContain("sel");
+    expect(appJs).toMatch(/setAttribute\("data-act", "sel"\)/);
   });
 
   it("jede Kategorie im Markup ist dem Code bekannt", () => {

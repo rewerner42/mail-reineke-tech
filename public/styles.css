@@ -985,56 +985,43 @@ body.is-report .site-footer { display: none; }
 .lead-note { margin: 0.25rem 0 0; font-size: 0.78rem; color: var(--rt-gray-mid); line-height: 1.5; }
 
 /* ─── Cookie-Hinweis (unaufdringlich, unten rechts) ───────── */
-.cookie-banner {
-  position: fixed;
-  right: 1rem;
-  bottom: 1rem;
-  z-index: 50;
-  max-width: 320px;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  padding: 0.85rem 1rem;
-  background: #fff;
-  border: 1px solid var(--rt-border);
-  border-left: 3px solid var(--rt-red);
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+/* Datenschutz-Einstellungen -- Klassennamen und Werte absichtlich identisch
+   mit reineke-consent.css auf www.reineke-technik.de. Einziger Unterschied:
+   dort sitzt der Kasten ueber dem Nachrichtenticker, hier gibt es keinen. */
+.rt-consent {
+  position: fixed; right: 1rem; bottom: 1rem; z-index: 10001; max-width: 510px;
+  display: flex; flex-direction: column; gap: .9rem;
+  background: #fff; color: #333;
+  border: 1px solid #e2e2e2; border-top: 4px solid var(--rt-red);
+  box-shadow: 0 8px 32px rgba(0,0,0,.16); padding: 1.4rem 1.55rem;
+  font-size: 1rem; line-height: 1.5;
 }
-/* Higher specificity than the rule above, so [hidden] actually hides it. */
-.cookie-banner[hidden] { display: none; }
-.cookie-text { margin: 0; font-size: 0.8rem; line-height: 1.45; color: var(--rt-gray); }
-.cookie-text a { color: var(--rt-red); }
-.cookie-actions { display: flex; gap: 0.5rem; align-items: center; }
-.cookie-opts { display: flex; flex-direction: column; gap: 0.35rem; margin: 0.15rem 0 0.1rem; }
-.cookie-opt { display: inline-flex; align-items: center; gap: 0.45rem;
-  font-size: 0.8rem; color: var(--rt-gray); cursor: pointer; }
-.cookie-opt input { accent-color: var(--rt-red); }
-.cookie-opt input:disabled { cursor: default; }
-.cookie-accept {
-  border: 0;
-  background: var(--rt-red);
-  color: #fff;
-  font-family: var(--rt-sans);
-  font-weight: 700;
-  font-size: 0.78rem;
-  padding: 0.45rem 0.9rem;
-  cursor: pointer;
-  transition: var(--transition);
+.rt-consent[hidden] { display: none; }
+.rt-consent__title { margin: 0; font-size: 1.15rem; font-weight: 700; }
+.rt-consent p { margin: 0; }
+.rt-consent a { color: var(--rt-red); }
+.rt-consent__opts { display: flex; flex-wrap: wrap; gap: 1.1rem; margin: .15rem 0; }
+.rt-consent__opt { display: inline-flex; align-items: center; gap: .5rem; cursor: pointer; font-size: .95rem; }
+.rt-consent[data-detail="0"] .rt-consent__opts { display: none; }
+.rt-consent__actions { display: flex; gap: .75rem; flex-wrap: wrap; }
+.rt-consent__btn {
+  flex: 1 1 auto; border: 1px solid var(--rt-red); background: #fff; color: var(--rt-red);
+  font: inherit; font-weight: 700; font-size: .95rem; padding: .68rem 1.35rem;
+  cursor: pointer; border-radius: 2px; transition: background .15s, color .15s;
 }
-.cookie-accept:hover { background: var(--rt-red-dark); }
-.cookie-reject {
-  border: 0;
-  background: transparent;
-  color: var(--rt-gray-mid);
-  font-family: var(--rt-sans);
-  font-size: 0.78rem;
-  padding: 0.45rem 0.4rem;
-  cursor: pointer;
-  text-decoration: underline;
+.rt-consent__btn--primary { background: var(--rt-red); color: #fff; }
+.rt-consent__btn:hover { opacity: .88; }
+.rt-consent__btn:focus-visible { outline: 2px solid #0a58ca; outline-offset: 2px; }
+.rt-consent__more {
+  background: none; border: 0; padding: 0; font: inherit; font-size: .9rem;
+  color: #666; text-decoration: underline; cursor: pointer; align-self: flex-start;
 }
-.cookie-reject:hover { color: var(--rt-gray); }
-@media (max-width: 860px) {
-  .cookie-banner { left: 0.75rem; right: 0.75rem; bottom: 0.75rem; max-width: none; }
+.rt-consent-link {
+  background: none; border: 0; padding: 0; font: inherit; color: inherit;
+  text-decoration: underline; cursor: pointer;
+}
+@media (max-width: 640px) {
+  .rt-consent { left: .75rem; right: .75rem; bottom: .75rem; max-width: none; }
 }
 .report-progress { padding: 2.5rem 0; }
 .report-progress-track {
@@ -1293,7 +1280,7 @@ body.is-report .site-footer { display: none; }
   @page { size: A4; margin: 14mm; }
   body { background: #fff; }
   .report-toolbar { display: none !important; }
-  .cookie-banner { display: none !important; }
+  .rt-consent { display: none !important; }
   .report-view { padding: 0; background: #fff; min-height: 0; }
   .report-doc { max-width: none; margin: 0; border: 0; padding: 0; }
   /* one page per analysis area */

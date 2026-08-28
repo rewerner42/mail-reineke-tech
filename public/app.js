@@ -825,11 +825,14 @@ function loadTrackers() {
  * erlaubt keins). Hier wird es nur verdrahtet.
  */
 function wireConsentUi() {
-  const banner = $("[data-cookie-banner]");
+  const banner = $("[data-consent-banner]");
   if (!banner) return;
 
   const show = () => {
     const cur = readConsent();
+    banner.setAttribute("data-detail", "0");
+    const mehr = banner.querySelector('[data-act="sel"], .rt-consent__more');
+    if (mehr) { mehr.setAttribute("data-act", "detail"); mehr.textContent = "Einstellungen anpassen"; }
     CATEGORIES.forEach((c) => {
       const i = $('input[data-cat="' + c + '"]', banner);
       if (i) i.checked = Boolean(cur && cur.granted.indexOf(c) !== -1);
@@ -857,6 +860,14 @@ function wireConsentUi() {
   banner.addEventListener("click", (ev) => {
     const act = ev.target?.getAttribute?.("data-act");
     if (!act) return;
+    // Wie auf der Hauptseite: die Kategorien liegen hinter "Einstellungen
+    // anpassen", und derselbe Knopf wird danach zu "Auswahl speichern".
+    if (act === "detail") {
+      banner.setAttribute("data-detail", "1");
+      ev.target.setAttribute("data-act", "sel");
+      ev.target.textContent = "Auswahl speichern";
+      return;
+    }
     if (act === "all") return choose(CATEGORIES.slice());
     if (act === "none") return choose([]);
     if (act === "sel") {

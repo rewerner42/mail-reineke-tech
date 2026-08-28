@@ -370,36 +370,37 @@
           <a href="https://www.reineke-technik.de" rel="noopener">Hauptseite</a>
           <a href="https://www.reineke-technik.de/impressum/" rel="noopener">Impressum</a>
           <a href="https://www.reineke-technik.de/datenschutz/" rel="noopener">Datenschutz</a>
-          <a href="#" data-consent-open>Datenschutz-Einstellungen</a>
+          <button type="button" class="rt-consent-link" data-consent-open>Datenschutz-Einstellungen</button>
           <a href="/report">Login</a>
         </nav>
       </div>
     </footer>
 
-    <!-- Datenschutz-Einstellungen. Opt-in: ohne aktive Zustimmung laedt keine
-         Analyse. Verdrahtung in app.js (die CSP erlaubt kein Inline-Skript).
-         Der Text nennt die Bildschirmaufzeichnung ausdruecklich -- "Analyse-
+    <!-- Datenschutz-Einstellungen. Aufbau, Klassennamen und Gestaltung sind
+         bewusst identisch mit www.reineke-technik.de (reineke-consent.js /
+         reineke-consent.css) -- derselbe Absender soll gleich aussehen.
+         Opt-in: ohne aktive Zustimmung laedt keine Analyse. Verdrahtung in
+         app.js, die CSP erlaubt kein Inline-Skript.
+         Der Text nennt die Bildschirmaufzeichnung ausdruecklich; "Analyse-
          Tools" beschreibt sie nicht, und eine Einwilligung muss informiert
-         sein. -->
-    <div class="cookie-banner" data-cookie-banner hidden role="dialog" aria-live="polite"
-         aria-label="Datenschutz-Einstellungen">
-      <p class="cookie-text">
-        <strong>Datenschutz-Einstellungen.</strong>
-        Mit Ihrer Einwilligung messen wir die Nutzung dieser Seite mit PostHog und
-        zeichnen den Ablauf Ihres Besuchs auf, um Bedienprobleme zu erkennen.
-        Eingabefelder und Pr&uuml;fergebnisse bleiben dabei unkenntlich.
-        Ohne Einwilligung wird nichts gemessen und nichts gespeichert.
-        <a href="https://www.reineke-technik.de/datenschutz/" target="_blank" rel="noopener">Datenschutzerkl&auml;rung</a>
-      </p>
-      <div class="cookie-opts">
-        <label class="cookie-opt"><input type="checkbox" checked disabled> Notwendig</label>
-        <label class="cookie-opt"><input type="checkbox" data-cat="statistics"> Statistik &amp; Sitzungsaufzeichnung</label>
+         sein. Kategorie "Marketing" fehlt, weil es hier keine gibt. -->
+    <div class="rt-consent" data-detail="0" data-consent-banner hidden
+         role="dialog" aria-label="Datenschutz-Einstellungen">
+      <p class="rt-consent__title">Datenschutz-Einstellungen</p>
+      <p>Wir setzen Statistik-Cookies nur mit Ihrer Einwilligung. Dazu geh&ouml;rt eine
+        Aufzeichnung Ihres Besuchsablaufs, mit der wir Bedienprobleme erkennen;
+        Ihre Eingaben und die Pr&uuml;fergebnisse bleiben darin unkenntlich.
+        Sie k&ouml;nnen Ihre Wahl jederzeit &auml;ndern.
+        <a href="https://www.reineke-technik.de/datenschutz/" target="_blank" rel="noopener">Datenschutzerkl&auml;rung</a></p>
+      <div class="rt-consent__opts">
+        <label class="rt-consent__opt"><input type="checkbox" checked disabled> Notwendig</label>
+        <label class="rt-consent__opt"><input type="checkbox" data-cat="statistics"> Statistik</label>
       </div>
-      <div class="cookie-actions">
-        <button type="button" class="cookie-accept" data-act="all">Einverstanden</button>
-        <button type="button" class="cookie-reject" data-act="none">Ablehnen</button>
-        <button type="button" class="cookie-reject" data-act="sel">Auswahl speichern</button>
+      <div class="rt-consent__actions">
+        <button type="button" class="rt-consent__btn rt-consent__btn--primary" data-act="all">Einverstanden</button>
+        <button type="button" class="rt-consent__btn" data-act="none">Ablehnen</button>
       </div>
+      <button type="button" class="rt-consent__more" data-act="detail">Einstellungen anpassen</button>
     </div>
 
     <script src="/app.js" type="module"></script>
