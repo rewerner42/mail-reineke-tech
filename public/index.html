@@ -370,22 +370,35 @@
           <a href="https://www.reineke-technik.de" rel="noopener">Hauptseite</a>
           <a href="https://www.reineke-technik.de/impressum/" rel="noopener">Impressum</a>
           <a href="https://www.reineke-technik.de/datenschutz/" rel="noopener">Datenschutz</a>
+          <a href="#" data-consent-open>Datenschutz-Einstellungen</a>
           <a href="/report">Login</a>
         </nav>
       </div>
     </footer>
 
-    <!-- Cookie-Hinweis (Opt-out: Tracking läuft, kann abgelehnt werden).
-         Wiring + Leadfeeder-Laden erfolgt in app.js (consent-gesteuert). -->
+    <!-- Datenschutz-Einstellungen. Opt-in: ohne aktive Zustimmung laedt keine
+         Analyse. Verdrahtung in app.js (die CSP erlaubt kein Inline-Skript).
+         Der Text nennt die Bildschirmaufzeichnung ausdruecklich -- "Analyse-
+         Tools" beschreibt sie nicht, und eine Einwilligung muss informiert
+         sein. -->
     <div class="cookie-banner" data-cookie-banner hidden role="dialog" aria-live="polite"
-         aria-label="Cookie-Hinweis">
+         aria-label="Datenschutz-Einstellungen">
       <p class="cookie-text">
-        Wir nutzen Cookies &amp; Analyse-Tools, um unser Angebot zu verbessern.
-        <a href="https://www.reineke-technik.de/datenschutz/" target="_blank" rel="noopener">Datenschutz</a>
+        <strong>Datenschutz-Einstellungen.</strong>
+        Mit Ihrer Einwilligung messen wir die Nutzung dieser Seite mit PostHog und
+        zeichnen den Ablauf Ihres Besuchs auf, um Bedienprobleme zu erkennen.
+        Eingabefelder und Pr&uuml;fergebnisse bleiben dabei unkenntlich.
+        Ohne Einwilligung wird nichts gemessen und nichts gespeichert.
+        <a href="https://www.reineke-technik.de/datenschutz/" target="_blank" rel="noopener">Datenschutzerkl&auml;rung</a>
       </p>
+      <div class="cookie-opts">
+        <label class="cookie-opt"><input type="checkbox" checked disabled> Notwendig</label>
+        <label class="cookie-opt"><input type="checkbox" data-cat="statistics"> Statistik &amp; Sitzungsaufzeichnung</label>
+      </div>
       <div class="cookie-actions">
-        <button type="button" class="cookie-accept" data-cookie-accept>Einverstanden</button>
-        <button type="button" class="cookie-reject" data-cookie-reject>Ablehnen</button>
+        <button type="button" class="cookie-accept" data-act="all">Einverstanden</button>
+        <button type="button" class="cookie-reject" data-act="none">Ablehnen</button>
+        <button type="button" class="cookie-reject" data-act="sel">Auswahl speichern</button>
       </div>
     </div>
 

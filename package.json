@@ -5,13 +5,15 @@
   "description": "Email authentication analyzer (DMARC, DKIM, SPF, MX) for Reineke Technik",
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
-    "deploy:prod": "wrangler deploy --env production",
+    "dev": "wrangler dev --env sharp",
+    "deploy": "echo 'Bitte deploy:reineke oder deploy:sharp verwenden. Ein blankes deploy ginge auf den Sharp-Worker.' && exit 1",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "cf-typegen": "wrangler types"
+    "cf-typegen": "wrangler types",
+    "deploy:reineke": "wrangler deploy --env reineke",
+    "deploy:sharp": "wrangler deploy --env sharp",
+    "dev:reineke": "wrangler dev --env reineke"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250121.0",

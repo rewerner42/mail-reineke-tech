@@ -40,6 +40,10 @@ export interface Brand {
     // steht ohnehin im Quelltext jeder Seite. Host je nach Region (EU/US).
     posthogToken?: string | null;
     posthogHost?: string;
+    // Sitzungsaufzeichnung. Bewusst pro Marke, NICHT global: app.js ist von
+    // allen Marken geteilt, und eine Aufzeichnung fuer einen fremden
+    // Partnerkanal waere nicht unsere Entscheidung. Ohne das Feld: aus.
+    sessionReplay?: boolean;
   };
   // Sitemap + robots.txt werden nur für Marken erzeugt, die das hier setzen.
   // Ohne das Feld bleibt es beim bisherigen Verhalten (statische robots.txt).

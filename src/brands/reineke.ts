@@ -8,12 +8,19 @@ export const reineke: Brand = {
   id: "reineke",
   hosts: ["scan.reineke.tech"],
   privateAssets: ["/pentest.html", "/pentest.js", "/bericht.html", "/bericht.js"], // Lead-Strecken — nicht auf anderen Brands
-  // Umami-Site (vormals sharp.reineke.tech, umgezogen 2026-08-03) — lädt als
-  // Nicht-Default-Brand erst NACH aktiver Einwilligung (Opt-in in app.js).
+  // Analyse laeuft ausschliesslich ueber PostHog und erst NACH aktiver
+  // Einwilligung (Opt-in in app.js).
+  //
+  // Umami abgeschaltet 28.08.2026 (umamiId: null). Es mass dasselbe wie
+  // PostHog; auf www.reineke-technik.de ist es am 26.08. aus demselben Grund
+  // geflogen ("umami raus"). Der Schalter entfernt zugleich cloud.umami.is und
+  // gateway.umami.is aus der CSP -- die Hosts haengen in src/index.ts an
+  // a?.umamiId. Die Umami-Site selbst bleibt bestehen, nur ungenutzt.
   analytics: {
-    umamiId: "705faf06-6f2a-4905-8605-1fee670f68b1",
+    umamiId: null,
     posthogToken: "phc_xTC8gQxdjvK4KAS4V9mYJzPi6K86GmKxtVZNisUTUf5J",
     posthogHost: "https://eu.i.posthog.com",
+    sessionReplay: true,
   },
   // /report fehlt bewusst: Die Seite trägt noindex. Ein zusätzliches
   // Disallow in der robots.txt würde verhindern, dass Google dieses noindex

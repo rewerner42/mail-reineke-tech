@@ -71,7 +71,7 @@ const app = new Hono<{ Bindings: Bindings }>();
 // analytics get a CSP with no third-party origin at all; script-src stays
 // free of 'unsafe-inline'. Brand files never change at runtime → cache per id.
 const CSP_CACHE = new Map<string, string>();
-function cspFor(brand: Brand): string {
+export function cspFor(brand: Brand): string {
   const cached = CSP_CACHE.get(brand.id);
   if (cached) return cached;
   // Older client-branch brand files have no `analytics` field — they behave like
@@ -91,7 +91,9 @@ function cspFor(brand: Brand): string {
     `script-src 'self'${umamiScript}${ts}${ph}`,
     `connect-src 'self'${umamiSend}${ts}${ph}`,
     `frame-src 'self'${ts}`,
-    ...(ph ? ["worker-src 'self' blob:"] : []),
+    // PostHogs Recorder laeuft in einem Worker aus einem Blob. Die Doku des
+    // Anbieters nennt blob: UND data: -- data: fehlte hier.
+    ...(ph ? ["worker-src 'self' blob: data:"] : []),
     "img-src 'self' data:",
     "style-src 'self' 'unsafe-inline'",
     "font-src 'self'",

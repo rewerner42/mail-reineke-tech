@@ -1005,6 +1005,11 @@ body.is-report .site-footer { display: none; }
 .cookie-text { margin: 0; font-size: 0.8rem; line-height: 1.45; color: var(--rt-gray); }
 .cookie-text a { color: var(--rt-red); }
 .cookie-actions { display: flex; gap: 0.5rem; align-items: center; }
+.cookie-opts { display: flex; flex-direction: column; gap: 0.35rem; margin: 0.15rem 0 0.1rem; }
+.cookie-opt { display: inline-flex; align-items: center; gap: 0.45rem;
+  font-size: 0.8rem; color: var(--rt-gray); cursor: pointer; }
+.cookie-opt input { accent-color: var(--rt-red); }
+.cookie-opt input:disabled { cursor: default; }
 .cookie-accept {
   border: 0;
   background: var(--rt-red);

@@ -1,3 +1,4 @@
+import { scrubUrl, scrubEvent } from "./scrub.js";
 // Domain-Sicherheits-Check — frontend (3 tools: E-Mail / Website / DNSSEC)
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
@@ -220,7 +221,7 @@ function addCardExport(card) {
     card.appendChild(actions);
   }
   actions.innerHTML = currentDomain
-    ? `<a class="card-export" href="${reportLink(currentDomain)}">${
+    ? `<a class="card-export ph-no-capture" href="${reportLink(currentDomain)}">${
         FUNNEL ? "Gesamtbericht anfordern →" : "Befund als PDF exportieren →"
       }</a>`
     : "";
@@ -333,7 +334,8 @@ function renderObservatoryResults(view, data) {
     body += renderObsTests(d.tests);
   }
   if (d && d.detailsUrl) {
-    body += `<a class="obs-link" href="${escapeHtml(d.detailsUrl)}" target="_blank" rel="noopener">Vollständigen MDN-Report öffnen →</a>`;
+    // ph-no-capture: detailsUrl traegt die gepruefte Domain als host=-Parameter.
+    body += `<a class="obs-link ph-no-capture" href="${escapeHtml(d.detailsUrl)}" target="_blank" rel="noopener">Vollständigen MDN-Report öffnen →</a>`;
   }
   $("[data-body]", card).innerHTML = body;
   addCardExport(card);
@@ -480,6 +482,24 @@ function ensureReportButton(view, domain) {
     header.appendChild(btn);
   }
   btn.href = reportLink(domain);
+  // Der Link traegt die gepruefte Domain im Query -- und ein href-ATTRIBUT
+  // faellt nicht unter maskTextSelector, das nur Textknoten maskiert. Die
+  // Domain stuende also im aufgezeichneten DOM.
+  //
+  // ph-no-capture ist rrwebs blockClass (im PostHog-Bundle nachgelesen:
+  // blockClass:"ph-no-capture"): das Element wird in der Aufzeichnung
+  // geblockt und von Autocapture ausgenommen. Damit verlaesst das href den
+  // Browser gar nicht erst.
+  btn.classList.add("ph-no-capture");
+  // Preis der Blockierung: der Klick auf den wichtigsten Knopf der Seite
+  // waere unsichtbar. Deshalb ein ausdrueckliches Ereignis OHNE Domain --
+  // das Signal bleibt, die Daten der geprueften Organisation nicht.
+  if (!btn.dataset.phWired) {
+    btn.dataset.phWired = "1";
+    btn.addEventListener("click", () => {
+      try { window.posthog?.capture?.("bericht_angefordert"); } catch { /* egal */ }
+    });
+  }
 }
 
 /* ─────────────── scanning ─────────────── */
@@ -623,21 +643,106 @@ window.addEventListener("popstate", () => {
   if (currentDomain) runScan(tab, currentDomain);
 })();
 
-/* ─────────────── Cookie-Consent + Tracker (Leadfeeder + Umami) ───────────────
- * Opt-out-Modell: Tracking läuft, sofern der Nutzer es nicht ablehnt. Der
- * Banner erscheint nur, solange noch keine Wahl getroffen wurde. */
-const CONSENT_KEY = "rt-consent"; // "accepted" | "rejected"
+/* ─────────────── Einwilligung + Analyse ───────────────────────────────────
+ * Opt-in fuer Marken mit eigener analytics-Konfiguration: ohne aktive
+ * Zustimmung laedt nichts. Kategorien statt Alles-oder-nichts, und ein
+ * Widerruf, der auch wirklich aufraeumt (Art. 7 Abs. 3 DSGVO).
+ *
+ * Spiegelt bewusst reineke-consent.js auf www.reineke-technik.de: gleiches
+ * Speicherformat {v, granted, ts}, gleiche Alterung, gleiche Praefixliste.
+ * Wer beide anfasst, soll nicht zwei Modelle im Kopf halten muessen.
+ */
 
-// Per-brand analytics. Brand-data (white-label Workers) overrides the default
-// (Sharp) literals below; a null id disables that service for the brand.
-// Brands that ship their own analytics config are OPT-IN: nothing loads before
-// an active consent. The default brand keeps its existing behavior.
-const ANALYTICS = BRAND.analytics ?? {
-  umamiId: null, // Umami-Site liegt seit 2026-08-03 bei scan.reineke.tech (Site-Limit)
-};
+// NEUER Schluessel, und das ist der Punkt: wer vor dem 28.08.2026 zu
+// "Cookies & Analyse-Tools" ja gesagt hat, hat NICHT zu einer
+// Bildschirmaufzeichnung ja gesagt. Der alte Schluessel wird nicht gelesen und
+// nicht migriert -- alle werden erneut gefragt.
+const CONSENT_KEY = "rt-consent-v2";
+const CONSENT_VERSION = 1;
+const CONSENT_MAX_AGE_DAYS = 365;
+const CATEGORIES = ["statistics"];
+
+// Was die eingewilligten Dienste ablegen -- beim Widerruf zu entfernen.
+// ph_/__ph_ sind PostHog: Cookie UND localStorage heissen
+// ph_<token>_posthog und tragen eine Geraetekennung.
+const STORAGE_PREFIXES = ["ph_", "__ph_", "umami", "_um"];
+
+const ANALYTICS = BRAND.analytics ?? { umamiId: null };
 const ANALYTICS_OPT_IN = Boolean(BRAND.analytics);
 
-// Umami — cookieless, privacy-friendly page analytics.
+function readConsent() {
+  try {
+    const v = JSON.parse(localStorage.getItem(CONSENT_KEY));
+    if (!v || v.v !== CONSENT_VERSION || !v.ts || !Array.isArray(v.granted)) return null;
+    const ageDays = (Date.now() - new Date(v.ts).getTime()) / 86400000;
+    return ageDays > CONSENT_MAX_AGE_DAYS ? null : v;
+  } catch {
+    return null;
+  }
+}
+
+function writeConsent(granted) {
+  try {
+    localStorage.setItem(
+      CONSENT_KEY,
+      JSON.stringify({ v: CONSENT_VERSION, granted, ts: new Date().toISOString() }),
+    );
+  } catch {
+    /* Speicher gesperrt -- die Wahl gilt dann nur fuer diesen Seitenaufruf */
+  }
+}
+
+function hasConsent(cat) {
+  const c = readConsent();
+  return Boolean(c && c.granted.indexOf(cat) !== -1);
+}
+
+/** Haelt PostHog an, BEVOR aufgeraeumt wird.
+ *  Ohne das schreibt die Bibliothek ihren Zustand beim Entladen der Seite
+ *  zurueck -- clearTrackingState() raeumt auf, und einen Wimpernschlag
+ *  spaeter steht der Schluessel wieder da. Auf www.reineke-technik.de im
+ *  Live-Betrieb nachgemessen (reineke-consent.js). */
+function stopTrackers() {
+  const ph = window.posthog;
+  if (!ph) return;
+  try { ph.stopSessionRecording?.(); } catch { /* egal */ }
+  try { ph.set_config?.({ persistence: "memory", disable_session_recording: true }); } catch { /* egal */ }
+  try { ph.reset?.(true); } catch { /* egal */ }
+}
+
+/** Entfernt, was die Einwilligung gesetzt hat -- Cookies, localStorage
+ *  UND sessionStorage (dort liegen ph_<token>_window_id und
+ *  ph_<token>_primary_window_exists). */
+function clearTrackingState() {
+  const parts = location.hostname.split(".");
+  const domains = [""];
+  for (let i = 0; i < parts.length - 1; i++) {
+    const d = parts.slice(i).join(".");
+    domains.push(d, "." + d);
+  }
+  const hit = (name) => STORAGE_PREFIXES.some((p) => name.indexOf(p) === 0);
+  try {
+    document.cookie.split(";").forEach((c) => {
+      const name = c.split("=")[0].trim();
+      if (!name || !hit(name)) return;
+      domains.forEach((d) => {
+        document.cookie =
+          name + "=; Max-Age=0; path=/" + (d ? "; domain=" + d : "");
+      });
+    });
+  } catch { /* egal */ }
+  for (const store of [localStorage, sessionStorage]) {
+    try {
+      Object.keys(store)
+        .filter(hit)
+        .forEach((k) => store.removeItem(k));
+    } catch { /* egal */ }
+  }
+}
+
+// Umami — cookieless page analytics. Fuer die Reineke-Marke seit dem
+// 28.08.2026 abgeschaltet (umamiId: null); die Funktion bleibt fuer Marken,
+// die es noch nutzen, und laeuft sonst ins Leere.
 function loadUmami() {
   if (!ANALYTICS.umamiId) return;
   if (window.__umamiLoaded) return;
@@ -649,10 +754,23 @@ function loadUmami() {
   document.head.appendChild(s);
 }
 
-// PostHog — Produktanalyse. Der offizielle Schnipsel ist ein Inline-Skript und
-// würde von unserer CSP blockiert; wir laden die Bibliothek deshalb als externe
-// Datei und rufen init() im onload auf. Sitzungsaufzeichnung ist bewusst aus:
-// nicht nötig für Reichweitenmessung und datenschutzseitig heikel.
+/* Die geprueften Ergebnisse enthalten personenbezogene Daten DRITTER:
+ * DMARC- und TLS-RPT-Saetze fuehren echte Berichtsadressen
+ * (rua=mailto:...), die MX-Liste nennt Mailhosts und IP-Adressen der
+ * geprueften Organisation. Diese Dritten sind keine Besucher und haben in
+ * nichts eingewilligt -- ihre Daten duerfen nicht im Video stehen.
+ *
+ * Deshalb wird der gesamte Ergebnisbereich maskiert, nicht einzelne Felder:
+ * [data-results] umschliesst alle drei Ansichten (E-Mail, Website, DNSSEC).
+ * Ein Selektor am Container statt an den Einzelfeldern haelt auch, wenn
+ * spaeter neue Pruefungen dazukommen. maskAllInputs ist Standard, steht hier
+ * aber ausdruecklich, damit niemand es fuer vergessen haelt.
+ */
+const REPLAY_MASK_SELECTOR = "[data-results], [data-error]";
+
+// PostHog — der offizielle Schnipsel ist ein Inline-Skript und wuerde von
+// unserer CSP blockiert; wir laden die Bibliothek deshalb als externe Datei
+// und rufen init() im onload auf.
 function loadPosthog() {
   if (!ANALYTICS.posthogToken) return;
   if (window.__posthogLoaded) return;
@@ -663,16 +781,35 @@ function loadPosthog() {
   s.defer = true;
   s.onload = () => {
     if (!window.posthog || typeof window.posthog.init !== "function") return;
+    // Ausdrueckliche Bedingung statt Verlass auf den Aufrufweg: loadTrackers()
+    // haengt an ANALYTICS_OPT_IN, also daran, OB der Worker einen brand-data
+    // Block eingefuegt hat -- nicht an der Einwilligung. Fuer die
+    // Standardmarke laeuft loadTrackers() ohne jede Zustimmung. Dass dabei
+    // nichts passiert, liegt heute allein daran, dass sie keinen
+    // posthogToken hat. Darauf baut diese Zeile NICHT.
+    const replay = Boolean(ANALYTICS.sessionReplay) && hasConsent("statistics");
     try {
       window.posthog.init(ANALYTICS.posthogToken, {
         api_host: host,
         person_profiles: "identified_only",
-        disable_session_recording: true,
         capture_pageview: true,
         capture_pageleave: true,
+        disable_session_recording: !replay,
+        enable_recording_console_log: false, // Projektvorgabe ist true -- hier bewusst aus
+        session_recording: {
+          maskAllInputs: true,
+          maskTextSelector: REPLAY_MASK_SELECTOR,
+          // maskCapturedNetworkRequestFn, NICHT maskNetworkRequestFn: letzteres
+          // ist veraltet und wird mit {url: …} aufgerufen, liefert also fuer
+          // req.name undefined. Im Bundle nachgelesen:
+          //   maskNetworkRequestFn({url:e.name})  ->  {name: i?.url}
+          // Der neue Schluessel bekommt das ganze Objekt mit .name als URL.
+          maskCapturedNetworkRequestFn: (req) => ({ ...req, name: scrubUrl(req.name) }),
+        },
+        before_send: scrubEvent,
       });
     } catch {
-      /* Analyse darf die Seite nie beeinträchtigen */
+      /* Analyse darf die Seite nie beeintraechtigen */
     }
   };
   document.head.appendChild(s);
@@ -683,33 +820,82 @@ function loadTrackers() {
   loadPosthog();
 }
 
-function readConsent() {
-  try {
-    return localStorage.getItem(CONSENT_KEY);
-  } catch {
-    return null;
-  }
+/* ── Banner ──────────────────────────────────────────────────────────────
+ * Das Markup steht statisch in index.html (kein Inline-Skript, die CSP
+ * erlaubt keins). Hier wird es nur verdrahtet.
+ */
+function wireConsentUi() {
+  const banner = $("[data-cookie-banner]");
+  if (!banner) return;
+
+  const show = () => {
+    const cur = readConsent();
+    CATEGORIES.forEach((c) => {
+      const i = $('input[data-cat="' + c + '"]', banner);
+      if (i) i.checked = Boolean(cur && cur.granted.indexOf(c) !== -1);
+    });
+    banner.hidden = false;
+  };
+
+  const choose = (granted) => {
+    const had = (readConsent() || {}).granted || [];
+    const withdrawing = had.some((c) => granted.indexOf(c) === -1);
+    writeConsent(granted);
+    banner.hidden = true;
+    if (withdrawing) {
+      // Reihenfolge ist wichtig: erst anhalten, dann raeumen, dann neu laden.
+      // Die Aufzeichnung stillschweigend weiterlaufen zu lassen waere
+      // schlimmer, als den Widerruf gar nicht anzubieten.
+      stopTrackers();
+      clearTrackingState();
+      location.reload();
+      return;
+    }
+    if (granted.length) loadTrackers();
+  };
+
+  banner.addEventListener("click", (ev) => {
+    const act = ev.target?.getAttribute?.("data-act");
+    if (!act) return;
+    if (act === "all") return choose(CATEGORIES.slice());
+    if (act === "none") return choose([]);
+    if (act === "sel") {
+      const granted = [];
+      banner.querySelectorAll("input[data-cat]").forEach((i) => {
+        if (i.checked) granted.push(i.getAttribute("data-cat"));
+      });
+      return choose(granted);
+    }
+  });
+
+  // Widerrufs- und Aenderungsweg. Ohne ihn duerfte die
+  // Datenschutzerklaerung den Widerruf nicht versprechen -- sie tut es.
+  document.addEventListener("click", (ev) => {
+    const t = ev.target?.closest?.("[data-consent-open]");
+    if (!t) return;
+    ev.preventDefault();
+    show();
+  });
+
+  if (!readConsent()) show();
 }
 
 (function initConsent() {
-  const consent = readConsent();
-  // Opt-in brands: nothing loads before an active consent. The default brand
-  // keeps its existing assume-unless-rejected behavior.
-  if (ANALYTICS_OPT_IN ? consent === "accepted" : consent !== "rejected") loadTrackers();
-  if (consent) return; // choice already made → no banner
-
-  const banner = $("[data-cookie-banner]");
-  if (!banner) return;
-  banner.hidden = false;
-  const choose = (val) => {
-    try {
-      localStorage.setItem(CONSENT_KEY, val);
-    } catch {
-      /* storage unavailable */
-    }
-    banner.hidden = true;
-    if (val === "accepted") loadTrackers();
-  };
-  $("[data-cookie-accept]", banner)?.addEventListener("click", () => choose("accepted"));
-  $("[data-cookie-reject]", banner)?.addEventListener("click", () => choose("rejected"));
+  if (!ANALYTICS_OPT_IN) {
+    // Standardmarke (Sharp): unveraendertes Opt-out-Verhalten mit dem alten
+    // Schluessel. Der neue Banner bleibt hier AUS -- public/ ist von beiden
+    // Marken geteilt, und sein Text nennt PostHog und die Aufzeichnung, die
+    // auf dieser Marke gar nicht laufen. Ein Banner, der etwas Falsches
+    // behauptet und dessen "Ablehnen" ins Leere schriebe, ist schlimmer als
+    // keiner.
+    // Der Fusszeilen-Link gehoert zum geteilten Markup, haette hier aber
+    // keinen Listener -- er wuerde nur an den Seitenanfang springen. Weg damit.
+    document.querySelectorAll("[data-consent-open]").forEach((el) => el.remove());
+    let abgelehnt = false;
+    try { abgelehnt = localStorage.getItem("rt-consent") === "rejected"; } catch { /* Speicher gesperrt */ }
+    if (!abgelehnt) loadTrackers();
+    return;
+  }
+  if (hasConsent("statistics")) loadTrackers();
+  wireConsentUi();
 })();
