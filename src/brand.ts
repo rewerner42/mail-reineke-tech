@@ -211,7 +211,7 @@ function brandDataScript(brand: Brand): string {
  * style) and a `<script type="application/json">` brand-data block (CSP-safe data,
  * not executable). The static HTML/CSS files therefore never need branch edits.
  */
-export function applyBrandToHtml(html: string, brand: Brand): string {
+export function applyBrandToHtml(html: string, brand: Brand, url?: URL): string {
   if (brand.id === DEFAULT_BRAND.id) return html;
   const D = DEFAULT_BRAND;
   // Kompletter Logo-Block zuerst — er enthält den Pfad, der unten ersetzt würde.
@@ -246,5 +246,21 @@ export function applyBrandToHtml(html: string, brand: Brand): string {
   const style = sitePaletteCss(brand);
   if (style) out = out.replace("</head>", `<style>${style}</style></head>`);
   out = out.replace("</body>", `${brandDataScript(brand)}</body>`);
+  // canonical. Seit der Scanner unter ZWEI Adressen erreichbar ist
+  // (scan.reineke-technik.de und scan.reineke.tech, beide dasselbe Werkzeug),
+  // braucht jede Seite eine eindeutige Anschrift -- sonst sind es zwei
+  // indexierbare Kopien. Es zeigt immer auf seo.origin, nie auf den
+  // Anfrage-Host: genau das ist der Sinn.
+  //
+  // Query faellt weg. Ohne das entstuende pro gepruefter Fremddomain ein
+  // eigenes canonical (?d=kunde.de), also beliebig viele Varianten einer Seite.
+  //
+  // Unangetastet bleibt, dass /, /website und /dnssec dieselbe Datei liefern.
+  // Das ist ein aelterer Zustand, kein neuer -- jede Route zeigt auf sich
+  // selbst, damit der Umzug nichts verschiebt, was vorher schon so war.
+  if (url && brand.seo && !/<link[^>]+rel=["']canonical/i.test(out)) {
+    const href = `${brand.seo.origin}${url.pathname}`;
+    out = out.replace(/<\/head>/i, `  <link rel="canonical" href="${href}" />\n</head>`);
+  }
   return out;
 }

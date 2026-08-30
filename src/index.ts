@@ -140,7 +140,7 @@ app.use("*", async (c, next) => {
     brand.id !== DEFAULT_BRAND.id &&
     (res.headers.get("content-type") || "").includes("text/html")
   ) {
-    const html = applyBrandToHtml(await res.text(), brand);
+    const html = applyBrandToHtml(await res.text(), brand, new URL(c.req.url));
     const headers = new Headers(res.headers);
     headers.delete("content-length"); // body changed — let the runtime recompute
     // The asset validators describe the static file, not this rewritten body —
@@ -729,7 +729,7 @@ app.post("/api/pentest-lead", async (c) => {
     c.executionCtx.waitUntil(notifyPentestLead(c.env, origin, brand, notifyBase, Promise.resolve(null), throttled));
     return c.json({ ok: true, code: "NOT_CONFIGURED", message: "Anfrage erhalten." });
   }
-  const result = await createLead(cfg, lead, { marketing: brand.odoo });
+  const result = await createLead(cfg, lead, { marketing: odooFuerHost(brand, c.req.url) });
   if (!result.ok) {
     console.error("PENTEST-LEAD Odoo push failed:", result.code, result.message, JSON.stringify(lead));
     c.executionCtx.waitUntil(notifyPentestLead(c.env, origin, brand, notifyBase, Promise.resolve(null), throttled));
@@ -908,7 +908,7 @@ app.post("/api/report-request", async (c) => {
     c.executionCtx.waitUntil(notifyPentestLead(c.env, origin, brand, notifyBase, Promise.resolve(null), throttled));
     return c.json(reportRequestOk(throttled, email, reportDomain), 200, NO_STORE);
   }
-  const result = await createLead(cfg, lead, { marketing: brand.odoo });
+  const result = await createLead(cfg, lead, { marketing: odooFuerHost(brand, c.req.url) });
   if (!result.ok) {
     // Der Versand hängt bewusst NICHT am CRM: Ein Odoo-Ausfall darf niemanden
     // seinen Bericht kosten. Damit die Anfrage trotzdem nicht verschwindet,
@@ -940,13 +940,33 @@ function reportRequestOk(throttled: boolean, email: string, domain: string, lead
   };
 }
 
+/** Odoo-Kanalmarker am ANFRAGE-Host, nicht am Markenliteral.
+ *
+ *  Der Scanner ist unter zwei Adressen erreichbar. Mit dem festen Literal
+ *  truege jeder Lead denselben Marker, und die Frage "wie viele kommen noch
+ *  ueber die alte Adresse?" waere unbeantwortbar -- genau die Zahl, die man
+ *  im Parallelbetrieb braucht. Der Host wird nur uebernommen, wenn er zur
+ *  Marke gehoert; sonst bleibt es beim Literal.
+ */
+export function odooFuerHost(brand: Brand, reqUrl: string) {
+  const host = new URL(reqUrl).hostname.toLowerCase();
+  if (!brand.hosts.includes(host)) return brand.odoo;
+  return { ...brand.odoo, referred: host };
+}
+
 app.get("/sitemap.xml", async (c, next) => {
   const brand = resolveBrand(c.env, new URL(c.req.url).host);
   if (!brand.seo) return next();
   // Bewusst ohne <lastmod>: Google ignoriert die Angabe, sobald sie unzuverlässig
   // ist — ein erfundenes Datum wäre schlechter als gar keines.
+  // Hostrelativ, NICHT aus seo.origin: der Scanner ist unter zwei Adressen
+  // erreichbar. Aus seo.origin erzeugt haette scan.reineke.tech eine Sitemap
+  // mit den URLs des anderen Hosts geliefert. Das canonical im HTML zeigt
+  // weiterhin auf seo.origin -- die Sitemap sagt "hier bin ich erreichbar",
+  // das canonical sagt "so heisse ich richtig".
+  const origin = new URL(c.req.url).origin;
   const urls = brand.seo.sitemapPaths
-    .map((p) => `  <url><loc>${brand.seo!.origin}${p}</loc></url>`)
+    .map((p) => `  <url><loc>${origin}${p}</loc></url>`)
     .join("\n");
   return c.body(
     `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`,
@@ -959,7 +979,7 @@ app.get("/robots.txt", async (c, next) => {
   const brand = resolveBrand(c.env, new URL(c.req.url).host);
   if (!brand.seo) return next();
   return c.body(
-    `User-agent: *\nAllow: /\n\nSitemap: ${brand.seo.origin}/sitemap.xml\n`,
+    `User-agent: *\nAllow: /\n\nSitemap: ${new URL(c.req.url).origin}/sitemap.xml\n`,
     200,
     { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "max-age=3600" },
   );
