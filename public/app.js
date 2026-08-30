@@ -674,8 +674,12 @@ function readConsent() {
   try {
     const v = JSON.parse(localStorage.getItem(CONSENT_KEY));
     if (!v || v.v !== CONSENT_VERSION || !v.ts || !Array.isArray(v.granted)) return null;
+    // Endlich und nicht negativ. Ohne das galten "banane" (NaN) und
+    // Datumsangaben aus der Zukunft (negatives Alter) als gueltige,
+    // frische Einwilligung -- beide bestehen ein blosses "> MAX".
     const ageDays = (Date.now() - new Date(v.ts).getTime()) / 86400000;
-    return ageDays > CONSENT_MAX_AGE_DAYS ? null : v;
+    if (!Number.isFinite(ageDays) || ageDays < 0 || ageDays > CONSENT_MAX_AGE_DAYS) return null;
+    return v;
   } catch {
     return null;
   }
@@ -724,7 +728,9 @@ function clearTrackingState() {
   try {
     document.cookie.split(";").forEach((c) => {
       const name = c.split("=")[0].trim();
-      if (!name || !hit(name)) return;
+      // Den eigenen Schluessel nie loeschen -- sonst raeumt der Widerruf die
+      // gespeicherte Ablehnung gleich mit weg.
+      if (!name || name === CONSENT_KEY || !hit(name)) return;
       domains.forEach((d) => {
         document.cookie =
           name + "=; Max-Age=0; path=/" + (d ? "; domain=" + d : "");
@@ -734,7 +740,7 @@ function clearTrackingState() {
   for (const store of [localStorage, sessionStorage]) {
     try {
       Object.keys(store)
-        .filter(hit)
+        .filter((k) => k !== CONSENT_KEY && hit(k))
         .forEach((k) => store.removeItem(k));
     } catch { /* egal */ }
   }
