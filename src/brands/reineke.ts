@@ -6,20 +6,37 @@ import type { Brand } from "../brand.js";
 
 export const reineke: Brand = {
   id: "reineke",
-  hosts: ["scan.reineke.tech"],
+  // BEIDE Adressen. scan.reineke.tech bleibt dauerhaft in Betrieb -- sie steht
+  // in Druckstuecken und auf jedem bisher ausgelieferten PDF. Es gibt deshalb
+  // keine Weiterleitung, sondern zwei gleichwertige Eingaenge.
+  // In Produktion entscheidet ohnehin env.BRAND; diese Liste ist der
+  // Rueckfall fuer die lokale Entwicklung -- sie soll trotzdem stimmen.
+  hosts: ["scan.reineke-technik.de", "scan.reineke.tech"],
   privateAssets: ["/pentest.html", "/pentest.js", "/bericht.html", "/bericht.js"], // Lead-Strecken — nicht auf anderen Brands
-  // Umami-Site (vormals sharp.reineke.tech, umgezogen 2026-08-03) — lädt als
-  // Nicht-Default-Brand erst NACH aktiver Einwilligung (Opt-in in app.js).
+  // Analyse laeuft ausschliesslich ueber PostHog und erst NACH aktiver
+  // Einwilligung (Opt-in in app.js).
+  //
+  // Umami abgeschaltet 28.08.2026 (umamiId: null). Es mass dasselbe wie
+  // PostHog; auf www.reineke-technik.de ist es am 26.08. aus demselben Grund
+  // geflogen ("umami raus"). Der Schalter entfernt zugleich cloud.umami.is und
+  // gateway.umami.is aus der CSP -- die Hosts haengen in src/index.ts an
+  // a?.umamiId. Die Umami-Site selbst bleibt bestehen, nur ungenutzt.
   analytics: {
-    umamiId: "705faf06-6f2a-4905-8605-1fee670f68b1",
+    umamiId: null,
     posthogToken: "phc_xTC8gQxdjvK4KAS4V9mYJzPi6K86GmKxtVZNisUTUf5J",
     posthogHost: "https://eu.i.posthog.com",
+    sessionReplay: true,
   },
   // /report fehlt bewusst: Die Seite trägt noindex. Ein zusätzliches
   // Disallow in der robots.txt würde verhindern, dass Google dieses noindex
   // überhaupt liest — die URL könnte dann ohne Inhalt im Index landen.
   seo: {
-    origin: "https://scan.reineke.tech",
+    // Die KANONISCHE Anschrift. Beide Hosts liefern identischen Inhalt; das
+    // canonical zeigt von beiden hierher, damit daraus nicht zwei
+    // indexierbare Kopien werden. Die Sitemap ist davon unabhaengig
+    // hostrelativ -- sie sagt "hier bin ich erreichbar", das canonical sagt
+    // "so heisse ich richtig".
+    origin: "https://scan.reineke-technik.de",
     sitemapPaths: ["/", "/website", "/dnssec", "/pentest"],
   },
   // Pentest-Lead-Strecke: /pentest ersetzt den Kontakt-Absprung als einziger CTA.
@@ -85,7 +102,10 @@ export const reineke: Brand = {
   },
 
   report: {
-    toolUrl: "scan.reineke.tech",
+    // Steht in jedem erzeugten PDF und in jeder Bestaetigungsmail. Bereits
+    // ausgelieferte Berichte tragen weiter die alte Adresse -- die
+    // funktioniert unveraendert, deshalb bricht dort nichts.
+    toolUrl: "scan.reineke-technik.de",
     layout: "emblem", // centered emblem cover, brand-name page head, numbered footers
     // 100% Reineke Technik: one company, one contact card.
     conductor: {

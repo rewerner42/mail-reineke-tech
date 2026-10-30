@@ -39,7 +39,13 @@ run_worker_first = true
 # Deploy with:  wrangler deploy --env reineke
 [env.reineke]
 name = "scan-reineke-tech"
+# BEIDE Adressen. scan.reineke.tech bleibt dauerhaft: sie steht in
+# Druckstuecken und auf jedem bisher ausgelieferten PDF. Keine Weiterleitung,
+# zwei gleichwertige Eingaenge.
+# Beide muessen hier stehen, nicht nur im Dashboard -- wrangler gleicht die
+# Routen beim Deploy ab und wuerde eine hier fehlende Custom Domain entfernen.
 routes = [
+  { pattern = "scan.reineke-technik.de", custom_domain = true },
   { pattern = "scan.reineke.tech", custom_domain = true }
 ]
 browser = { binding = "BROWSER" }

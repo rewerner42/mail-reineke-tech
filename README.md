@@ -29,18 +29,27 @@ DMARC-Compliance voraussetzen.
 ```bash
 npm install
 npm run dev        # Wrangler-Server auf http://localhost:8787
-npm test           # vitest — 81 Unit-Tests
+npm test           # vitest — 130 Unit-Tests
 npm run typecheck  # tsc --noEmit
 ```
 
 ## Deployment
 
-```bash
-# Vorschau (Worker auf <name>.<account>.workers.dev)
-npm run deploy
+Ein Repo, **zwei Worker**. Es gibt kein `[env.production]`, und ein blankes
+`npm run deploy` ginge auf den Sharp-Worker — deshalb bricht es bewusst ab.
 
-# Produktion mit Custom Domains scan/sharp.reineke.tech
-npm run deploy:prod
+```bash
+npm run deploy:reineke   # -> Worker scan-reineke-tech, scan.reineke.tech
+npm run deploy:sharp     # -> Worker mail-reineke-tech, sharp.reineke.tech
+```
+
+Lokal:
+
+```bash
+npm run dev              # Marke Sharp — ohne Analyse, der sichere Normalfall
+npm run dev:reineke      # Marke Reineke — ACHTUNG: produktiver PostHog-Schluessel.
+                         # Wer hier einwilligt, zeichnet den eigenen Bildschirm
+                         # ins Produktivprojekt auf. Es gibt kein Test-Token.
 ```
 
 ### Custom Domain einrichten
@@ -98,10 +107,28 @@ Ist Odoo nicht konfiguriert oder schlägt der Push fehl, wird der Lead in den
 Worker-Logs (`wrangler tail`) protokolliert und der Nutzer **trotzdem** zum
 Bericht durchgelassen — kein Lead geht verloren, keine Sackgasse für den Nutzer.
 
-> Analytics: **Umami** (cookieloses Page-Tracking), je Marke konfigurierbar
-> über `Brand.analytics`. Marken mit eigener Analytics-Konfiguration laden
-> **erst nach aktiver Einwilligung** (Opt-in); die Wahl wird in `localStorage`
-> gemerkt. Leadfeeder/Dealfront wurde am 03.08.2026 vollständig entfernt.
+> Analytics: **PostHog**, je Marke konfigurierbar über `Brand.analytics`.
+> Marken mit eigener Konfiguration laden **erst nach aktiver Einwilligung**
+> (Opt-in); die Wahl liegt in `localStorage` unter `rt-consent-v2`.
+> Leadfeeder/Dealfront entfernt am 03.08.2026, **Umami am 28.08.2026** — es mass
+> dasselbe wie PostHog.
+>
+> **Sitzungsaufzeichnung** (`analytics.sessionReplay`, nur Marke Reineke) läuft
+> seit dem 28.08.2026 nach Einwilligung. Der gesamte Ergebnisbereich
+> (`[data-results]`, `[data-error]`) ist davon ausgenommen: die Prüfergebnisse
+> enthalten personenbezogene Daten **Dritter** — Berichtsadressen aus fremden
+> DMARC-/TLS-RPT-Einträgen, Mailhosts und IPs der geprüften Organisation.
+> Diese Dritten sind keine Besucher und haben in nichts eingewilligt.
+> Wer an der Maskierung etwas ändert, ändert das mit.
+>
+> Die Aufzeichnung deckt nur `index.html` ab — `/bericht`, `/pentest` und
+> `/report` laden `app.js` nicht und werden nicht aufgezeichnet.
+>
+> Der Datenschutztext dazu steht **nicht in diesem Repo**, sondern in
+> `www.reineke-technik.de/datenschutz/` (Abschnitt 5, erzeugt von
+> `scripts/build-static.mjs` im Repo `reineke-technik-website`). Dort sichert
+> eine Build-Zusicherung ab, dass der Geltungsbereich für scan.reineke.tech
+> und die Maskierungszusage stehen bleiben.
 
 ### Gescannte Domains in Odoo
 
@@ -138,7 +165,7 @@ src/
 public/
 ├── index.html            # 3-Tab SPA (E-Mail / Website / DNSSEC) + Cookie-Banner
 ├── styles.css            # Reineke-Technik-Branding (Rot #dc0d23 / Schwarz / Weiß)
-├── app.js                # Tab-Routing, Domain-State, Cache, Report + Lead-Gate, Consent + Leadfeeder
+├── app.js                # Tab-Routing, Domain-State, Cache, Report + Lead-Gate, Einwilligung + PostHog
 └── assets/
     ├── reineke-logo.png  # Reineke Cyber Security Logo
     └── favicon.png       # Reineke-Fuchs (aus reineke-logo.png zugeschnitten)
@@ -383,7 +410,7 @@ Logos (Reineke-Fuchs, Sharp) liegen als PNG in [public/assets/](public/assets/).
 
 - `main` ist die deploybare Branch.
 - **Alle Änderungen via Pull Request** (Feature-Branches → PR → Review → Merge).
-- Deploy ist aktuell manuell via `npm run deploy:prod`. Optional kann eine
+- Deploy ist aktuell manuell via `npm run deploy:reineke` bzw. `deploy:sharp`. Optional kann eine
   GitHub-Actions-Pipeline auf Merge automatisch deployen (Cloudflare-Token als
   Repo-Secret).
 
