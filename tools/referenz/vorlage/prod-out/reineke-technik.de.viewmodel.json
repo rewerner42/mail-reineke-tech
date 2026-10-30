@@ -1,0 +1,827 @@
+{
+  "domain": "reineke-technik.de",
+  "datum": "30. Oktober 2026",
+  "datum_iso": "2026-10-30",
+  "bericht_nr": "RT-DS-00000000-0000",
+  "level": {
+    "key": "gering",
+    "label": "Gering",
+    "satz": "Die geprüften Schutzmechanismen sind weitgehend umgesetzt. Ob Ihre Systeme auch einem gezielten Angriff standhalten, klärt ein Penetrationstest.",
+    "hinweis": null
+  },
+  "bereiche": [
+    {
+      "key": "email",
+      "label": "E-Mail",
+      "pruefung": "DMARC",
+      "schutzziel": "Schutz vor gefälschten Absendern",
+      "note": "A+",
+      "klasse": "good",
+      "wort": "Sehr gut",
+      "bedeutung": "Geprüfter Schutz umgesetzt",
+      "score": 100,
+      "satz": "Gefälschte E-Mails mit Ihrem Absender sollen nur aussortiert werden.",
+      "detail": "v=DMARC1;  p=quarantine; adkim=r; aspf=r; rua=mailto:3e33bb94907441109978b4d08903f247@dmarc-reports.cloudflare.net",
+      "anzahl_feststellungen": 4,
+      "note_hinweis": "Die Note bewertet nur DMARC; zu SPF und MTA-STS und TLS-RPT bestehen Feststellungen (F-02, F-03, F-04)."
+    },
+    {
+      "key": "domain",
+      "label": "Domain",
+      "pruefung": "DNSSEC",
+      "schutzziel": "Echtheit der Adressauskünfte",
+      "note": "A+",
+      "klasse": "good",
+      "wort": "Sehr gut",
+      "bedeutung": "Geprüfter Schutz umgesetzt",
+      "score": 100,
+      "satz": "Die Adressauskünfte Ihrer Domain sind digital signiert.",
+      "detail": "Zone signiert",
+      "anzahl_feststellungen": 0,
+      "note_hinweis": null
+    },
+    {
+      "key": "website",
+      "label": "Website",
+      "pruefung": "HTTP Observatory",
+      "schutzziel": "Schutz Ihrer Website-Besucher",
+      "note": "A+",
+      "klasse": "good",
+      "wort": "Sehr gut",
+      "bedeutung": "Geprüfter Schutz umgesetzt",
+      "score": 125,
+      "satz": "11 von 12 Tests bestanden. Die Note gewichtet nach Schwere.",
+      "detail": "11 von 12 Tests bestanden",
+      "anzahl_feststellungen": 1,
+      "note_hinweis": null
+    }
+  ],
+  "feststellungen": [
+    {
+      "bereich": "email",
+      "prio": "gering",
+      "massnahme": "M_MAIL_AUTH",
+      "fach": "DMARC",
+      "titel": "Gefälschte E-Mails sollen nur aussortiert werden",
+      "kurz": "Gefälschte E-Mails landen im Spam-Ordner, statt abgewiesen zu werden.",
+      "feststellung": "Der DMARC-Eintrag steht auf „quarantine“. Gefälschte E-Mails werden in den Spam-Ordner verschoben, aber nicht abgewiesen.",
+      "angriff": "Gefälschte Nachrichten bleiben im Spam-Ordner lesbar und werden dort gelegentlich doch geöffnet.",
+      "auswirkung": "Geringes Restrisiko bei Empfängern, die ihren Spam-Ordner prüfen.",
+      "aufwand": "gering",
+      "aufwand_text": "Richtlinie auf „reject“ anheben.",
+      "tech": "DMARC: v=DMARC1;  p=quarantine; adkim=r; aspf=r; rua=mailto:3e33bb94907441109978b4d08903f247@dmarc-reports.cloudflare.net",
+      "schritt": "DMARC-Richtlinie auf „reject“ anheben",
+      "key": "dmarc_quarantine",
+      "quelle": "dmarc",
+      "prio_label": "Gering",
+      "prio_rang": 2,
+      "bereich_label": "E-Mail",
+      "modifier": null,
+      "signal_text": "DMARC aktiv (Note A+, p=quarantine).",
+      "nr": "F-01",
+      "massnahme_nr": "M-1"
+    },
+    {
+      "bereich": "email",
+      "prio": "gering",
+      "massnahme": "M_MAIL_AUTH",
+      "fach": "SPF",
+      "titel": "Liste berechtigter Mailserver verbesserbar",
+      "kurz": "Der SPF-Eintrag lässt sich verbessern.",
+      "feststellung": "Ein SPF-Eintrag ist vorhanden, die automatische Prüfung zeigt jedoch Verbesserungsbedarf.",
+      "angriff": "Zu weit gefasste oder fehlerhafte Regeln erleichtern Fälschungen oder führen dazu, dass eigene E-Mails abgelehnt werden.",
+      "auswirkung": "Unnötiges Risiko bei Zustellung und Fälschungsschutz.",
+      "aufwand": "gering",
+      "aufwand_text": "Eintrag prüfen und bereinigen.",
+      "tech": "SPF: SPF vorhanden, Verbesserungen möglich.",
+      "schritt": "SPF-Eintrag prüfen und bereinigen",
+      "offen": "Welche Versanddienste im SPF-Eintrag tatsächlich benötigt werden",
+      "key": "spf_hinweis",
+      "quelle": "spf",
+      "prio_label": "Gering",
+      "prio_rang": 2,
+      "bereich_label": "E-Mail",
+      "modifier": null,
+      "signal_text": "SPF vorhanden, Verbesserungen möglich.",
+      "nr": "F-02",
+      "massnahme_nr": "M-1"
+    },
+    {
+      "bereich": "email",
+      "prio": "gering",
+      "massnahme": "M_MAIL_TRANSPORT",
+      "fach": "MTA-STS",
+      "titel": "Verschlüsselte Zustellung nicht verbindlich",
+      "kurz": "E-Mails an Sie können auf dem Transportweg unverschlüsselt übertragen werden.",
+      "feststellung": "Es ist nicht verbindlich festgelegt, dass E-Mails an Ihre Domain nur verschlüsselt zugestellt werden dürfen (MTA-STS).",
+      "angriff": "Wer Zugriff auf den Übertragungsweg zwischen den Mailservern hat, kann die Verschlüsselung unterdrücken und E-Mails mitlesen.",
+      "auswirkung": "Vertrauliche E-Mails an Sie sind auf dem Transportweg weniger geschützt.",
+      "aufwand": "gering bis mittel",
+      "aufwand_text": "Richtliniendatei mit gültigem Zertifikat und DNS-Eintrag anlegen.",
+      "tech": "MTA-STS: Kein MTA-STS",
+      "schritt": "MTA-STS einrichten, damit E-Mails an Sie nur verschlüsselt zugestellt werden dürfen",
+      "key": "mta_sts_fehlt",
+      "quelle": "mta_sts",
+      "prio_label": "Gering",
+      "prio_rang": 2,
+      "bereich_label": "E-Mail",
+      "modifier": null,
+      "signal_text": "Kein MTA-STS",
+      "nr": "F-03",
+      "massnahme_nr": "M-3"
+    },
+    {
+      "bereich": "email",
+      "prio": "gering",
+      "massnahme": "M_MAIL_TRANSPORT",
+      "fach": "TLS-RPT",
+      "titel": "Keine Fehlerberichte zur Verschlüsselung",
+      "kurz": "Sie erfahren nicht, wenn verschlüsselte Zustellung scheitert.",
+      "feststellung": "Für Berichte über Probleme bei der verschlüsselten Zustellung ist keine gültige Adresse hinterlegt (TLS-RPT).",
+      "angriff": "Störungen oder Manipulationen der Transportverschlüsselung bleiben unbemerkt.",
+      "auswirkung": "Probleme werden erst bemerkt, wenn E-Mails fehlen.",
+      "aufwand": "gering",
+      "aufwand_text": "Ein DNS-Eintrag.",
+      "tech": "TLS-RPT: Kein TLS-RPT",
+      "schritt": "TLS-RPT einrichten, damit Probleme bei der verschlüsselten Zustellung gemeldet werden",
+      "key": "tls_rpt_fehlt",
+      "quelle": "tls_rpt",
+      "prio_label": "Gering",
+      "prio_rang": 2,
+      "bereich_label": "E-Mail",
+      "modifier": null,
+      "signal_text": "Kein TLS-RPT",
+      "nr": "F-04",
+      "massnahme_nr": "M-3"
+    },
+    {
+      "bereich": "website",
+      "prio": "gering",
+      "massnahme": "M_WEB",
+      "fach": "Subresource Integrity",
+      "titel": "Fremde Skripte ohne Prüfung auf Veränderungen",
+      "kurz": "Fremder Programmcode wird geladen, ohne zu prüfen, ob er verändert wurde.",
+      "feststellung": "Die Website lädt Programmcode fremder Server verschlüsselt, aber ohne dass Browser prüfen können, ob er verändert wurde (Subresource Integrity).",
+      "angriff": "Wird einer der fremden Anbieter gehackt, führen die Browser Ihrer Besucher den veränderten Code automatisch aus, ohne dass Ihre Website es bemerkt.",
+      "auswirkung": "Abhängigkeit von der Sicherheit fremder Anbieter.",
+      "aufwand": "gering",
+      "aufwand_text": "Prüfsummen für externe Skripte ergänzen.",
+      "tech": "Subresource Integrity (SRI): −5 Punkte · „Subresource Integrity (SRI) nicht implementiert, aber alle externen Skripte werden über HTTPS geladen.“",
+      "key": "obs_sri_https",
+      "quelle": "observatory",
+      "prio_label": "Gering",
+      "prio_rang": 2,
+      "bereich_label": "Website",
+      "modifier": -5,
+      "signal_text": "Subresource Integrity (SRI) nicht implementiert, aber alle externen Skripte werden über HTTPS geladen.",
+      "nr": "F-05",
+      "massnahme_nr": "M-2"
+    }
+  ],
+  "nach_prio": {
+    "hoch": [],
+    "mittel": [],
+    "gering": [
+      {
+        "bereich": "email",
+        "prio": "gering",
+        "massnahme": "M_MAIL_AUTH",
+        "fach": "DMARC",
+        "titel": "Gefälschte E-Mails sollen nur aussortiert werden",
+        "kurz": "Gefälschte E-Mails landen im Spam-Ordner, statt abgewiesen zu werden.",
+        "feststellung": "Der DMARC-Eintrag steht auf „quarantine“. Gefälschte E-Mails werden in den Spam-Ordner verschoben, aber nicht abgewiesen.",
+        "angriff": "Gefälschte Nachrichten bleiben im Spam-Ordner lesbar und werden dort gelegentlich doch geöffnet.",
+        "auswirkung": "Geringes Restrisiko bei Empfängern, die ihren Spam-Ordner prüfen.",
+        "aufwand": "gering",
+        "aufwand_text": "Richtlinie auf „reject“ anheben.",
+        "tech": "DMARC: v=DMARC1;  p=quarantine; adkim=r; aspf=r; rua=mailto:3e33bb94907441109978b4d08903f247@dmarc-reports.cloudflare.net",
+        "schritt": "DMARC-Richtlinie auf „reject“ anheben",
+        "key": "dmarc_quarantine",
+        "quelle": "dmarc",
+        "prio_label": "Gering",
+        "prio_rang": 2,
+        "bereich_label": "E-Mail",
+        "modifier": null,
+        "signal_text": "DMARC aktiv (Note A+, p=quarantine).",
+        "nr": "F-01",
+        "massnahme_nr": "M-1"
+      },
+      {
+        "bereich": "email",
+        "prio": "gering",
+        "massnahme": "M_MAIL_AUTH",
+        "fach": "SPF",
+        "titel": "Liste berechtigter Mailserver verbesserbar",
+        "kurz": "Der SPF-Eintrag lässt sich verbessern.",
+        "feststellung": "Ein SPF-Eintrag ist vorhanden, die automatische Prüfung zeigt jedoch Verbesserungsbedarf.",
+        "angriff": "Zu weit gefasste oder fehlerhafte Regeln erleichtern Fälschungen oder führen dazu, dass eigene E-Mails abgelehnt werden.",
+        "auswirkung": "Unnötiges Risiko bei Zustellung und Fälschungsschutz.",
+        "aufwand": "gering",
+        "aufwand_text": "Eintrag prüfen und bereinigen.",
+        "tech": "SPF: SPF vorhanden, Verbesserungen möglich.",
+        "schritt": "SPF-Eintrag prüfen und bereinigen",
+        "offen": "Welche Versanddienste im SPF-Eintrag tatsächlich benötigt werden",
+        "key": "spf_hinweis",
+        "quelle": "spf",
+        "prio_label": "Gering",
+        "prio_rang": 2,
+        "bereich_label": "E-Mail",
+        "modifier": null,
+        "signal_text": "SPF vorhanden, Verbesserungen möglich.",
+        "nr": "F-02",
+        "massnahme_nr": "M-1"
+      },
+      {
+        "bereich": "email",
+        "prio": "gering",
+        "massnahme": "M_MAIL_TRANSPORT",
+        "fach": "MTA-STS",
+        "titel": "Verschlüsselte Zustellung nicht verbindlich",
+        "kurz": "E-Mails an Sie können auf dem Transportweg unverschlüsselt übertragen werden.",
+        "feststellung": "Es ist nicht verbindlich festgelegt, dass E-Mails an Ihre Domain nur verschlüsselt zugestellt werden dürfen (MTA-STS).",
+        "angriff": "Wer Zugriff auf den Übertragungsweg zwischen den Mailservern hat, kann die Verschlüsselung unterdrücken und E-Mails mitlesen.",
+        "auswirkung": "Vertrauliche E-Mails an Sie sind auf dem Transportweg weniger geschützt.",
+        "aufwand": "gering bis mittel",
+        "aufwand_text": "Richtliniendatei mit gültigem Zertifikat und DNS-Eintrag anlegen.",
+        "tech": "MTA-STS: Kein MTA-STS",
+        "schritt": "MTA-STS einrichten, damit E-Mails an Sie nur verschlüsselt zugestellt werden dürfen",
+        "key": "mta_sts_fehlt",
+        "quelle": "mta_sts",
+        "prio_label": "Gering",
+        "prio_rang": 2,
+        "bereich_label": "E-Mail",
+        "modifier": null,
+        "signal_text": "Kein MTA-STS",
+        "nr": "F-03",
+        "massnahme_nr": "M-3"
+      },
+      {
+        "bereich": "email",
+        "prio": "gering",
+        "massnahme": "M_MAIL_TRANSPORT",
+        "fach": "TLS-RPT",
+        "titel": "Keine Fehlerberichte zur Verschlüsselung",
+        "kurz": "Sie erfahren nicht, wenn verschlüsselte Zustellung scheitert.",
+        "feststellung": "Für Berichte über Probleme bei der verschlüsselten Zustellung ist keine gültige Adresse hinterlegt (TLS-RPT).",
+        "angriff": "Störungen oder Manipulationen der Transportverschlüsselung bleiben unbemerkt.",
+        "auswirkung": "Probleme werden erst bemerkt, wenn E-Mails fehlen.",
+        "aufwand": "gering",
+        "aufwand_text": "Ein DNS-Eintrag.",
+        "tech": "TLS-RPT: Kein TLS-RPT",
+        "schritt": "TLS-RPT einrichten, damit Probleme bei der verschlüsselten Zustellung gemeldet werden",
+        "key": "tls_rpt_fehlt",
+        "quelle": "tls_rpt",
+        "prio_label": "Gering",
+        "prio_rang": 2,
+        "bereich_label": "E-Mail",
+        "modifier": null,
+        "signal_text": "Kein TLS-RPT",
+        "nr": "F-04",
+        "massnahme_nr": "M-3"
+      },
+      {
+        "bereich": "website",
+        "prio": "gering",
+        "massnahme": "M_WEB",
+        "fach": "Subresource Integrity",
+        "titel": "Fremde Skripte ohne Prüfung auf Veränderungen",
+        "kurz": "Fremder Programmcode wird geladen, ohne zu prüfen, ob er verändert wurde.",
+        "feststellung": "Die Website lädt Programmcode fremder Server verschlüsselt, aber ohne dass Browser prüfen können, ob er verändert wurde (Subresource Integrity).",
+        "angriff": "Wird einer der fremden Anbieter gehackt, führen die Browser Ihrer Besucher den veränderten Code automatisch aus, ohne dass Ihre Website es bemerkt.",
+        "auswirkung": "Abhängigkeit von der Sicherheit fremder Anbieter.",
+        "aufwand": "gering",
+        "aufwand_text": "Prüfsummen für externe Skripte ergänzen.",
+        "tech": "Subresource Integrity (SRI): −5 Punkte · „Subresource Integrity (SRI) nicht implementiert, aber alle externen Skripte werden über HTTPS geladen.“",
+        "key": "obs_sri_https",
+        "quelle": "observatory",
+        "prio_label": "Gering",
+        "prio_rang": 2,
+        "bereich_label": "Website",
+        "modifier": -5,
+        "signal_text": "Subresource Integrity (SRI) nicht implementiert, aber alle externen Skripte werden über HTTPS geladen.",
+        "nr": "F-05",
+        "massnahme_nr": "M-2"
+      }
+    ]
+  },
+  "anzahl": {
+    "hoch": 0,
+    "mittel": 0,
+    "gering": 5,
+    "gesamt": 5
+  },
+  "top": [],
+  "positiv": [
+    {
+      "bereich": "email",
+      "text": "Gefälschte E-Mails sollen aussortiert werden (DMARC „quarantine“)"
+    },
+    {
+      "bereich": "email",
+      "text": "Auswertungsberichte angefordert (DMARC)"
+    },
+    {
+      "bereich": "email",
+      "text": "Signaturschlüssel veröffentlicht (1 DKIM-Selektor gefunden)"
+    },
+    {
+      "bereich": "domain",
+      "text": "Adressauskünfte digital signiert (DNSSEC)"
+    },
+    {
+      "bereich": "website",
+      "text": "Seitenadressen werden nicht an fremde Seiten weitergegeben (Referrer-Policy)"
+    },
+    {
+      "bereich": "website",
+      "text": "Einbettung in fremde Seiten ist unterbunden (frame-ancestors)"
+    },
+    {
+      "bereich": "website",
+      "text": "Geöffnete Fenster sind gegen fremden Zugriff abgeschirmt (Cross-Origin-Opener-Policy)"
+    },
+    {
+      "bereich": "website",
+      "text": "Fremde Seiten können einzelne Inhalte der Website nicht abrufen (Cross-Origin-Resource-Policy)"
+    }
+  ],
+  "positiv_einleitung": "Ihr DMARC-Eintrag weist Mailserver an, E-Mails mit gefälschtem Absender abzuweisen oder auszusortieren: ein wesentlicher Baustein gegen Rechnungs- und Chef-Betrug.",
+  "massnahmen": [
+    {
+      "key": "M_MAIL_AUTH",
+      "titel": "E-Mail-Absender absichern",
+      "text": "DMARC-Richtlinie auf „reject“ anheben; SPF-Eintrag prüfen und bereinigen.",
+      "aufwand": "gering",
+      "zustaendig": "Ihre IT oder Ihr IT-Dienstleister, gemeinsam mit dem Mailanbieter",
+      "bezug": [
+        "F-01",
+        "F-02"
+      ],
+      "bezug_text": "F-01, F-02",
+      "prio": "gering",
+      "nr": "M-1"
+    },
+    {
+      "key": "M_WEB",
+      "titel": "Website-Schutzregeln ergänzen und verschärfen",
+      "text": "Betroffen: Subresource Integrity.",
+      "aufwand": "gering",
+      "zustaendig": "Ihre Webagentur oder Ihr Hosting-Anbieter",
+      "bezug": [
+        "F-05"
+      ],
+      "bezug_text": "F-05",
+      "prio": "gering",
+      "nr": "M-2"
+    },
+    {
+      "key": "M_MAIL_TRANSPORT",
+      "titel": "Verschlüsselte E-Mail-Zustellung absichern",
+      "text": "MTA-STS einrichten, damit E-Mails an Sie nur verschlüsselt zugestellt werden dürfen; TLS-RPT einrichten, damit Probleme bei der verschlüsselten Zustellung gemeldet werden.",
+      "aufwand": "gering bis mittel",
+      "zustaendig": "Ihre IT oder Ihr IT-Dienstleister, gemeinsam mit dem Mailanbieter",
+      "bezug": [
+        "F-03",
+        "F-04"
+      ],
+      "bezug_text": "F-03, F-04",
+      "prio": "gering",
+      "nr": "M-3"
+    },
+    {
+      "key": "M_RETEST",
+      "titel": "Umsetzung überprüfen",
+      "text": "Nach der Umsetzung prüfen wir kostenfrei erneut. Der neue Befund zeigt, was behoben ist.",
+      "aufwand": "kostenfrei",
+      "zustaendig": "Reineke Technik",
+      "bezug": [],
+      "bezug_text": "alle",
+      "prio": null,
+      "nr": "M-4"
+    }
+  ],
+  "technik": {
+    "dmarc": {
+      "note": "A+",
+      "score": 100,
+      "record": "v=DMARC1;  p=quarantine; adkim=r; aspf=r; rua=mailto:3e33bb94907441109978b4d08903f247@dmarc-reports.cloudflare.net",
+      "policy": "quarantine",
+      "rua": true
+    },
+    "dnssec": {
+      "note": "A+",
+      "score": 100,
+      "signed": true
+    },
+    "observatory": {
+      "available": true,
+      "note": "A+",
+      "score": 125,
+      "passed": 11,
+      "total": 12,
+      "tests": [
+        {
+          "id": "sri",
+          "label": "Subresource Integrity (SRI)",
+          "modifier": -5,
+          "modifier_text": "−5",
+          "result_text": "Subresource Integrity (SRI) nicht implementiert, aber alle externen Skripte werden über HTTPS geladen.",
+          "recommendation": "SRI für externe Skripte ergänzen."
+        },
+        {
+          "id": "csp",
+          "label": "Content Security Policy (CSP)",
+          "modifier": 0,
+          "modifier_text": "0",
+          "result_text": "Content Security Policy (CSP) mit unsicheren Quellen in style-src ('unsafe-inline', data: o. Ä.).",
+          "recommendation": "style-src absichern: 'unsafe-inline', data: und breite Quellen entfernen."
+        },
+        {
+          "id": "cookies",
+          "label": "Cookies",
+          "modifier": 0,
+          "modifier_text": "0",
+          "result_text": "Keine Cookies erkannt.",
+          "recommendation": ""
+        },
+        {
+          "id": "coep",
+          "label": "Cross-Origin-Embedder-Policy",
+          "modifier": 0,
+          "modifier_text": "0",
+          "result_text": "Cross-Origin-Embedder-Policy header not implemented.",
+          "recommendation": "Set to require-corp or credentialless."
+        },
+        {
+          "id": "cors",
+          "label": "CORS",
+          "modifier": 0,
+          "modifier_text": "0",
+          "result_text": "Inhalte sind nicht per Cross-Origin Resource Sharing (CORS) sichtbar.",
+          "recommendation": ""
+        },
+        {
+          "id": "redirection",
+          "label": "Weiterleitung auf HTTPS",
+          "modifier": 0,
+          "modifier_text": "0",
+          "result_text": "Erste Weiterleitung geht per HTTPS auf denselben Host, Endziel ist HTTPS.",
+          "recommendation": ""
+        },
+        {
+          "id": "hsts",
+          "label": "HSTS (Strict-Transport-Security)",
+          "modifier": 0,
+          "modifier_text": "0",
+          "result_text": "Strict-Transport-Security auf mindestens sechs Monate (15768000 s) gesetzt.",
+          "recommendation": "Preloading erwägen: preload und includeSubDomains ergänzen, max-age auf mind. 1 Jahr erhöhen."
+        },
+        {
+          "id": "xcto",
+          "label": "X-Content-Type-Options",
+          "modifier": 0,
+          "modifier_text": "0",
+          "result_text": "X-Content-Type-Options auf nosniff gesetzt.",
+          "recommendation": ""
+        },
+        {
+          "id": "referrer",
+          "label": "Referrer-Policy",
+          "modifier": 5,
+          "modifier_text": "+5",
+          "result_text": "Referrer-Policy auf no-referrer, same-origin, strict-origin oder strict-origin-when-cross-origin gesetzt.",
+          "recommendation": ""
+        },
+        {
+          "id": "xfo",
+          "label": "X-Frame-Options",
+          "modifier": 5,
+          "modifier_text": "+5",
+          "result_text": "X-Frame-Options über die CSP-Direktive frame-ancestors umgesetzt.",
+          "recommendation": ""
+        },
+        {
+          "id": "coop",
+          "label": "Cross-Origin-Opener-Policy",
+          "modifier": 10,
+          "modifier_text": "+10",
+          "result_text": "Cross-Origin-Opener-Policy header set to same-origin, enforcing site isolation from the opener.",
+          "recommendation": ""
+        },
+        {
+          "id": "corp",
+          "label": "Cross-Origin-Resource-Policy",
+          "modifier": 10,
+          "modifier_text": "+10",
+          "result_text": "Cross Origin Resource Policy (CORP) implemented, prevents leaks into cross-origin contexts.",
+          "recommendation": ""
+        }
+      ]
+    },
+    "mail": [
+      {
+        "key": "spf",
+        "label": "SPF",
+        "status": "hinweis",
+        "status_label": "Hinweis",
+        "text": "SPF vorhanden, Verbesserungen möglich."
+      },
+      {
+        "key": "dkim",
+        "label": "DKIM",
+        "status": "ok",
+        "status_label": "OK",
+        "text": "1 DKIM-Selektor gefunden"
+      },
+      {
+        "key": "mx",
+        "label": "MX (Mailserver)",
+        "status": "hinweis",
+        "status_label": "Hinweis",
+        "text": "1 MX-Server gefunden"
+      },
+      {
+        "key": "mta_sts",
+        "label": "MTA-STS",
+        "status": "hinweis",
+        "status_label": "Hinweis",
+        "text": "Kein MTA-STS"
+      },
+      {
+        "key": "tls_rpt",
+        "label": "TLS-RPT",
+        "status": "hinweis",
+        "status_label": "Hinweis",
+        "text": "Kein TLS-RPT"
+      }
+    ]
+  },
+  "rohdaten": [
+    "DMARC    A+  Score 100  v=DMARC1;  p=quarantine; adkim=r; aspf=r; rua=mailto:3e33bb94907441109978b4d08903f247@dmarc-reports.cloudflare.net",
+    "DNSSEC   A+  Score 100  Zone signiert",
+    "Website  A+  Score 125  HTTP Observatory: 11/12 Tests bestanden",
+    "                        Subresource Integrity (SRI) −5",
+    "SPF      Hinweis        SPF vorhanden, Verbesserungen möglich.",
+    "DKIM     OK             1 DKIM-Selektor gefunden",
+    "MX       Hinweis        1 MX-Server gefunden",
+    "MTA-STS  Hinweis        Kein MTA-STS",
+    "TLS-RPT  Hinweis        Kein TLS-RPT"
+  ],
+  "noten": [
+    {
+      "noten": [
+        "A+",
+        "A",
+        "A-"
+      ],
+      "klasse": "good",
+      "wort": "Sehr gut",
+      "bedeutung": "Geprüfter Schutz umgesetzt"
+    },
+    {
+      "noten": [
+        "B+",
+        "B",
+        "B-"
+      ],
+      "klasse": "good",
+      "wort": "Gut",
+      "bedeutung": "Geringfügige Verbesserungen möglich"
+    },
+    {
+      "noten": [
+        "C+",
+        "C",
+        "C-"
+      ],
+      "klasse": "warn",
+      "wort": "Verbesserungswürdig",
+      "bedeutung": "Bei nächster Gelegenheit angehen"
+    },
+    {
+      "noten": [
+        "D+",
+        "D",
+        "D-"
+      ],
+      "klasse": "bad",
+      "wort": "Mangelhaft",
+      "bedeutung": "Zeitnah beheben"
+    },
+    {
+      "noten": [
+        "F"
+      ],
+      "klasse": "bad",
+      "wort": "Ungenügend",
+      "bedeutung": "Wesentlicher Schutz fehlt"
+    }
+  ],
+  "texte": {
+    "methode_kurz": "Ausgewertet wurden ausschließlich öffentlich abrufbare Informationen. Es gab keinen Eingriff in Ihre Systeme, keine Anmeldung und keine nennenswerte Last.",
+    "methode_lang": "Alle Werte wurden am 30. Oktober 2026 automatisiert mit scan.reineke.tech erhoben, DNS-Abfragen über Cloudflare DNS-over-HTTPS (1.1.1.1). DKIM lässt sich nur über gängige Selektoren prüfen. Die Website-Bewertung nutzt den MDN HTTP Observatory von Mozilla und gilt nur für die Startseite, nicht für Portale oder Subdomains. Ausgewertet wurden nur öffentlich abrufbare Informationen, ohne Anmeldung, Eingriff oder nennenswerte Last. Die Ergebnisse sind eine Momentaufnahme; auf Anfrage prüfen wir kostenfrei erneut.",
+    "methodik": [
+      {
+        "bereich": "E-Mail",
+        "pruefung": "DMARC, SPF, DKIM, MX, MTA-STS, TLS-RPT",
+        "text": "DMARC legt fest, wie Mailserver mit E-Mails umgehen sollen, die Ihre Absenderadresse nur vortäuschen: „reject“ weist ab, „quarantine“ sortiert aus, „none“ beobachtet nur. SPF und DKIM liefern die Prüfgrundlage."
+      },
+      {
+        "bereich": "Domain",
+        "pruefung": "DNSSEC",
+        "text": "DNSSEC signiert die Adressauskünfte Ihrer Domain. Prüfende DNS-Server erkennen so Fälschungen, die E-Mails oder Besucher umleiten könnten."
+      },
+      {
+        "bereich": "Website",
+        "pruefung": "MDN HTTP Observatory",
+        "text": "Der HTTP Observatory von Mozilla prüft die Schutzregeln Ihrer Website, etwa CSP und HSTS. Die Note ergibt sich aus gewichteten Punktabzügen."
+      }
+    ],
+    "zusammenfassung": {
+      "kritisch": "Lücken bei den geprüften Schutzmechanismen sollten vorrangig geschlossen werden, meist mit wenig Aufwand.",
+      "hoch": "Lücken bei den geprüften Schutzmechanismen sollten zeitnah geschlossen werden, meist mit wenig Aufwand.",
+      "mittel": "Die Grundlagen der geprüften Schutzmechanismen sind vorhanden; einige Punkte sollten bei nächster Gelegenheit verbessert werden.",
+      "gering": "Die geprüften Schutzmechanismen sind weitgehend umgesetzt. Ob Ihre Systeme auch einem gezielten Angriff standhalten, klärt ein Penetrationstest."
+    },
+    "handlungsbedarf_hinweis": {
+      "hoeher": "Der Handlungsbedarf ist die Gesamtbewertung des Scanners. Er kann höher ausfallen als die Einstufung der einzelnen Feststellungen.",
+      "niedriger": "Der Handlungsbedarf ist die Gesamtbewertung des Scanners. Er kann niedriger ausfallen als die Einstufung einzelner Feststellungen."
+    },
+    "pentest_titel": "Über diesen Befund hinaus: Penetrationstest",
+    "pentest_text": "Dieser Befund zeigt einen Ausschnitt dessen, was von außen sichtbar ist. Ein Penetrationstest klärt, was ein Angreifer erreicht, wenn er Schwachstellen zu einem Angriffspfad verkettet. Sie erhalten priorisierte Maßnahmen und einen Nachweis für Kunden und Prüfer.",
+    "pentest_ablauf": [
+      {
+        "titel": "Vorbereitung",
+        "text": "Ziele, Systeme und Prüftiefe festlegen, Zeitfenster betriebsschonend abstimmen."
+      },
+      {
+        "titel": "Test",
+        "text": "Manuell und mit eigenen Werkzeugen, jeder Schritt nachvollziehbar dokumentiert."
+      },
+      {
+        "titel": "Bericht und Besprechung",
+        "text": "Priorisierte Feststellungen mit konkreten Behebungsempfehlungen."
+      },
+      {
+        "titel": "Nachtest",
+        "text": "Nach Ihrer Nachbesserung prüfen wir die Wirksamkeit erneut."
+      }
+    ],
+    "cta_titel": "Ergebnisbesprechung",
+    "cta_text": "In 20 Minuten legen wir gemeinsam fest, was zuerst angegangen wird, gern mit Ihrer IT. Kostenfrei und unverbindlich.",
+    "cta_button": "Termin wählen",
+    "ablauf": [
+      {
+        "titel": "Ergebnisbesprechung",
+        "text": "Feststellungen einordnen, Prioritäten festlegen."
+      },
+      {
+        "titel": "Umsetzung",
+        "text": "Ihre IT oder Ihr IT-Dienstleister, auf Wunsch mit unserer fachlichen Begleitung."
+      },
+      {
+        "titel": "Kontrolle",
+        "text": "Wiederholungsprüfung, auf Wunsch Penetrationstest."
+      }
+    ],
+    "vertraulich": "Vertraulich – bestimmt für den Inhaber der geprüften Domain und dessen IT-Dienstleister.",
+    "umfang_kurz": "Automatisierte Momentaufnahme vom 30. Oktober 2026. Bewertet wurden ausschließlich öffentlich sichtbare Einstellungen von E-Mail, Domain und Website, nicht die Sicherheit Ihrer IT insgesamt.",
+    "begleitwort": "Vielen Dank für Ihr Interesse. Dieser Befund zeigt, wie reineke-technik.de von außen für einen Angreifer aussieht. Geprüft wurden am 30. Oktober 2026 ausschließlich öffentlich abrufbare Informationen, ohne Eingriff in Ihre Systeme.",
+    "next_text": "In einem 20-minütigen Gespräch erläutern wir die Feststellungen für reineke-technik.de, beantworten Rückfragen Ihrer IT und stimmen gemeinsam ab, welche Maßnahmen zuerst umgesetzt werden sollten.",
+    "cta_massnahmen": "Womit Sie am besten beginnen und wer welche Maßnahme übernimmt, klären wir gern in 20 Minuten.",
+    "nachpruefung": "Wenn Sie die Maßnahmen direkt mit Ihrer IT umsetzen, prüfen wir danach auf Wunsch kostenfrei erneut. Rückfragen beantworten wir auch per E-Mail oder Telefon.",
+    "lesehinweis": "Jede Feststellung beschreibt, was wir gefunden haben, was ein Angreifer damit tun könnte, was das für Sie bedeutet und wie aufwendig die Behebung ist. Darunter steht für Ihre IT die technische Detailzeile. Alle Messwerte finden Sie im technischen Anhang.",
+    "offen_einleitung": "Diese Punkte lassen sich mit dieser Analyse nicht abschließend beurteilen. Wir klären sie gern im Gespräch:",
+    "offen_website": "Wie die Website abschneidet, die bei dieser Analyse nicht automatisch bewertet werden konnte",
+    "karte_labels": {
+      "sachverhalt": "Sachverhalt",
+      "angriff": "Was passieren kann",
+      "auswirkung": "Folgen für Sie",
+      "aufwand": "Aufwand"
+    },
+    "zusammenfassung_labels": {
+      "handlungsbedarf": "Handlungsbedarf insgesamt",
+      "feststellungen": "Einzelne Feststellungen nach Risiko",
+      "risiko": "Risiko",
+      "zustaendig": "Üblicherweise zuständig"
+    }
+  },
+  "firma": {
+    "_hinweis": "Feste Firmendaten und Vertrauenssignale. Werden nicht vom Scan erzeugt und bleiben in allen Varianten gleich.",
+    "name": "Reineke Technik GmbH",
+    "kurzname": "Reineke Technik",
+    "strasse": "Geseker Straße 26",
+    "plz_ort": "33154 Salzkotten",
+    "web": "www.reineke-technik.de",
+    "web_url": "https://www.reineke-technik.de",
+    "scan_host": "scan.reineke.tech",
+    "booking_url": "https://bookings.cloud.microsoft/bookwithme/user/99dfe8391d044c208563dd3afbc7439f%40reineke-technik.de?anonymous&ismsaljsauthenabled",
+    "pentest_url": "https://scan.reineke.tech/pentest",
+    "pentest_label": "scan.reineke.tech/pentest",
+    "kontakte": [
+      {
+        "name": "Werner Francis Reineke",
+        "rolle": "Geschäftsführer",
+        "email": "wf.reineke@reineke-technik.de",
+        "telefon": "+49 172 2872390",
+        "telefon_href": "+491722872390",
+        "foto": "werner.jpg",
+        "mobil": null,
+        "mobil_href": null,
+        "foto_url": "file:///Users/werner/dmarc/public/assets/werner.jpg"
+      },
+      {
+        "name": "Karl Pieper",
+        "rolle": "Geschäftsführer",
+        "email": "k.pieper@reineke-technik.de",
+        "telefon": "+49 5259 9870",
+        "telefon_href": "+4952599870",
+        "mobil": "+49 172 5209052",
+        "mobil_href": "+491725209052",
+        "foto": null,
+        "foto_url": null
+      }
+    ],
+    "vorstellung": {
+      "name": "Werner Francis Reineke",
+      "rolle": "Geschäftsführer, Reineke Technik GmbH",
+      "foto": "werner.jpg",
+      "absaetze": [
+        "Reineke Technik prüft die IT-Sicherheit mittelständischer Industrie- und Produktionsunternehmen und unterstützt bei Anforderungen wie NIS-2, ISO 27001 und TISAX.",
+        "Wir haben Netzwerke selbst aufgebaut und betrieben. Diese Praxis fließt in jede Prüfung ein: Wir wissen, wo Angreifer ansetzen und wo im Betriebsalltag Lücken entstehen."
+      ],
+      "foto_url": "file:///Users/werner/dmarc/public/assets/werner.jpg"
+    },
+    "zitat": "Wer ein System selbst betreibt, kann es nicht unabhängig prüfen. Wie bei Buchhaltung und Wirtschaftsprüfung gehören Betrieb und Prüfung in getrennte Hände.",
+    "_zitat_hinweis": "Ab v15 ist zitat der von Werner freigegebene Satz (D23, 30.10.2026). Auf Seite 03 steht derzeit sein Spruch aus slogan, so von ihm am 30.10. entschieden; das Zitat ist damit freigegeben, aber nicht auf der Seite.",
+    "slogan": [
+      "Sicherheitslücken schließen,",
+      "bevor sie teuer werden."
+    ],
+    "prinzipien": [
+      {
+        "titel": "Unabhängig",
+        "text": "Wir prüfen Systeme, die wir nicht selbst betreiben, und verkaufen keine Technik, die wir anschließend kontrollieren."
+      },
+      {
+        "titel": "Verständlich",
+        "text": "Jeder Bericht enthält eine Zusammenfassung für die Geschäftsführung und einen priorisierten Maßnahmenplan."
+      },
+      {
+        "titel": "Nachweisbar",
+        "text": "Nach der Behebung prüfen wir erneut. So wird Sicherheit gegenüber Kunden und Prüfern belegbar."
+      }
+    ],
+    "leistungen": [
+      "Penetrationstests: extern, intern, Webanwendungen",
+      "ISMS-Aufbau nach ISO 27001",
+      "Externes Sicherheitsmandat (eISB / vCISO)",
+      "NIS-2-Bestandsaufnahme der Sicherheitsmaßnahmen",
+      "TISAX-Begleitung für Zulieferer"
+    ],
+    "vertrauen": [
+      {
+        "label": "Kunden",
+        "wert": "47",
+        "text": "Unternehmen seit Gründung, überwiegend Industrie und Zulieferer"
+      },
+      {
+        "label": "Fachvorträge",
+        "wert": "Live-Hacking",
+        "text": "Referent, u. a. in der Cybersecurity-Vortragsreihe von SHARP"
+      },
+      {
+        "label": "Standort",
+        "wert": "Salzkotten",
+        "text": "Ostwestfalen-Lippe, vor Ort in NRW"
+      }
+    ],
+    "pentest_arten": [
+      {
+        "titel": "Extern",
+        "text": "Aus dem Internet erreichbare Systeme und Dienste"
+      },
+      {
+        "titel": "Intern / Active Directory",
+        "text": "Firmennetz, Berechtigungen, Rechteausweitung"
+      },
+      {
+        "titel": "Webanwendung",
+        "text": "Portale, Shops und Kundenzugänge"
+      }
+    ],
+    "zitat_quelle": "Werner Reineke",
+    "pflichtangaben": {
+      "registergericht": "Amtsgericht Paderborn",
+      "hrb": "HRB 15938",
+      "geschaeftsfuehrer": [
+        "Werner Francis Reineke",
+        "Karl Pieper"
+      ],
+      "ust_id": "DE353762579"
+    }
+  },
+  "assets": "file:///Users/werner/dmarc/public/assets",
+  "logo": "file:///Users/werner/dmarc/public/assets/logo.png",
+  "qr_termin": "file:///Users/werner/dmarc/public/assets/qr-termin.svg"
+}
