@@ -43,7 +43,12 @@ export interface RenderDocumentInput {
   /** A complete HTML document, including its own <style> and @page rules. */
   document: string;
   origin: string;
-  /** Hard limit on the whole render; the browser is closed either way. */
+  /**
+   * Limit for the render itself. Keep it below the caller's own guard, so this
+   * function fails first and its `finally` closes the browser — a browser left
+   * behind holds a Browser Rendering session until it times out, and the next
+   * request then cannot start one.
+   */
   timeoutMs?: number;
 }
 
@@ -60,7 +65,7 @@ export interface RenderDocumentInput {
  */
 export async function renderDocumentPdf(
   endpoint: BrowserWorker,
-  { document, origin, timeoutMs = 45_000 }: RenderDocumentInput,
+  { document: dokument, origin, timeoutMs = 30_000 }: RenderDocumentInput,
 ): Promise<Uint8Array> {
   const browser = await puppeteer.launch(endpoint);
   try {
@@ -76,10 +81,27 @@ export async function renderDocumentPdf(
         void req.abort();
       }
     });
-    await page.setContent(sanitizeReportHtml(document), {
+    await page.setContent(sanitizeReportHtml(dokument), {
       waitUntil: "networkidle0",
       timeout: timeoutMs,
     });
+
+    // A failed image does not shift the layout — the boxes have fixed sizes — so
+    // a report with a missing logo or portrait would go out looking finished.
+    // Ask the page instead of hoping.
+    // Runs in the page, where `document` is the DOM — this file is typed against
+    // the Workers runtime, which has no DOM, hence the cast.
+    const fehlend = (await page.evaluate(() => {
+      const d = (globalThis as unknown as { document: { images: ArrayLike<Record<string, unknown>> } })
+        .document;
+      return Array.from(d.images)
+        .filter((img) => !img.complete || img.naturalWidth === 0)
+        .map((img) => String(img.currentSrc || img.src || "(ohne src)"));
+    })) as string[];
+    if (fehlend.length) {
+      throw new Error(`Bilder nicht geladen: ${[...new Set(fehlend)].join(", ")}`);
+    }
+
     const pdf = await page.pdf({
       printBackground: true,
       preferCSSPageSize: true,
