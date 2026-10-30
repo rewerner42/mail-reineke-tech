@@ -71,10 +71,13 @@ describe("the generated document", () => {
     expect(html).toContain("Werner Francis Reineke, Karl Pieper");
   });
 
-  it("names the current scan host, not the retired one", () => {
+  // Werner, 31.08.2026 (54327ec): scan.reineke-technik.de is the canonical
+  // address; scan.reineke.tech keeps working because earlier reports and print
+  // material carry it. The report names the canonical one.
+  it("names the canonical scan host", () => {
     for (const { name, html } of DOKUMENTE) {
-      expect(html, name).not.toContain("scan.reineke-technik.de");
-      expect(html, name).toContain("scan.reineke.tech");
+      expect(html, name).toContain("Automatisierte Analyse mit scan.reineke-technik.de.");
+      expect(html, name).toContain('href="https://scan.reineke-technik.de/pentest"');
     }
   });
 });

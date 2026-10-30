@@ -1128,7 +1128,7 @@
   ],
   "texte": {
     "methode_kurz": "Ausgewertet wurden ausschließlich öffentlich abrufbare Informationen. Es gab keinen Eingriff in Ihre Systeme, keine Anmeldung und keine nennenswerte Last.",
-    "methode_lang": "Alle Werte wurden am 28. Oktober 2026 automatisiert mit scan.reineke.tech erhoben, DNS-Abfragen über Cloudflare DNS-over-HTTPS (1.1.1.1). DKIM lässt sich nur über gängige Selektoren prüfen. Die Website-Bewertung nutzt den MDN HTTP Observatory von Mozilla und gilt nur für die Startseite, nicht für Portale oder Subdomains. Ausgewertet wurden nur öffentlich abrufbare Informationen, ohne Anmeldung, Eingriff oder nennenswerte Last. Die Ergebnisse sind eine Momentaufnahme; auf Anfrage prüfen wir kostenfrei erneut.",
+    "methode_lang": "Alle Werte wurden am 28. Oktober 2026 automatisiert mit scan.reineke-technik.de erhoben, DNS-Abfragen über Cloudflare DNS-over-HTTPS (1.1.1.1). DKIM lässt sich nur über gängige Selektoren prüfen. Die Website-Bewertung nutzt den MDN HTTP Observatory von Mozilla und gilt nur für die Startseite, nicht für Portale oder Subdomains. Ausgewertet wurden nur öffentlich abrufbare Informationen, ohne Anmeldung, Eingriff oder nennenswerte Last. Die Ergebnisse sind eine Momentaufnahme; auf Anfrage prüfen wir kostenfrei erneut.",
     "methodik": [
       {
         "bereich": "E-Mail",
@@ -1224,10 +1224,10 @@
     "plz_ort": "33154 Salzkotten",
     "web": "www.reineke-technik.de",
     "web_url": "https://www.reineke-technik.de",
-    "scan_host": "scan.reineke.tech",
+    "scan_host": "scan.reineke-technik.de",
     "booking_url": "https://bookings.cloud.microsoft/bookwithme/user/99dfe8391d044c208563dd3afbc7439f%40reineke-technik.de?anonymous&ismsaljsauthenabled",
-    "pentest_url": "https://scan.reineke.tech/pentest",
-    "pentest_label": "scan.reineke.tech/pentest",
+    "pentest_url": "https://scan.reineke-technik.de/pentest",
+    "pentest_label": "scan.reineke-technik.de/pentest",
     "kontakte": [
       {
         "name": "Werner Francis Reineke",

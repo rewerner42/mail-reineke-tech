@@ -6,10 +6,10 @@
   "plz_ort": "33154 Salzkotten",
   "web": "www.reineke-technik.de",
   "web_url": "https://www.reineke-technik.de",
-  "scan_host": "scan.reineke.tech",
+  "scan_host": "scan.reineke-technik.de",
   "booking_url": "https://bookings.cloud.microsoft/bookwithme/user/99dfe8391d044c208563dd3afbc7439f%40reineke-technik.de?anonymous&ismsaljsauthenabled",
-  "pentest_url": "https://scan.reineke.tech/pentest",
-  "pentest_label": "scan.reineke.tech/pentest",
+  "pentest_url": "https://scan.reineke-technik.de/pentest",
+  "pentest_label": "scan.reineke-technik.de/pentest",
   "kontakte": [
     {
       "name": "Werner Francis Reineke",
