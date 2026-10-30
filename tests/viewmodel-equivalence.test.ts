@@ -1,29 +1,28 @@
-// Stage 1 acceptance: the TypeScript view model must match the Python reference.
+// Stage 1 acceptance, frozen: the TypeScript view model must match what the
+// Python reference generator produced for the same inputs.
 //
-// Two comparisons run here. The strong one feeds the reference signals through
-// our port and compares the result against referenz/erwartet/*.viewmodel.json —
-// the output the reference generator produced. Image paths are excluded (the
-// goldens carry the literal "ASSETS_URL"), nothing else is.
+// The signals, the expected view models and the catalogue they were rendered with
+// all live in tests/fixtures/referenz/ — copies, deliberately. The catalogue in
+// src/report/daten/ grows from here on (new finding texts, B12 removing a
+// finding), which would legitimately change the output. This test is about the
+// *code* being a faithful port, so it is pinned to the catalogue of that moment
+// and must keep passing untouched.
 //
 // The reference package ships 13 expected view models but only 11 input signals;
 // sema-systemtechnik.de and sollich.com have no signal file, so they cannot be
 // reproduced. Reconstructing their inputs from the expected output would make the
-// test check itself, so they are listed as known gaps instead.
+// test check itself, so they stay out.
 
-import { readFileSync, existsSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { buildViewmodel, type Katalog } from "../src/report/viewmodel.js";
 import type { Signal } from "../src/report/signal.js";
-import katalogJson from "../src/report/daten/katalog.json";
-import firmaJson from "../src/report/daten/firma.json";
+import katalogJson from "./fixtures/referenz/katalog-stufe1.json";
+import firmaJson from "./fixtures/referenz/firma-stufe1.json";
 
-const REF = "/Users/werner/Documents/social-selling-academy/lead-magnet-befund/uebergabe-generator/referenz";
+const REF = fileURLToPath(new URL("./fixtures/referenz", import.meta.url));
 const katalog = katalogJson as unknown as Katalog;
-
-/** The 13 expected view models the reference package ships. */
-const ERWARTET = existsSync(`${REF}/erwartet`)
-  ? readdirSync(`${REF}/erwartet`).filter((f) => f.endsWith(".viewmodel.json")).sort()
-  : [];
 
 /** Lifts a reference signal file into the Signal shape the port expects. */
 function adapt(raw: any): Signal {
@@ -64,24 +63,20 @@ function adapt(raw: any): Signal {
 }
 
 function signalFiles(): Array<{ slug: string; sig: Signal }> {
-  const out: Array<{ slug: string; sig: Signal }> = [];
-  for (const dir of ["generator/daten/signale", "generator/daten/stresstest"]) {
-    const full = `${REF}/${dir}`;
-    if (!existsSync(full)) continue;
-    for (const f of readdirSync(full).filter((x) => x.endsWith(".json")).sort()) {
-      const raw = JSON.parse(readFileSync(`${full}/${f}`, "utf8"));
-      out.push({ slug: raw.domain, sig: adapt(raw) });
-    }
-  }
-  return out;
+  return readdirSync(`${REF}/signale`)
+    .filter((x) => x.endsWith(".json"))
+    .sort()
+    .map((f) => {
+      const raw = JSON.parse(readFileSync(`${REF}/signale/${f}`, "utf8"));
+      return { slug: raw.domain as string, sig: adapt(raw) };
+    });
 }
 
-const skipAll = !existsSync(REF);
-describe.skipIf(skipAll)("view model equivalence with the Python reference", () => {
+describe("view model equivalence with the Python reference", () => {
   const signals = signalFiles();
 
-  it("finds the reference signals", () => {
-    expect(signals.length).toBeGreaterThan(0);
+  it("covers all eleven reproducible reference datasets", () => {
+    expect(signals).toHaveLength(11);
   });
 
   for (const { slug, sig } of signals) {
@@ -95,9 +90,4 @@ describe.skipIf(skipAll)("view model equivalence with the Python reference", () 
     });
   }
 
-  it("names the expected view models that have no input signal", () => {
-    const have = new Set(signals.map((s) => s.slug));
-    const missing = ERWARTET.map((f) => f.replace(".viewmodel.json", "")).filter((s) => !have.has(s));
-    expect(missing).toEqual(["sema-systemtechnik.de", "sollich.com"]);
-  });
 });

@@ -1,0 +1,32 @@
+{
+  "_quelle": "Reineke-Befund-budde.de.pdf (Generator, 18.09.2026) – Stresstest: kein DMARC, viele Feststellungen",
+  "domain": "budde.de",
+  "scan_date": "2026-09-18",
+  "level": "kritisch",
+  "dmarc": { "grade": "F", "score": 0, "record": null, "policy": null, "rua": false },
+  "dnssec": { "grade": "F", "score": 0, "signed": false },
+  "observatory": {
+    "available": true, "grade": "D", "score": 30, "passed": 8, "total": 12,
+    "tests": [
+      { "id": "csp", "variant": "missing", "modifier": -25,
+        "result_text": "Content-Security-Policy-Header nicht implementiert.",
+        "recommendation": "CSP einführen — siehe MDN-Dokumentation zu Content Security Policy." },
+      { "id": "hsts", "variant": "missing", "modifier": -20,
+        "result_text": "Strict-Transport-Security-Header nicht implementiert.",
+        "recommendation": "HSTS hinzufügen, ggf. zunächst mit kürzeren Zeiträumen (siehe hstspreload.org)." },
+      { "id": "xfo", "variant": "missing", "modifier": -20,
+        "result_text": "X-Frame-Options-Header (XFO) nicht implementiert.",
+        "recommendation": "frame-ancestors per CSP umsetzen." },
+      { "id": "xcto", "variant": "missing", "modifier": -5,
+        "result_text": "X-Content-Type-Options-Header nicht implementiert.",
+        "recommendation": "Auf nosniff setzen." }
+    ]
+  },
+  "mail": {
+    "spf": { "status": "hinweis", "text": "SPF vorhanden, Verbesserungen möglich." },
+    "dkim": { "status": "hinweis", "text": "1 DKIM-Selektor gefunden", "selectors": 1 },
+    "mx": { "status": "hinweis", "text": "1 MX-Server gefunden", "count": 1 },
+    "mta_sts": { "status": "hinweis", "text": "Kein MTA-STS" },
+    "tls_rpt": { "status": "hinweis", "text": "Kein TLS-RPT" }
+  }
+}

@@ -1,0 +1,783 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Sicherheitsbefund {{ domain }}</title>
+{#- v15-editorial-spruch-unten (Stand 30.10.2026): wie v14, mit zwei Änderungen von Werner (30.10.):
+    – Deckblatt: Spruch zwischen Titelblock und Absenderzeile, Logo 30 % größer und tiefer (deckblatt.html.j2).
+    – Seite 2: Inhaltsverzeichnis mit Kapiteln, Penetrationstest, allen Feststellungen und Seitenzahlen; alle Einträge anklickbar.
+    Grundlage v14: Deckblatt „A hell“ (Entwurf A „Markenfläche“ mit weißer statt roter oberer Hälfte).
+    Seite 2: Notenskala „Zeugnis“ (kleine Skala A–F unter jeder Note, Legende mit Farbfeldern), von Werner gewählt.
+    Grundlage v13: v11 „Editorial, klar“ mit Werners Rückmeldung vom 30.10.
+    – Neue Kapitelfolge: 01 Zusammenfassung, 02 Empfehlungen (mit Verweis auf Kapitel 05), 03 Über Reineke Technik,
+      04 Nächster Schritt, 05 Feststellungen im Einzelnen, Anhang A Messwerte, Anhang B Methodik und Bewertung.
+    – Werners Spruch „Sicherheitslücken schließen, bevor sie teuer werden.“ (firma.slogan) als Zitat auf „Über Reineke Technik“.
+    – Deckblatt: Logo und Titelblock 10 mm tiefer (Option deckblatt_versatz_mm im Deckblatt-Partial).
+    Aus v11 übernommen: „Handlungsbedarf“ mit Bedeutung auf Seite 2, rote Termin-Buttons. Sonst v08 „Editorial“:
+    6-Spalten-Raster (15 mm Rand, 5 mm Steg, Spalte 25,83 mm), Marginalspalte = Spalten 1–2, Hauptspalte = 3–6. -#}
+<style>
+  @page { size: A4; margin: 0; }
+  :root {
+    --rot: #DC0C23;
+    --ink: #111111; --ink-2: #2E2E2E; --ink-3: #5A5A5A; --ink-4: #767676;
+    --haar: #D2D2D2; --haar-2: #E6E7E6;
+    --hoch: #DC0C23; --mittel: #B26B00; --gering: #5E6A71; --ok: #2E6B4A; --na: #8A8A8A;
+  }
+  html, body { margin: 0; padding: 0; background: #fff; }
+  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  /* ---------- Seite und Raster ---------- */
+  .pg { position: relative; width: 210mm; height: 297mm; overflow: hidden; box-sizing: border-box;
+        padding: 31mm 15mm 24mm; background: #fff; color: var(--ink);
+        font-family: "Liberation Sans", Arial, Helvetica, sans-serif; font-size: 9.5pt; line-height: 1.45;
+        page-break-after: always; break-after: page; }
+  .pg:last-child { page-break-after: auto; break-after: auto; }
+  .pg *, .pg *::before, .pg *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  .pg a { color: inherit; text-decoration: none; }
+  .pg b, .pg strong { font-weight: 700; }
+  .pg ul, .pg ol { list-style: none; }
+  .pg.spalte { display: flex; flex-direction: column; }
+  .pg.spalte > .unten { margin-top: auto; }
+
+  .r6 { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); column-gap: 5mm; }
+  .r3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 5mm; }
+  .r2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 5mm; }
+  .s1 { grid-column: 1 / 2; } .s2 { grid-column: 2 / 3; } .s3 { grid-column: 3 / 4; }
+  .s4 { grid-column: 4 / 5; } .s5 { grid-column: 5 / 6; } .s6 { grid-column: 6 / 7; }
+  .s12 { grid-column: 1 / 3; } .s34 { grid-column: 3 / 5; } .s56 { grid-column: 5 / 7; }
+  .s36 { grid-column: 3 / 7; } .s35 { grid-column: 3 / 6; } .s16 { grid-column: 1 / 7; }
+  .s46 { grid-column: 4 / 7; }
+
+  /* ---------- Kopf- und Fußzeile ---------- */
+  .kopf { position: absolute; top: 12mm; left: 15mm; right: 15mm; display: grid;
+          grid-template-columns: repeat(6, minmax(0, 1fr)); column-gap: 5mm; align-items: end;
+          padding-bottom: 2.4mm; border-bottom: .2mm solid var(--haar);
+          font-size: 7pt; line-height: 1.2; color: var(--ink-3); }
+  .k-marke { grid-column: 1 / 3; display: flex; align-items: flex-end; gap: 2.2mm; white-space: nowrap; }
+  .fuchs { display: block; flex: none; width: 6mm; height: 5.2mm; overflow: hidden; }
+  .fuchs img { display: block; width: 6mm; height: auto; }
+  .k-marke b { color: var(--ink); letter-spacing: .03em; }
+  .k-domain { grid-column: 3 / 5; overflow-wrap: anywhere; }
+  .k-kap { grid-column: 5 / 7; text-align: right; }
+  .fuss { position: absolute; bottom: 11mm; left: 15mm; right: 15mm; display: grid;
+          grid-template-columns: repeat(6, minmax(0, 1fr)); column-gap: 5mm;
+          font-size: 7pt; line-height: 1.2; color: var(--ink-4); }
+  .fuss .f1 { grid-column: 1 / 3; } .fuss .f2 { grid-column: 3 / 5; }
+  .fuss .f3 { grid-column: 5 / 7; text-align: right; color: var(--ink-3); }
+
+  /* ---------- Typografie ---------- */
+  .kk { align-items: baseline; margin-bottom: 7mm; }
+  .kk.kk-mit { margin-bottom: 3mm; }
+  .vorspann { margin-bottom: 7mm; }
+  .vorspann p { font-size: 10pt; line-height: 1.45; color: var(--ink-3); }
+  .kk .nr { grid-column: 1 / 3; font-size: 22pt; line-height: 1.1; font-weight: 400; color: var(--rot); }
+  .kk h1 { grid-column: 3 / 7; font-size: 22pt; line-height: 1.1; font-weight: 700; letter-spacing: -.005em; }
+  .label { display: block; font-size: 6.8pt; line-height: 1.35; font-weight: 700; letter-spacing: .14em;
+           text-transform: uppercase; color: var(--ink-3); }
+  .lead { font-size: 12pt; line-height: 1.42; color: var(--ink); }
+  .lead-s { font-size: 10.5pt; line-height: 1.45; color: var(--ink-2); }
+  .klein { font-size: 8.5pt; line-height: 1.45; color: var(--ink-3); }
+  .marginalie { margin-top: 3mm; width: 46mm; font-size: 7.5pt; line-height: 1.45; color: var(--ink-4); }
+  .mono { font-family: "DejaVu Sans Mono", Menlo, monospace; font-size: 6.8pt; line-height: 1.5;
+          color: var(--ink-3); overflow-wrap: anywhere; }
+  .blk { margin-top: 9mm; }
+  .linie { border-top: .35mm solid var(--ink); padding-top: 3mm; }
+
+  /* Statusfarben */
+  .good { color: var(--ok); } .warn { color: var(--mittel); } .bad { color: var(--hoch); } .na { color: var(--na); }
+  .prio { display: inline-block; font-size: 6.8pt; line-height: 1.35; font-weight: 700; letter-spacing: .14em;
+          text-transform: uppercase; white-space: nowrap; }
+  .prio::before { content: ""; display: inline-block; width: 1.9mm; height: 1.9mm; margin-right: 1.6mm;
+                  background: currentColor; vertical-align: .05mm; }
+  .prio.hoch { color: var(--hoch); } .prio.mittel { color: var(--mittel); } .prio.gering { color: var(--gering); }
+  .prio.ok { color: var(--ok); } .prio.hinweis { color: var(--mittel); } .prio.mangel { color: var(--hoch); }
+  .prio.good { color: var(--ok); } .prio.warn { color: var(--mittel); } .prio.bad { color: var(--hoch); } .prio.na { color: var(--na); }
+
+  .btn { display: inline-block; background: var(--rot); color: #fff; font-size: 9.5pt; line-height: 1.2; font-weight: 700;
+         letter-spacing: .02em; padding: 3.4mm 6.5mm; white-space: nowrap; }
+  .pg a.btn { color: #fff; }
+  .unterstr { border-bottom: .2mm solid var(--ink); }
+
+  /* ---------- 01 Zusammenfassung ---------- */
+  .lv-kritisch, .lv-hoch { --lv: var(--hoch); } .lv-mittel { --lv: var(--mittel); } .lv-gering { --lv: var(--ok); }
+  .urteil .hb { font-size: 15pt; line-height: 1.2; font-weight: 700; color: var(--ink); margin-bottom: 2mm; }
+  .urteil .zeile { display: flex; align-items: center; column-gap: 6mm; }
+  .urteil .wort { flex: none; font-size: 46pt; line-height: .95; font-weight: 700; letter-spacing: -.02em; color: var(--lv); margin-top: -1mm; }
+  .urteil .heisst { font-size: 11pt; line-height: 1.32; color: var(--ink-3); border-left: .35mm solid var(--haar); padding-left: 4mm; }
+  .urteil .heisst b { display: block; color: var(--ink); }
+  .urteil .hb-hinweis { margin-top: 3mm; padding-top: 2.4mm; border-top: .3mm solid var(--haar); color: var(--ink); }
+  /* Seite 2 trägt jetzt die Zeile „Handlungsbedarf“: Abstände dort etwas enger als im übrigen Bericht */
+  .seite-zf .blk { margin-top: 6.5mm; }
+  .seite-zf .nt .note { font-size: 48pt; margin: 3.2mm 0 2mm; }
+  .seite-zf .skala { margin: 3.5mm 0 3.2mm; }
+  .skala { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: 5mm; margin: 4.5mm 0 4mm; }
+  .skala div { border-top: 1.2mm solid #E4E4E4; padding-top: 1.6mm; font-size: 6.8pt; line-height: 1.3; font-weight: 700;
+               letter-spacing: .14em; text-transform: uppercase; color: var(--ink-4); }
+  .skala div.an { border-top-color: var(--lv); color: var(--ink); }
+  .noten { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 5mm; }
+  .nt { display: grid; grid-row: span 6; grid-template-rows: subgrid; border-top: .35mm solid var(--ink); padding-top: 3mm; }
+  .nt .schutz { font-size: 9pt; line-height: 1.35; color: var(--ink-2); margin-top: .8mm; }
+  .nt .note { font-size: 54pt; line-height: .9; font-weight: 700; letter-spacing: -.03em; margin: 4mm 0 2.6mm; }
+  .note .mod { font-size: .5em; vertical-align: .78em; letter-spacing: 0; margin-left: .03em; }
+  .nt .wort { font-size: 11pt; line-height: 1.25; font-weight: 700; }
+  .nt .satz { font-size: 9pt; line-height: 1.4; color: var(--ink-2); margin-top: 1.2mm; }
+  .nt .meta { font-size: 7pt; line-height: 1.3; color: var(--ink-4); margin-top: 1.8mm; letter-spacing: .02em; }
+  .legende { margin-top: 3mm; font-size: 7pt; line-height: 1.4; color: var(--ink-4); }
+  .legende span + span::before { content: " · "; }
+  /* Inhaltsverzeichnis (Seite 2, v15) */
+  .inh-hinweis { margin: -2mm 0 6mm; }
+  .inh-hinweis p { font-size: 10pt; line-height: 1.45; color: var(--ink-3); }
+  .inh a { display: grid; grid-template-columns: 61.66mm minmax(0, 1fr) 14mm; column-gap: 0; align-items: baseline; }
+  .inh .inh-kap { border-top: .35mm solid var(--ink); padding: 2.6mm 0 2.4mm; margin-top: 2.2mm; }
+  .inh .inh-kap:first-child { margin-top: 0; }
+  .inh .inh-kap .inh-nr { font-size: 15pt; line-height: 1.15; color: var(--rot); }
+  .inh .inh-kap .inh-t { font-size: 12.5pt; line-height: 1.25; font-weight: 700; }
+  .inh .inh-kap .inh-s { font-size: 12.5pt; line-height: 1.25; font-weight: 700; text-align: right; }
+  .inh .inh-sub { border-top: .2mm solid var(--haar-2); padding: 1mm 0 1.1mm; }
+  .inh .inh-kap + .inh-sub { border-top: 0; }
+  .inh .inh-sub .inh-nr { font-size: 7.5pt; line-height: 1.35; font-weight: 700; color: var(--ink-4); padding-left: 0; }
+  .inh .inh-sub .inh-nr .prio { margin-right: 2mm; }
+  .inh .inh-sub .inh-t { font-size: 9pt; line-height: 1.35; color: var(--ink-2); }
+  .inh .inh-sub .inh-s { font-size: 9pt; line-height: 1.35; color: var(--ink-3); text-align: right; }
+  /* ab 15 Feststellungen etwas dichter, damit das Inhaltsverzeichnis auf eine Seite passt */
+  .inh.inh--kompakt .inh-kap { padding: 2mm 0 1.9mm; margin-top: 1.6mm; }
+  .inh.inh--kompakt .inh-sub { padding: .55mm 0 .6mm; }
+  .inh.inh--kompakt .inh-sub .inh-t, .inh.inh--kompakt .inh-sub .inh-s { font-size: 8.5pt; line-height: 1.3; }
+  /* Notenskala „Zeugnis“ (Werners Wahl, 30.10.): kleine Skala A–F unter jeder Note, Legende mit Farbfeldern */
+  .seite-zf .nt { grid-row: span 7; }
+  .nt-mini { display: flex; gap: 1mm; margin-top: 2.2mm; }
+  .nt-mini span { display: block; width: 6.2mm; height: 5.4mm; border: .3mm solid #D4D4D4; color: #A8A8A8; font-size: 7.5pt; line-height: 4.8mm;
+    font-weight: 700; text-align: center; }
+  .nt-mini span.an.good { background: var(--ok); border-color: var(--ok); color: #fff; }
+  .nt-mini span.an.warn { background: var(--mittel); border-color: var(--mittel); color: #fff; }
+  .nt-mini span.an.bad { background: var(--hoch); border-color: var(--hoch); color: #fff; }
+  .nsk2 { margin-top: 3.5mm; display: flex; flex-wrap: wrap; align-items: center; column-gap: 3.4mm; row-gap: 1mm; font-size: 7pt; line-height: 1.35; color: var(--ink-2); }
+  .nsk2 .label { margin: 0 1mm 0 0; }
+  .nsk2 i { display: inline-block; width: 2.4mm; height: 2.4mm; margin-right: 1.3mm; vertical-align: -.2mm; }
+  .nsk2 i.good { background: var(--ok); } .nsk2 i.warn { background: var(--mittel); } .nsk2 i.bad { background: var(--hoch); }
+  .nsk2 b { font-weight: 700; color: var(--ink); }
+  .zaehler .zahl { font-size: 24pt; line-height: 1; font-weight: 700; letter-spacing: -.01em; margin-top: 4.5mm; }
+  .zaehler .klein { display: block; margin-top: 1mm; }
+  .verteilung { margin-top: 3mm; width: 34mm; }
+  .verteilung li { display: flex; justify-content: space-between; align-items: baseline; padding: .9mm 0; border-top: .2mm solid var(--haar-2); }
+  .verteilung li:first-child { border-top: 0; }
+  .verteilung b { font-size: 9pt; }
+  .top3 ol > li { display: grid; grid-template-columns: 13mm minmax(0, 1fr) auto; column-gap: 3mm; align-items: baseline;
+             padding: 2.2mm 0 2.4mm; border-top: .2mm solid var(--haar); }
+  .top3 ol > li:first-child { border-top: 0; padding-top: 0; }
+  .top3 .fnr { font-size: 8pt; font-weight: 700; color: var(--ink-4); }
+  .top3 b { display: block; font-size: 10pt; line-height: 1.3; }
+  .top3 .rechts { text-align: right; }
+  .top3 .seite { display: block; font-size: 7.5pt; line-height: 1.3; color: var(--ink-4); margin-top: 1.2mm; }
+  .top3 .kurz { display: block; font-size: 9pt; line-height: 1.4; color: var(--ink-3); margin-top: .4mm; }
+  .cta { align-items: center; }
+  .cta .label { margin-bottom: 1mm; }
+  .cta b { display: block; font-size: 11pt; line-height: 1.3; }
+  .cta p { font-size: 9pt; line-height: 1.4; color: var(--ink-2); }
+  .cta-knopf { text-align: left; }
+
+  /* ---------- 02 Feststellungen ---------- */
+  .bf { border-top: .35mm solid var(--ink); padding-top: 2.6mm; margin-top: 7mm; }
+  .bf.erst { margin-top: 0; }
+  .bf-kopf { align-items: baseline; }
+  .bf-nr { font-size: 13pt; line-height: 1.25; font-weight: 700; color: var(--ink-4); }
+  .bf h2 { font-size: 13pt; line-height: 1.25; font-weight: 700; }
+  .bf-meta { margin-top: 1mm; align-items: baseline; }
+  .bf-fach { font-size: 8pt; line-height: 1.35; color: var(--ink-3); }
+  .bf-text { margin-top: 4mm; }
+  .bf-text p { font-size: 9pt; line-height: 1.42; color: var(--ink-2); margin-top: 1.1mm; }
+  .bf-text p.wirk { color: var(--ink); font-weight: 700; }
+  .bf-text .label + p + .label { margin-top: 3mm; }
+  .bf-tech { margin-top: 3.2mm; align-items: baseline; }
+  .sek { align-items: baseline; margin-bottom: 4mm; }
+  .sek h2 { font-size: 13pt; line-height: 1.25; font-weight: 700; }
+  .gz { border-top: .2mm solid var(--haar); padding: 2.3mm 0 2.5mm; align-items: baseline; }
+  .gz.erst { border-top: .35mm solid var(--ink); }
+  .gz .fnr { display: block; font-size: 9.5pt; line-height: 1.3; font-weight: 700; color: var(--ink-4); }
+  .gz-meta { display: block; font-size: 7.5pt; line-height: 1.35; color: var(--ink-3); margin-top: .4mm; }
+  .gz b { display: block; font-size: 9.5pt; line-height: 1.3; }
+  .gz .kurz { display: block; font-size: 9pt; line-height: 1.4; color: var(--ink-2); margin-top: .4mm; }
+  .gz .auf { display: block; font-size: 8pt; line-height: 1.35; color: var(--ink-3); margin-top: .6mm; }
+  .gz-fuss { margin-top: 2.5mm; font-size: 7.5pt; color: var(--ink-4); }
+  .positiv-liste { margin-top: 4mm; border-top: .2mm solid var(--haar); }
+  .positiv-liste li { position: relative; padding: 1.7mm 0 1.9mm 5mm; border-bottom: .2mm solid var(--haar-2); font-size: 9.5pt; line-height: 1.4; color: var(--ink-2); }
+  .positiv-liste li::before { content: ""; position: absolute; left: 0; top: 2.85mm; width: 1.9mm; height: 1.9mm; background: var(--ok); }
+  .umgesetzt .zahl { font-size: 24pt; line-height: 1; font-weight: 700; color: var(--ok); margin-top: 4.5mm; }
+  .umgesetzt .klein { display: block; margin-top: 1mm; }
+
+  /* ---------- 03 Empfehlungen ---------- */
+  .kopfzeile { margin-bottom: 2.4mm; align-items: end; }
+  .label.hell { color: var(--ink-4); }
+  .nw { white-space: nowrap; }
+  .mz { border-top: .2mm solid var(--haar); padding: 2.2mm 0 2.4mm; align-items: baseline; }
+  .mz.erst { border-top: .35mm solid var(--ink); }
+  .mz .mnr { font-size: 13pt; line-height: 1.2; font-weight: 700; color: var(--ink); }
+  .mz b { display: block; font-size: 10pt; line-height: 1.3; }
+  .mz p { font-size: 9pt; line-height: 1.36; color: var(--ink-2); margin-top: .5mm; }
+  .mz .wert { font-size: 8.5pt; line-height: 1.4; color: var(--ink); }
+  .mz .bezug { font-size: 8pt; line-height: 1.4; color: var(--ink-3); margin-top: .6mm; }
+  .mz .bezug .seitenref { white-space: nowrap; color: var(--ink-4); }
+  .pentest h2 { font-size: 13pt; line-height: 1.25; font-weight: 700; }
+  .pentest .lead-s { margin-top: 2mm; font-size: 10pt; }
+  .arten { margin-top: 3.5mm; width: 46mm; }
+  .arten li { padding: 1.8mm 0 2mm; border-top: .2mm solid var(--haar); }
+  .arten b { display: block; font-size: 9pt; line-height: 1.3; }
+  .arten span { display: block; font-size: 8.5pt; line-height: 1.4; color: var(--ink-3); margin-top: .3mm; }
+  .schritte { margin-top: 4mm; row-gap: 0; }
+  .schritte li { display: grid; grid-template-columns: 6mm minmax(0, 1fr); padding: 1.8mm 0 2mm; border-top: .2mm solid var(--haar); font-size: 8.5pt; line-height: 1.4; color: var(--ink-2); }
+  .schritte .n { font-weight: 700; color: var(--ink); }
+  .schritte b { display: block; color: var(--ink); font-size: 9pt; line-height: 1.3; margin-bottom: .3mm; }
+  .schritte .n { font-size: 9pt; line-height: 1.3; }
+  .pentest .link { margin-top: 3mm; }
+  .pentest .link a { color: var(--ink); }
+
+  /* ---------- 04 Über Reineke Technik ---------- */
+  .portrait { display: block; width: 100%; height: 66mm; object-fit: cover; object-position: center 22%; filter: grayscale(100%); }
+  .p-name { font-size: 13pt; line-height: 1.25; font-weight: 700; }
+  .p-rolle { font-size: 8.5pt; color: var(--ink-3); margin: .6mm 0 4mm; }
+  .person p + p { margin-top: 2.6mm; }
+  .zitat { font-size: 16pt; line-height: 1.35; font-weight: 400; color: var(--ink); letter-spacing: -.005em; }
+  .zitat::before { content: ""; display: block; width: 12mm; border-top: .8mm solid var(--rot); margin-bottom: 4mm; }
+  .drei > div { border-top: .2mm solid var(--haar); padding-top: 2.6mm; }
+  .drei h3 { font-size: 10pt; line-height: 1.3; font-weight: 700; }
+  .drei p { font-size: 9pt; line-height: 1.42; color: var(--ink-2); margin-top: .8mm; }
+  .v-wert { font-size: 20pt; line-height: 1.1; font-weight: 700; letter-spacing: -.01em; margin: 2.2mm 0 1.6mm; }
+  .v-wert.lang { font-size: 14pt; line-height: 1.25; }
+  .leist { column-count: 2; column-gap: 5mm; }
+  .leist li { position: relative; padding-left: 4mm; font-size: 9.5pt; line-height: 1.4; margin-bottom: 1.4mm; break-inside: avoid; color: var(--ink-2); }
+  .leist li::before { content: "–"; position: absolute; left: 0; color: var(--ink-4); }
+
+  /* ---------- 05 Nächster Schritt ---------- */
+  .cta-gross .lead { font-size: 13pt; }
+  .cta-gross .btn { font-size: 10.5pt; padding: 4mm 8mm; margin-top: 6mm; }
+  .qr img { display: block; width: 32mm; height: 32mm; }
+  .qr .klein { margin-top: 1.6mm; }
+  .ablauf .gz-n { font-size: 30pt; line-height: 1; font-weight: 700; color: var(--ink); margin: 2mm 0 2.5mm; }
+  .kontakt { display: grid; grid-template-columns: 20mm minmax(0, 1fr); column-gap: 4mm; border-top: .2mm solid var(--haar); padding-top: 3mm; }
+  .kontakt.ohne { grid-template-columns: minmax(0, 1fr); }
+  .kontakt img { width: 20mm; height: 24mm; object-fit: cover; object-position: center 20%; filter: grayscale(100%); }
+  .kontakt .n { font-size: 10pt; font-weight: 700; line-height: 1.3; }
+  .kontakt .r { font-size: 8.5pt; color: var(--ink-3); margin-bottom: 1.6mm; }
+  .kontakt .c { font-size: 9pt; line-height: 1.55; }
+  .absender p { font-size: 8.5pt; line-height: 1.5; color: var(--ink-2); margin-top: 1.2mm; }
+  .absender a.unterstr { color: var(--ink); }
+  .logo-voll { display: block; width: 15mm; height: auto; margin-top: .6mm; }
+
+  /* ---------- Anhang ---------- */
+  .az { border-top: .2mm solid var(--haar); padding: 1.8mm 0 2mm; align-items: baseline; }
+  .az.erst { border-top: .35mm solid var(--ink); }
+  .az b { font-size: 9pt; }
+  .az .t { font-size: 8.5pt; line-height: 1.4; color: var(--ink-2); }
+  .az .g { font-size: 8pt; line-height: 1.4; color: var(--ink-3); }
+  .az .nb { font-size: 11pt; line-height: 1.1; font-weight: 700; }
+  .az .sc { margin-left: 2mm; }
+  .az .mono.wert { color: var(--ink-2); font-size: 7.2pt; }
+  .az.sub { border-top: .2mm solid var(--haar-2); padding: 1.5mm 0 1.7mm; }
+  .az.sub .t { font-size: 8pt; line-height: 1.38; }
+  .az .eingerueckt { padding-left: 4mm; }
+  .gruppe-kopf { border-top: .35mm solid var(--ink); padding-top: 2.2mm; margin-top: 4mm; }
+  .gruppe-kopf.erst { margin-top: 0; }
+  .gruppe-kopf + .az { border-top: 0; }
+  .az .g.pr { font-size: 7.5pt; }
+</style>
+</head>
+<body>
+{#- ---------------- Seitenplanung ----------------
+    Feste Kapitelfolge: Deckblatt, 01 Zusammenfassung, 02 Empfehlungen (Penetrationstest darunter oder auf eigener
+    Seite), 03 Über uns, 04 Nächster Schritt, 05 Feststellungen (hoch/mittel, danach geringe Feststellungen und bereits
+    Umgesetztes), Anhang A (Messwerte), Anhang B (Methodik, Notenskala).
+    Umbrüche werden vorab berechnet: Jeder Block bekommt eine geschätzte Höhe in mm (Zeichen pro Zeile je
+    Spaltenbreite, aufgerundet, kalibriert mit Messungen im Browser, eher zu hoch als zu niedrig).
+    Der Satzspiegel einer Seite ist 242 mm (297 mm minus 31 mm oben und 24 mm unten).
+    - Feststellungen hoch/mittel: höchstens 3 je Seite, weniger, wenn die Schätzung nicht passt.
+    - Geringe Feststellungen und „Bereits umgesetzt“: eine Seite, bei Überlänge „Bereits umgesetzt“ auf einer Folgeseite.
+    - Block „Penetrationstest“ (91 mm): unter den Empfehlungen, sonst auf eigener Seite direkt danach.
+    - Anhang A: Bereich Website bei vielen Observatory-Tests geschlossen auf einer Folgeseite. -#}
+{% set SATZSPIEGEL = 242 %}
+{# Pentest-Kasten samt Abstand gemessen 89,7 mm (30.10.); die Tabellenschätzung liegt in allen 20 Testläufen 0,5–7,4 mm über der Ist-Höhe #}
+{% set PENTEST = 90 %}
+{% set VORSPANN_EMP = 8 %}
+{% set KOPF02 = 30 %}
+{% set haupt = nach_prio.hoch + nach_prio.mittel %}
+
+{# Kapitel 05: Feststellungen hoch und mittel #}
+{% set fp = namespace(seiten=[], akt=[], h=0) %}
+{% for f in haupt %}
+  {% set l1 = ((f.feststellung|length) / 33)|round(0, 'ceil') %}
+  {% set l2 = ((f.angriff|length) / 33)|round(0, 'ceil') %}
+  {% set l3 = ((f.auswirkung|length) / 31)|round(0, 'ceil') + ((f.aufwand|length + f.aufwand_text|length + 2) / 33)|round(0, 'ceil') %}
+  {% set hf = 24 + 5.7 * (((f.titel|length) / 48)|round(0, 'ceil') - 1) + [4.5 * l1, 4.5 * l2, 4.5 * l3 + 7.3]|max + 3.2 + 3.6 * ((f.tech|length) / 80)|round(0, 'ceil') %}
+  {% set budget = SATZSPIEGEL - (KOPF02 if not fp.seiten else 0) %}
+  {% if fp.akt and (fp.akt|length == 3 or fp.h + 7 + hf > budget) %}
+    {% set fp.seiten = fp.seiten + [fp.akt] %}
+    {% set fp.akt = [] %}
+    {% set fp.h = 0 %}
+  {% endif %}
+  {% set fp.h = fp.h + (7 if fp.akt else 0) + hf %}
+  {% set fp.akt = fp.akt + [f] %}
+{% endfor %}
+{% if fp.akt %}{% set fp.seiten = fp.seiten + [fp.akt] %}{% endif %}
+{% set fseiten = fp.seiten %}
+
+{# Kapitel 05: geringe Feststellungen und bereits Umgesetztes #}
+{% set weitere = nach_prio.gering or positiv or not haupt %}
+{% set hw = namespace(g=0, p=0) %}
+{% if nach_prio.gering %}
+  {% set hw.g = 16.5 %}
+  {% for f in nach_prio.gering %}
+    {% set hw.g = hw.g + 6 + 4.4 * (((f.titel|length) / 70)|round(0, 'ceil') + ((f.kurz|length) / 74)|round(0, 'ceil') + ((f.aufwand_text|length + 16) / 84)|round(0, 'ceil')) %}
+  {% endfor %}
+{% endif %}
+{% if positiv %}
+  {% set hw.p = 16.5 + 5.2 * ((positiv_einleitung|length) / 70)|round(0, 'ceil') %}
+  {% for x in positiv %}{% set hw.p = hw.p + 8.8 + 4.7 * (((x.text|length) / 66)|round(0, 'ceil') - 1) %}{% endfor %}
+{% endif %}
+{% set hw_kopf = (15.5 if not haupt else 0) + (12 if not feststellungen else 0) %}
+{% set w_split = hw_kopf + hw.g + hw.p > SATZSPIEGEL %}
+
+{# Kapitel 02: Empfehlungen (24,4 mm Kopf, einzeiliger Vorspann mit Verweis auf Kapitel 05) #}
+{% set hs = namespace(emp=24.4 + (VORSPANN_EMP if feststellungen else 0)) %}
+{% for m in massnahmen %}
+  {% set tl = ((m.text|length) / 56)|round(0, 'ceil') + ((m.titel|length) / 52)|round(0, 'ceil') - 1 %}
+  {% set bl = ((m.bezug|length + 1) / 3)|round(0, 'ceil') if m.bezug else 1 %}
+  {% set hs.emp = hs.emp + [11.3 + 4.3 * tl, 9.9 + 3.95 * bl]|max %}
+{% endfor %}
+{% set pt_emp = hs.emp + PENTEST <= SATZSPIEGEL %}
+{% set pt_wei = false %}
+{% set pt_eigen = not pt_emp and not pt_wei %}
+
+{# Anhang A: Messwerte #}
+{% set mh = namespace(h=121 + (4.2 if technik.dmarc.record and technik.dmarc.record|length > 56 else 0)) %}
+{% for x in technik.observatory.tests %}
+  {% set mh.h = mh.h + 3.8 + 3.9 * (((x.result_text|length) / 58)|round(0, 'ceil') + ((x.recommendation|length + 12) / 58)|round(0, 'ceil')) %}
+{% endfor %}
+{% set web_extra = mh.h > SATZSPIEGEL - 3 %}
+
+{% set N = 3 + fseiten|length + (1 if weitere else 0) + (1 if w_split else 0) + 1 + (1 if pt_eigen else 0) + 1 + 1 + 2 + (1 if web_extra else 0) %}
+{# Seiten von Kapitel 05 für die Verweise aus Inhalt, Zusammenfassung und Empfehlungen:
+   Seite 2 Inhalt, 3 Zusammenfassung, 4 Empfehlungen (+1 Penetrationstest), dann Über uns, Nächster Schritt, dann Kapitel 05. #}
+{% set F_START = 7 + (1 if pt_eigen else 0) %}
+{% set FS = {} %}
+{% for chunk in fseiten %}{% set ci = loop.index %}{% for f in chunk %}{% set _x = FS.update({f.nr: F_START + ci - 1}) %}{% endfor %}{% endfor %}
+{% for f in nach_prio.gering %}{% set _x = FS.update({f.nr: F_START + fseiten|length}) %}{% endfor %}
+{# Seiten der Kapitel für das Inhaltsverzeichnis #}
+{% set P_ZF = 3 %}{% set P_EMP = 4 %}{% set P_PT = P_EMP + (1 if pt_eigen else 0) %}
+{% set P_UEBER = F_START - 2 %}{% set P_NEXT = F_START - 1 %}
+{% set P_UMGESETZT = F_START + fseiten|length + (1 if w_split else 0) %}
+{% set P_ANH_A = F_START + fseiten|length + (1 if weitere else 0) + (1 if w_split else 0) %}
+{% set P_ANH_B = P_ANH_A + 1 + (1 if web_extra else 0) %}
+{% set ns = namespace(p=1) %}
+{% set lvl = level.key %}
+{# Bedeutung der Stufe in einem Satz (gleiche Texte wie in v12) #}
+{% set HB_HEISST = {'gering': 'Einzelne Punkte bei Gelegenheit verbessern.', 'mittel': 'Verbesserungen fest einplanen.',
+                    'hoch': 'Lücken zeitnah schließen.', 'kritisch': 'Lücken vorrangig schließen.'} %}
+
+{% macro kopf(kap) -%}
+<div class="kopf">
+  <div class="k-marke"><span class="fuchs"><img src="{{ logo }}" alt=""></span><b>{{ firma.kurzname }}</b><span>Sicherheitsbefund</span></div>
+  <div class="k-domain">{{ domain }}</div>
+  <div class="k-kap">{{ kap }}</div>
+</div>
+{%- endmacro %}
+{% macro fuss(n) -%}
+<div class="fuss"><span class="f1">{{ firma.name }} · Vertraulich</span><span class="f2">Bericht-Nr. {{ bericht_nr }}</span><span class="f3">Seite {{ n }} von {{ N }}</span></div>
+{%- endmacro %}
+{% macro note(n) -%}
+<span>{{ n[:1] }}</span>{% if n|length > 1 %}<span class="mod">{{ n[1:]|minus }}</span>{% endif %}
+{%- endmacro %}
+{% macro befund(f, erst) -%}
+<article class="bf{% if erst %} erst{% endif %}" id="{{ f.nr }}">
+  <div class="r6 bf-kopf">
+    <div class="s12 bf-nr">{{ f.nr }}</div>
+    <h2 class="s36">{{ f.titel }}</h2>
+  </div>
+  <div class="r6 bf-meta">
+    <div class="s12"><span class="prio {{ f.prio }}">{{ f.prio_label }}</span></div>
+    <div class="s36 bf-fach">{{ f.bereich_label }} · {{ f.fach }} · <a href="#{{ f.massnahme_nr }}">Maßnahme {{ f.massnahme_nr }}</a></div>
+  </div>
+  <div class="r6 bf-text">
+    <div class="s12"><span class="label">Feststellung</span><p>{{ f.feststellung }}</p></div>
+    <div class="s34"><span class="label">Angriffsszenario</span><p>{{ f.angriff }}</p></div>
+    <div class="s56"><span class="label">Auswirkung für Sie</span><p class="wirk">{{ f.auswirkung }}</p>
+      <span class="label">Aufwand</span><p>{{ f.aufwand|capitalize }}. {{ f.aufwand_text }}</p></div>
+  </div>
+  <div class="r6 bf-tech">
+    <div class="s12"><span class="label">Technischer Befund</span></div>
+    <div class="s36 mono">{{ f.tech }}</div>
+  </div>
+</article>
+{%- endmacro %}
+
+{% macro umgesetzt_block(abstand) -%}
+<div class="r6 {{ abstand }} linie umgesetzt" id="umgesetzt">
+  <div class="s12"><span class="prio ok">Bereits umgesetzt</span><div class="zahl">{{ positiv|length }}</div><span class="klein">{{ 'Punkt' if positiv|length == 1 else 'Punkte' }}</span></div>
+  <div class="s36">
+    <p class="lead-s">{{ positiv_einleitung }}</p>
+    <ul class="positiv-liste">{% for x in positiv %}<li>{{ x.text }}</li>{% endfor %}</ul>
+  </div>
+</div>
+{%- endmacro %}
+{% macro pentest_block(abstand) -%}
+<div class="r6 {{ abstand }} linie pentest" id="pentest">
+  <div class="s12">
+    <span class="label">Penetrationstest</span>
+    <ul class="arten">
+      {% for k in firma.pentest_arten %}<li><b>{{ k.titel }}</b><span>{{ k.text }}</span></li>{% endfor %}
+    </ul>
+  </div>
+  <div class="s36">
+    <h2>{{ texte.pentest_titel }}</h2>
+    <p class="lead-s">{{ texte.pentest_text }}</p>
+    <ol class="schritte r2">
+      {% for s in texte.pentest_ablauf %}<li><span class="n">{{ loop.index }}</span><span><b>{{ s.titel }}</b>{{ s.text }}</span></li>{% endfor %}
+    </ol>
+    <p class="klein link">Umfang und Anfrage: <a class="unterstr" href="{{ firma.pentest_url }}">{{ firma.pentest_label }}</a></p>
+  </div>
+</div>
+{%- endmacro %}
+
+{% include "deckblatt.html.j2" %}
+
+{# ================= Inhalt (Seite 2) ================= #}
+{% set ns.p = ns.p + 1 %}
+<section class="page pg seite-inhalt">
+  {{ kopf('Inhalt') }}
+  <div class="r6 kk"><div class="nr"></div><h1>Inhalt</h1></div>
+  <div class="r6 inh-hinweis"><p class="s36">Für die Geschäftsführung: Kapitel 01 bis 04. Für Ihre IT: Kapitel 05 und der Anhang.</p></div>
+  <div class="inh{% if feststellungen|length > 14 %} inh--kompakt{% endif %}">
+    <a class="inh-kap" href="#kap-01"><span class="inh-nr">01</span><span class="inh-t">Zusammenfassung</span><span class="inh-s">{{ P_ZF }}</span></a>
+    <a class="inh-kap" href="#kap-02"><span class="inh-nr">02</span><span class="inh-t">Empfehlungen</span><span class="inh-s">{{ P_EMP }}</span></a>
+    <a class="inh-sub" href="#pentest"><span class="inh-nr"></span><span class="inh-t">{{ texte.pentest_titel }}</span><span class="inh-s">{{ P_PT }}</span></a>
+    <a class="inh-kap" href="#kap-03"><span class="inh-nr">03</span><span class="inh-t">Über {{ firma.kurzname }}</span><span class="inh-s">{{ P_UEBER }}</span></a>
+    <a class="inh-kap" href="#kap-04"><span class="inh-nr">04</span><span class="inh-t">Nächster Schritt</span><span class="inh-s">{{ P_NEXT }}</span></a>
+    <a class="inh-sub" href="#kap-04"><span class="inh-nr"></span><span class="inh-t">{{ texte.cta_titel }}: Termin direkt aus dem Bericht buchen</span><span class="inh-s">{{ P_NEXT }}</span></a>
+    <a class="inh-kap" href="#kap-05"><span class="inh-nr">05</span><span class="inh-t">Feststellungen im Einzelnen</span><span class="inh-s">{{ F_START }}</span></a>
+    {% for f in feststellungen %}
+    <a class="inh-sub" href="#{{ f.nr }}"><span class="inh-nr"><span class="prio {{ f.prio }}"></span>{{ f.nr }}</span><span class="inh-t">{{ f.titel }}</span><span class="inh-s">{{ FS[f.nr] }}</span></a>
+    {% endfor %}
+    {% if positiv %}
+    <a class="inh-sub" href="#umgesetzt"><span class="inh-nr"></span><span class="inh-t">Bereits umgesetzt</span><span class="inh-s">{{ P_UMGESETZT }}</span></a>
+    {% endif %}
+    <a class="inh-kap" href="#kap-a"><span class="inh-nr">A</span><span class="inh-t">Messwerte</span><span class="inh-s">{{ P_ANH_A }}</span></a>
+    <a class="inh-kap" href="#kap-b"><span class="inh-nr">B</span><span class="inh-t">Methodik und Bewertung</span><span class="inh-s">{{ P_ANH_B }}</span></a>
+  </div>
+  {{ fuss(ns.p) }}
+</section>
+
+{# ================= 01 Zusammenfassung ================= #}
+{% set ns.p = ns.p + 1 %}
+<section class="page pg seite-zf">
+  {{ kopf('Zusammenfassung') }}
+  <div class="r6 kk" id="kap-01"><div class="nr">01</div><h1>Zusammenfassung</h1></div>
+
+  <div class="r6 urteil lv-{{ lvl }}">
+    <div class="s12"><span class="label">Gesamturteil</span><p class="marginalie">{{ texte.methode_kurz }}</p>{% if level.hinweis %}<p class="marginalie hb-hinweis">{{ level.hinweis }}</p>{% endif %}</div>
+    <div class="s36">
+      <div class="hb">Handlungsbedarf</div>
+      <div class="zeile">
+        <div class="wort">{{ level.label }}</div>
+        <div class="heisst">Das heißt:<b>{{ HB_HEISST[lvl] }}</b></div>
+      </div>
+      <div class="skala">
+        {% for k in ['gering', 'mittel', 'hoch', 'kritisch'] %}<div{% if k == lvl %} class="an"{% endif %}>{{ k|capitalize }}</div>{% endfor %}
+      </div>
+      <p class="lead">{{ level.satz }}</p>
+    </div>
+  </div>
+
+  <div class="blk">
+    <div class="noten">
+      {% for a in bereiche %}
+      <div class="nt">
+        <span class="label">{{ a.label }} · {{ a.pruefung }}</span>
+        <div class="schutz">{{ a.schutzziel }}</div>
+        <div class="note {{ a.klasse }}">{{ note(a.note) }}</div>
+        <div class="wort {{ a.klasse }}">{{ a.wort }}</div>
+        <div class="nt-mini">{% for n in noten %}<span class="{{ n.klasse }}{% if a.note in n.noten %} an{% endif %}">{{ n.noten[0][:1] }}</span>{% endfor %}</div>
+        <p class="satz">{{ a.satz }}</p>
+        <div class="meta">{% if a.score is not none %}Score {{ a.score }} · {% endif %}{{ a.bedeutung }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="nsk2"><span class="label">Notenskala</span>{% for n in noten %}<span><i class="{{ n.klasse }}"></i><b>{{ n.noten|first|minus }}{% if n.noten|length > 1 %} bis {{ n.noten|last|minus }}{% endif %}</b> {{ n.wort|lower }}</span>{% endfor %}</div>
+  </div>
+
+  {% if top %}
+  <div class="r6 blk linie top3">
+    <div class="s12 zaehler">
+      <span class="label">Wesentliche Feststellungen</span>
+      <div class="zahl">{{ anzahl.gesamt }}</div>
+      <span class="klein">Feststellungen insgesamt</span>
+      <ul class="verteilung">
+        <li><span class="prio hoch">Hoch</span><b>{{ anzahl.hoch }}</b></li>
+        <li><span class="prio mittel">Mittel</span><b>{{ anzahl.mittel }}</b></li>
+        <li><span class="prio gering">Gering</span><b>{{ anzahl.gering }}</b></li>
+      </ul>
+    </div>
+    <ol class="s36">
+      {% for f in top %}
+      <li><span class="fnr">{{ f.nr }}</span><span><a href="#{{ f.nr }}"><b>{{ f.titel }}</b></a><span class="kurz">{{ f.kurz }}</span></span><span class="rechts"><span class="prio {{ f.prio }}">{{ f.prio_label }}</span><a class="seite" href="#{{ f.nr }}">Seite {{ FS[f.nr] }}</a></span></li>
+      {% endfor %}
+    </ol>
+  </div>
+  {% endif %}
+
+  <div class="r6 blk linie cta">
+    <div class="s12"><span class="label">Nächster Schritt</span><b>{{ texte.cta_titel }}</b></div>
+    <p class="s34">{{ texte.cta_text }}</p>
+    <div class="s56 cta-knopf"><a class="btn" href="{{ firma.booking_url }}">{{ texte.cta_button }}</a></div>
+  </div>
+  {{ fuss(ns.p) }}
+</section>
+
+{# ================= 02 Empfehlungen und Penetrationstest ================= #}
+{% set ns.p = ns.p + 1 %}
+<section class="page pg">
+  {{ kopf('Empfehlungen') }}
+  <div class="r6 kk{% if feststellungen %} kk-mit{% endif %}" id="kap-02"><div class="nr">02</div><h1>Empfehlungen</h1></div>
+  {% if feststellungen %}
+  <div class="r6 vorspann"><p class="s36">Details zu den Feststellungen: Kapitel 05 ab Seite {{ F_START }}.</p></div>
+  {% endif %}
+  <div class="r6 kopfzeile">
+    <div class="s1"><span class="label">Nr.</span></div>
+    <div class="s2"><span class="label">Dringlichkeit</span></div>
+    <div class="s35"><span class="label">Maßnahme</span></div>
+    <div class="s6"><span class="label">Aufwand</span><span class="label hell">Bezug</span></div>
+  </div>
+  {% for m in massnahmen %}
+  <div class="r6 mz{% if loop.first %} erst{% endif %}" id="{{ m.nr }}">
+    <div class="s1 mnr">{{ m.nr }}</div>
+    <div class="s2">{% if m.prio %}<span class="prio {{ m.prio }}">{{ m.prio|capitalize }}</span>{% else %}<span class="klein">Abschluss</span>{% endif %}</div>
+    <div class="s35"><b>{{ m.titel }}</b><p>{{ m.text }}</p></div>
+    <div class="s6"><div class="wert">{{ m.aufwand|capitalize }}</div><div class="bezug">{% if m.bezug %}{% set ps = [] %}{% for b in m.bezug %}{% if FS[b] not in ps %}{% set _x = ps.append(FS[b]) %}{% endif %}<a class="nw" href="#{{ b }}">{{ b }}</a>{% if not loop.last %}, {% endif %}{% endfor %}{% set ps = ps|sort %} <span class="seitenref">· S.&nbsp;{% if ps|length > 1 and ps|last - ps|first + 1 == ps|length %}{{ ps|first }}–{{ ps|last }}{% else %}{{ ps|join(', ') }}{% endif %}</span>{% else %}{{ m.bezug_text|capitalize }}{% endif %}</div></div>
+  </div>
+  {% endfor %}
+
+  {% if pt_emp %}{{ pentest_block('blk') }}{% endif %}
+  {{ fuss(ns.p) }}
+</section>
+
+{% if pt_eigen %}
+{# ---------- Penetrationstest auf eigener Seite (nur bei sehr langen Listen) ---------- #}
+{% set ns.p = ns.p + 1 %}
+<section class="page pg">
+  {{ kopf('Empfehlungen') }}
+  {{ pentest_block('') }}
+  {{ fuss(ns.p) }}
+</section>
+{% endif %}
+
+{# ================= 03 Über Reineke Technik ================= #}
+{% set ns.p = ns.p + 1 %}
+<section class="page pg">
+  {{ kopf('Über ' ~ firma.kurzname) }}
+  <div class="r6 kk" id="kap-03"><div class="nr">03</div><h1>Über {{ firma.kurzname }}</h1></div>
+  <div class="r6 person">
+    <div class="s12"><img class="portrait" src="{{ firma.vorstellung.foto_url }}" alt="{{ firma.vorstellung.name }}"></div>
+    <div class="s36">
+      <div class="p-name">{{ firma.vorstellung.name }}</div>
+      <div class="p-rolle">{{ firma.vorstellung.rolle }}</div>
+      {% for a in firma.vorstellung.absaetze %}<p class="lead-s">{{ a }}</p>{% endfor %}
+    </div>
+  </div>
+  <div class="r6 blk">
+    <p class="s36 zitat">„{% for z in firma.slogan %}{{ z }}{% if not loop.last %}<br>{% endif %}{% endfor %}“</p>
+  </div>
+  <div class="r3 drei blk">
+    {% for p in firma.prinzipien %}<div><h3>{{ p.titel }}</h3><p>{{ p.text }}</p></div>{% endfor %}
+  </div>
+  <div class="r3 drei blk">
+    {% for v in firma.vertrauen %}<div><span class="label">{{ v.label }}</span><div class="v-wert{% if v.wert|length > 14 %} lang{% endif %}">{{ v.wert }}</div><p>{{ v.text }}</p></div>{% endfor %}
+  </div>
+  <div class="r6 blk linie">
+    <div class="s12"><span class="label">Leistungen</span></div>
+    <ul class="s36 leist">{% for l in firma.leistungen %}<li>{{ l }}</li>{% endfor %}</ul>
+  </div>
+  {{ fuss(ns.p) }}
+</section>
+
+{# ================= 04 Nächster Schritt ================= #}
+{% set ns.p = ns.p + 1 %}
+<section class="page pg spalte">
+  {{ kopf('Nächster Schritt') }}
+  <div class="r6 kk" id="kap-04"><div class="nr">04</div><h1>Nächster Schritt</h1></div>
+  <div class="r6 cta-gross">
+    <div class="s12"><span class="label">{{ texte.cta_titel }}</span><span class="klein">{{ domain }}</span></div>
+    <div class="s34"><p class="lead">{{ texte.cta_text }}</p><a class="btn" href="{{ firma.booking_url }}">{{ texte.cta_button }}</a></div>
+    <div class="s56 qr"><a href="{{ firma.booking_url }}"><img src="{{ qr_termin }}" alt="QR-Code zur Terminbuchung"></a><div class="klein">Termin per QR-Code</div></div>
+  </div>
+  <div class="r3 drei ablauf blk">
+    {% for s in texte.ablauf %}<div><span class="label">Schritt</span><div class="gz-n">{{ loop.index }}</div><h3>{{ s.titel }}</h3><p>{{ s.text }}</p></div>{% endfor %}
+  </div>
+  <div class="r6 blk">
+    <div class="s16"><span class="label" style="margin-bottom:2.5mm">Ansprechpartner</span></div>
+  </div>
+  <div class="r2">
+    {% for k in firma.kontakte %}
+    <div class="kontakt{% if not k.foto_url %} ohne{% endif %}">
+      {% if k.foto_url %}<img src="{{ k.foto_url }}" alt="{{ k.name }}">{% endif %}
+      <div><div class="n">{{ k.name }}</div><div class="r">{{ k.rolle }}</div>
+        <div class="c"><a href="mailto:{{ k.email }}">{{ k.email }}</a><br><a href="tel:{{ k.telefon_href }}">{{ k.telefon }}</a>{% if k.mobil %}<br><a href="tel:{{ k.mobil_href }}">{{ k.mobil }}</a> (mobil){% endif %}</div></div>
+    </div>
+    {% endfor %}
+  </div>
+  <div class="r6 linie absender unten">
+    <div class="s12"><img class="logo-voll" src="{{ logo }}" alt="{{ firma.name }}"></div>
+    <div class="s34"><span class="label">Anschrift</span><p>{{ firma.name }}<br>{{ firma.strasse }}<br>{{ firma.plz_ort }}<br><a href="{{ firma.web_url }}">{{ firma.web }}</a></p></div>
+    <div class="s56"><span class="label">Penetrationstest anfragen</span><p><a class="unterstr" href="{{ firma.pentest_url }}">{{ firma.pentest_label }}</a></p></div>
+  </div>
+  {{ fuss(ns.p) }}
+</section>
+
+{# ================= 05 Feststellungen: hoch und mittel (Umbruch siehe Seitenplanung) ================= #}
+{% for chunk in fseiten %}
+{% set ns.p = ns.p + 1 %}
+<section class="page pg">
+  {{ kopf('Feststellungen') }}
+  {% if loop.first %}
+  <div class="r6 kk kk-mit" id="kap-05"><div class="nr">05</div><h1>Feststellungen im Einzelnen</h1></div>
+  <div class="r6 vorspann"><p class="s36">Zu jeder Feststellung: was wir festgestellt haben, was ein Angreifer damit erreichen kann und was das für Sie bedeutet.</p></div>
+  {% endif %}
+  {% for f in chunk %}{{ befund(f, loop.first) }}{% endfor %}
+  {{ fuss(ns.p) }}
+</section>
+{% endfor %}
+
+{# ================= 05 Feststellungen: geringe Einstufung und bereits Umgesetztes ================= #}
+{% if weitere %}
+{% set ns.p = ns.p + 1 %}
+<section class="page pg">
+  {{ kopf('Feststellungen') }}
+  {% if not haupt %}
+  <div class="r6 kk" id="kap-05"><div class="nr">05</div><h1>Feststellungen im Einzelnen</h1></div>
+  {% endif %}
+  {% if nach_prio.gering %}
+  <div class="r6 sek"><div class="s12"><span class="prio gering">Gering</span></div><h2 class="s36">Weitere Feststellungen</h2></div>
+  {% for f in nach_prio.gering %}
+  <div class="r6 gz{% if loop.first %} erst{% endif %}" id="{{ f.nr }}">
+    <div class="s12"><span class="fnr">{{ f.nr }}</span><span class="gz-meta">{{ f.bereich_label }} · {{ f.fach }}</span></div>
+    <div class="s36"><b>{{ f.titel }}</b><span class="kurz">{{ f.kurz }}</span><span class="auf">Aufwand {{ f.aufwand }}: {{ f.aufwand_text }}</span></div>
+  </div>
+  {% endfor %}
+  <div class="r6"><p class="s36 klein gz-fuss">Technische Einzelwerte zu allen Feststellungen in Anhang A, Maßnahmen in Kapitel 02.</p></div>
+  {% endif %}
+  {% if not feststellungen %}
+  <div class="r6"><p class="s36 lead">In den geprüften Bereichen wurden keine Feststellungen getroffen.</p></div>
+  {% endif %}
+  {% if positiv and not w_split %}{{ umgesetzt_block('blk') }}{% endif %}
+  {{ fuss(ns.p) }}
+</section>
+{% endif %}
+{% if w_split %}
+{% set ns.p = ns.p + 1 %}
+<section class="page pg">
+  {{ kopf('Feststellungen') }}
+  {{ umgesetzt_block('') }}
+  {{ fuss(ns.p) }}
+</section>
+{% endif %}
+
+{# ================= Anhang A: Messwerte, nach Bereichen geordnet ================= #}
+{% set t = technik %}
+{% set k_mail = (bereiche|selectattr('key', 'equalto', 'email')|first).klasse %}
+{% set k_dns = (bereiche|selectattr('key', 'equalto', 'domain')|first).klasse %}
+{% set k_web = (bereiche|selectattr('key', 'equalto', 'website')|first).klasse %}
+{% macro testzeile(x) -%}
+<div class="r6 az sub">
+  <div class="s12 t eingerueckt">{{ x.label }}</div>
+  <div class="s3 t"><b>{{ x.modifier_text }}</b></div>
+  <div class="s46 t">{{ x.result_text }}<br><span class="g">Empfehlung: {{ x.recommendation }}</span></div>
+</div>
+{%- endmacro %}
+{% macro webgruppe(erst) -%}
+<div class="r6 gruppe-kopf {{ erst }}"><span class="s16 label">Website</span></div>
+<div class="r6 az">
+  <div class="s12"><b>HTTP Observatory</b></div>
+  <div class="s3"><span class="nb {{ k_web }}">{{ t.observatory.note|minus }}</span>{% if t.observatory.score is not none %}<span class="g sc">Score {{ t.observatory.score }}</span>{% endif %}</div>
+  <div class="s46 t">{% if t.observatory.available %}{{ t.observatory.passed }} von {{ t.observatory.total }} Tests bestanden{% if t.observatory.tests %}. Tests mit Abzug:{% endif %}{% else %}Test nicht verfügbar{% endif %}</div>
+</div>
+{% for x in t.observatory.tests %}{{ testzeile(x) }}{% endfor %}
+{%- endmacro %}
+{% macro mwkopf() -%}
+<div class="r6 kopfzeile">
+  <div class="s12"><span class="label">Prüfung</span></div>
+  <div class="s3"><span class="label">Ergebnis</span></div>
+  <div class="s46"><span class="label">Messwert</span></div>
+</div>
+{%- endmacro %}
+{% set ns.p = ns.p + 1 %}
+<section class="page pg">
+  {{ kopf('Anhang') }}
+  <div class="r6 kk" id="kap-a"><div class="nr">A</div><h1>Messwerte</h1></div>
+  {{ mwkopf() }}
+  <div class="r6 gruppe-kopf erst"><span class="s16 label">E-Mail</span></div>
+  <div class="r6 az">
+    <div class="s12"><b>DMARC</b></div>
+    <div class="s3"><span class="nb {{ k_mail }}">{{ t.dmarc.note|minus }}</span>{% if t.dmarc.score is not none %}<span class="g sc">Score {{ t.dmarc.score }}</span>{% endif %}</div>
+    <div class="s46 t">{% if t.dmarc.record %}<span class="mono wert">{{ t.dmarc.record }}</span>{% else %}Kein DMARC-Eintrag veröffentlicht{% endif %}<br><span class="g">Richtlinie (p): {{ t.dmarc.policy if t.dmarc.policy else '–' }} · Berichte (rua): {{ 'angefordert' if t.dmarc.rua else 'nicht angefordert' }}</span></div>
+  </div>
+  {% for m in t.mail %}
+  <div class="r6 az">
+    <div class="s12"><b>{{ m.label }}</b></div>
+    <div class="s3"><span class="prio {{ m.status }}">{{ m.status_label }}</span></div>
+    <div class="s46 t">{{ m.text }}</div>
+  </div>
+  {% endfor %}
+  <div class="r6 gruppe-kopf"><span class="s16 label">Domain</span></div>
+  <div class="r6 az">
+    <div class="s12"><b>DNSSEC</b></div>
+    <div class="s3"><span class="nb {{ k_dns }}">{{ t.dnssec.note|minus }}</span>{% if t.dnssec.score is not none %}<span class="g sc">Score {{ t.dnssec.score }}</span>{% endif %}</div>
+    <div class="s46 t">{{ 'Zone signiert' if t.dnssec.signed else 'Zone nicht signiert' }}</div>
+  </div>
+  {% if not web_extra %}{{ webgruppe('') }}{% endif %}
+  {{ fuss(ns.p) }}
+</section>
+{% if web_extra %}
+{% set ns.p = ns.p + 1 %}
+<section class="page pg">
+  {{ kopf('Anhang') }}
+  <div class="r6 sek"><div class="s12"><span class="label">Anhang A</span></div><h2 class="s36">Messwerte, Fortsetzung</h2></div>
+  {{ mwkopf() }}
+  {{ webgruppe('erst') }}
+  {{ fuss(ns.p) }}
+</section>
+{% endif %}
+
+{# ================= Anhang B: Methodik und Bewertung ================= #}
+{% set ns.p = ns.p + 1 %}
+<section class="page pg">
+  {{ kopf('Anhang') }}
+  <div class="r6 kk" id="kap-b"><div class="nr">B</div><h1>Methodik und Bewertung</h1></div>
+  <div class="r6">
+    <div class="s12"><span class="label">Vorgehen</span></div>
+    <p class="s36 lead-s">{{ texte.methode_lang }}</p>
+  </div>
+  <div class="blk">
+    {% for m in texte.methodik %}
+    <div class="r6 az{% if loop.first %} erst{% endif %}">
+      <div class="s12"><b>{{ m.bereich }}</b><br><span class="g pr">{{ m.pruefung }}</span></div>
+      <div class="s36 t">{{ m.text }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  <div class="r6 blk" style="margin-bottom:2.5mm"><div class="s16"><span class="label">Notenskala</span></div></div>
+  {% for n in noten %}
+  <div class="r6 az{% if loop.first %} erst{% endif %}">
+    <div class="s12"><span class="nb {{ n.klasse }}">{{ n.noten|join(' / ')|minus }}</span></div>
+    <div class="s34"><span class="prio {{ n.klasse }}">{{ n.wort }}</span></div>
+    <div class="s56 t">{{ n.bedeutung }}</div>
+  </div>
+  {% endfor %}
+  {% for a in bereiche if a.klasse == 'na' %}{% if loop.first %}
+  <div class="r6 az">
+    <div class="s12"><span class="nb na">{{ a.note }}</span></div>
+    <div class="s34"><span class="prio na">{{ a.wort }}</span></div>
+    <div class="s56 t">{{ a.bedeutung }}</div>
+  </div>
+  {% endif %}{% endfor %}
+  <div class="r6 blk"><p class="s36 klein">{{ texte.vertraulich }}</p></div>
+  {{ fuss(ns.p) }}
+</section>
+
+</body>
+</html>

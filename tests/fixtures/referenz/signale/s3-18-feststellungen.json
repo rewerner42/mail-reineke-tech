@@ -1,0 +1,121 @@
+{
+  "_hinweis": "Synthetischer Grenzfall für die Überlaufprüfung, kein echter Scan. 18 Feststellungen, 10 Website-Tests mit Abzug.",
+  "domain": "test-18-feststellungen.example",
+  "scan_date": "2026-10-28",
+  "level": "kritisch",
+  "dmarc": {
+    "grade": "D",
+    "score": 30,
+    "record": "v=DMARC1; p=none; sp=none; adkim=r; aspf=r; pct=100; fo=1; ri=86400; ruf=mailto:forensik@test-18-feststellungen.example",
+    "policy": "none",
+    "rua": false
+  },
+  "dnssec": {
+    "grade": "F",
+    "score": 0,
+    "signed": false
+  },
+  "observatory": {
+    "available": true,
+    "grade": "F",
+    "score": 0,
+    "passed": 2,
+    "total": 12,
+    "tests": [
+      {
+        "id": "sri",
+        "variant": "http",
+        "modifier": -50,
+        "result_text": "Subresource Integrity (SRI) not implemented, and external scripts are loaded over HTTP or they use protocol-relative URLs via src=\"//...\".",
+        "recommendation": "Load external scripts over HTTPS, and add SRI to them."
+      },
+      {
+        "id": "cookies",
+        "variant": "no-httponly",
+        "modifier": -30,
+        "result_text": "Session cookie set without using the HttpOnly flag.",
+        "recommendation": "Use HttpOnly"
+      },
+      {
+        "id": "csp",
+        "variant": "unsafe",
+        "modifier": -20,
+        "result_text": "Content Security Policy (CSP) unsicher implementiert — enthält 'unsafe-inline' oder data: in script-src bzw. zu weit gefasste Quellen.",
+        "recommendation": "'unsafe-inline' und data: aus script-src entfernen sowie object-src/script-src einschränken."
+      },
+      {
+        "id": "hsts",
+        "variant": "missing",
+        "modifier": -20,
+        "result_text": "Strict-Transport-Security-Header nicht implementiert.",
+        "recommendation": "HSTS hinzufügen, ggf. zunächst mit kürzeren Zeiträumen (siehe hstspreload.org)."
+      },
+      {
+        "id": "xfo",
+        "variant": "missing",
+        "modifier": -20,
+        "result_text": "X-Frame-Options-Header (XFO) nicht implementiert.",
+        "recommendation": "frame-ancestors per CSP umsetzen."
+      },
+      {
+        "id": "xcto",
+        "variant": "missing",
+        "modifier": -5,
+        "result_text": "X-Content-Type-Options-Header nicht implementiert.",
+        "recommendation": "Auf nosniff setzen."
+      },
+      {
+        "id": "redirection",
+        "variant": "missing",
+        "modifier": -20,
+        "result_text": "Does not redirect to an HTTPS site.",
+        "recommendation": "Redirect from HTTP to HTTPS on the same host before any other redirects."
+      },
+      {
+        "id": "referrer",
+        "variant": "missing",
+        "modifier": -5,
+        "result_text": "Referrer-Policy header not implemented.",
+        "recommendation": "Set to strict-origin-when-cross-origin at a minimum."
+      },
+      {
+        "id": "cors",
+        "variant": "universal",
+        "modifier": -50,
+        "result_text": "Content is visible via cross-origin resource sharing (CORS) files or headers, and the access-control-allow-origin header is set to * which permits any origin.",
+        "recommendation": "Restrict Access-Control-Allow-Origin to trusted origins."
+      },
+      {
+        "id": "corp",
+        "variant": "missing",
+        "modifier": -5,
+        "result_text": "Cross-Origin-Resource-Policy header not implemented.",
+        "recommendation": "Set Cross-Origin-Resource-Policy to same-origin or same-site."
+      }
+    ]
+  },
+  "mail": {
+    "spf": {
+      "status": "mangel",
+      "text": "Kein SPF-Eintrag"
+    },
+    "dkim": {
+      "status": "hinweis",
+      "text": "Keine DKIM-Selektoren gefunden",
+      "selectors": 0
+    },
+    "mx": {
+      "status": "hinweis",
+      "text": "1 MX-Server gefunden",
+      "count": 1
+    },
+    "mta_sts": {
+      "status": "hinweis",
+      "text": "Kein MTA-STS"
+    },
+    "tls_rpt": {
+      "status": "hinweis",
+      "text": "Kein TLS-RPT"
+    }
+  }
+}
