@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   buildLeadValues,
   createLead,
+  noteReportSent,
   odooConfigFromEnv,
   recordScannedDomain,
   validateEmail,
@@ -189,5 +190,40 @@ describe("recordScannedDomain", () => {
     expect(calls).toContain("read");
     expect(calls).toContain("write");
     expect(calls).not.toContain("create");
+  });
+});
+
+describe("noteReportSent", () => {
+  it("posts the report number to the lead's history", async () => {
+    const posted: unknown[] = [];
+    const fetchImpl = vi.fn(async (_url: string, init: RequestInit) => {
+      const { service, args } = JSON.parse(String(init.body)).params;
+      if (service === "object") posted.push(args);
+      const result = service === "common" ? 7 : 1;
+      return new Response(JSON.stringify({ jsonrpc: "2.0", result }), {
+        headers: { "Content-Type": "application/json" },
+      });
+    }) as unknown as typeof fetch;
+    await noteReportSent(
+      CFG,
+      42,
+      { nummer: "RT-DS-20261030-0003", domain: "b.de", empfaenger: "a@b.de" },
+      { fetchImpl },
+    );
+    expect(posted).toEqual([
+      [
+        "x", 7, "key", "crm.lead", "message_post", [[42]],
+        { body: "Sicherheitsbefund RT-DS-20261030-0003 für b.de an a@b.de versandt." },
+      ],
+    ]);
+  });
+
+  it("never throws, because the report has already been sent", async () => {
+    const fetchImpl = vi.fn(async () => {
+      throw new Error("Odoo down");
+    }) as unknown as typeof fetch;
+    await expect(
+      noteReportSent(CFG, 42, { nummer: "N", domain: "b.de", empfaenger: "a@b.de" }, { fetchImpl }),
+    ).resolves.toBeUndefined();
   });
 });

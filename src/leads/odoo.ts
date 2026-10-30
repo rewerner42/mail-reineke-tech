@@ -486,6 +486,39 @@ export async function recordScannedDomain(
   }
 }
 
+// ─── Bericht-Nr. im Verlauf des Leads (B16) ───────────────────────────────────
+// Jede Nummer soll sich einem Empfänger zuordnen lassen. Deshalb kommt sie mit
+// dem Versand als Notiz in den Verlauf des Leads. Best-effort wie die
+// Anreicherung: Der Bericht ist dann schon unterwegs, eine fehlende Notiz darf
+// daran nichts mehr ändern.
+export async function noteReportSent(
+  cfg: OdooConfig,
+  leadId: number,
+  input: { nummer: string; domain: string; empfaenger: string },
+  opts: { fetchImpl?: typeof fetch; timeoutMs?: number } = {},
+): Promise<void> {
+  const fetchImpl = opts.fetchImpl ?? fetch;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), opts.timeoutMs ?? 10000);
+  try {
+    const uid = await authUid(cfg, fetchImpl, controller.signal);
+    if (!uid) return;
+    const body = `Sicherheitsbefund ${input.nummer} für ${input.domain} an ${input.empfaenger} versandt.`;
+    await jsonRpc(
+      cfg.url,
+      "object",
+      "execute_kw",
+      [cfg.db, uid, cfg.apiKey, "crm.lead", "message_post", [[leadId]], { body }],
+      fetchImpl,
+      controller.signal,
+    );
+  } catch {
+    // best-effort — the report has been sent either way
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // ─── Lead-Anreicherung: Befunde + Ampel + Scan-Zähler ─────────────────────────
 // Läuft NACH der Lead-Antwort (executionCtx.waitUntil): der Nutzer wartet nie
 // auf die serverseitigen Scans, und ein Fehler hier kostet keinen Bericht.

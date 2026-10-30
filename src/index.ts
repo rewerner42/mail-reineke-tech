@@ -11,6 +11,7 @@ import { analyzeObservatory, fetchGradeDistribution } from "./observatory.js";
 import {
   ampelFor,
   createLead,
+  noteReportSent,
   odooConfigFromEnv,
   recordScannedDomain,
   validateEmail,
@@ -415,6 +416,9 @@ async function notifyPentestLead(
   // fällt er auf die Domain der E-Mail-Adresse zurück.
   const berichtsDomain = n.reportDomain ?? n.domain;
   let pdf: Uint8Array | null = null;
+  // Wird erst in der Promise-Kette unten gesetzt, daher der Cast: Mit `= null`
+  // engte TypeScript den Typ dauerhaft auf null ein.
+  let berichtNr = null as string | null;
   let pdfFehler: string | null = null;
   if (!skipCustomerMail && berichtsDomain) {
     try {
@@ -424,7 +428,10 @@ async function notifyPentestLead(
         nutztBerichtV15(brand)
           ? // Der v15-Generator bringt seine eigene Frist mit; der Wettlauf hier
             // ist nur das Netz darunter und liegt deshalb darueber.
-            buildBerichtV15(env, origin, berichtsDomain).then((b) => b?.pdf ?? null)
+            buildBerichtV15(env, origin, berichtsDomain).then((b) => {
+                berichtNr = b?.nummer ?? null;
+                return b?.pdf ?? null;
+              })
           : buildReportPdf(env, origin, berichtsDomain, reportBrandFor(brand, n.kind)),
         PDF_TIMEOUT_MS + 10_000,
       );
@@ -486,6 +493,17 @@ async function notifyPentestLead(
     attachments: [...(logo ? buildPentestEmail(n, logo).attachments : []), ...berichtAnhang],
   });
   if (!b.ok) console.warn("Resend (Kunde) fehlgeschlagen:", b.error);
+
+  // B16: Die Nummer kommt mit dem Versand in den Verlauf des Leads, damit sich
+  // jede vergebene Nummer einem Empfänger zuordnen lässt.
+  const odoo = odooConfigFromEnv(env);
+  if (b.ok && pdf && berichtNr && berichtsDomain && n.leadId && odoo) {
+    await noteReportSent(odoo, n.leadId, {
+      nummer: berichtNr,
+      domain: berichtsDomain,
+      empfaenger: cfg.customerCopyTo ?? n.email,
+    });
+  }
 }
 
 /** Der Bericht darf die Mails nicht aufhalten — nach dieser Zeit geht es ohne ihn. */
