@@ -1,5 +1,5 @@
 {
-  "_hinweis": "Inhaltskatalog: Klartext je Feststellung. Platzhalter in geschweiften Klammern werden vom Renderer aus den Signalen gefüllt: {domain}, {datum}, {record}, {text}, {policy}, {label}, {modifier}, {result_text}, {passed}, {total}. In den Maßnahmen zusätzlich {liste} und {schritte}, in bereiche.email.note_hinweis {felder} und {nummern}.",
+  "_hinweis": "Inhaltskatalog: Klartext je Feststellung. Platzhalter in geschweiften Klammern werden vom Renderer aus den Signalen gefüllt: {domain}, {datum}, {record}, {text}, {policy}, {label}, {modifier}, {result_text}, {passed}, {total}. In den Maßnahmen zusätzlich {liste} und {schritte}, in bereiche.email.note_hinweis {nummern}.",
   "prio_labels": {
     "hoch": "Hoch",
     "mittel": "Mittel",

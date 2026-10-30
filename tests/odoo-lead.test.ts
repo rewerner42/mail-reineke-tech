@@ -207,15 +207,34 @@ describe("noteReportSent", () => {
     await noteReportSent(
       CFG,
       42,
-      { nummer: "RT-DS-20261030-0003", domain: "b.de", empfaenger: "a@b.de" },
+      { nummer: "RT-DS-20261030-0003", domain: "b.de", empfaenger: "a@b.de", versandt: true },
       { fetchImpl },
     );
+    // The uid is cached per isolate, so it may come from an earlier test.
     expect(posted).toEqual([
       [
-        "x", 7, "key", "crm.lead", "message_post", [[42]],
+        "x", expect.any(Number), "key", "crm.lead", "message_post", [[42]],
         { body: "Sicherheitsbefund RT-DS-20261030-0003 für b.de an a@b.de versandt." },
       ],
     ]);
+  });
+
+  it("records the number even when the mail to the prospect failed", async () => {
+    const bodies: string[] = [];
+    const fetchImpl = vi.fn(async (_url: string, init: RequestInit) => {
+      const { service, args } = JSON.parse(String(init.body)).params;
+      if (service === "object") bodies.push(args[6].body);
+      return new Response(JSON.stringify({ jsonrpc: "2.0", result: service === "common" ? 7 : 1 }), {
+        headers: { "Content-Type": "application/json" },
+      });
+    }) as unknown as typeof fetch;
+    await noteReportSent(
+      CFG,
+      42,
+      { nummer: "RT-DS-20261030-0004", domain: "b.de", empfaenger: "a@b.de", versandt: false },
+      { fetchImpl },
+    );
+    expect(bodies).toEqual(["Sicherheitsbefund RT-DS-20261030-0004 für b.de erzeugt, Versand an a@b.de fehlgeschlagen."]);
   });
 
   it("never throws, because the report has already been sent", async () => {
@@ -223,7 +242,7 @@ describe("noteReportSent", () => {
       throw new Error("Odoo down");
     }) as unknown as typeof fetch;
     await expect(
-      noteReportSent(CFG, 42, { nummer: "N", domain: "b.de", empfaenger: "a@b.de" }, { fetchImpl }),
+      noteReportSent(CFG, 42, { nummer: "N", domain: "b.de", empfaenger: "a@b.de", versandt: true }, { fetchImpl }),
     ).resolves.toBeUndefined();
   });
 });

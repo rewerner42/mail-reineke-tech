@@ -303,7 +303,8 @@ export function buildSignal(
       text: dm.summary ?? "",
       policy: mehrfach ? null : policy,
       zustand: dmarcZustand,
-      rua: (dm.data?.rua?.length ?? 0) > 0,
+      // Nor do reports arrive from a record that does not apply.
+      rua: !mehrfach && (dm.data?.rua?.length ?? 0) > 0,
     },
     dnssec: {
       grade: ds.grade ?? null,

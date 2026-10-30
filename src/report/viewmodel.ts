@@ -130,11 +130,6 @@ function schrittRang(key: string): number {
   return i < 0 ? SCHRITT_FOLGE.length : i;
 }
 
-/** "A", "A und B", "A, B und C" — a German list. */
-export function aufzaehlung(teile: string[]): string {
-  return teile.length < 2 ? teile.join("") : `${teile.slice(0, -1).join(", ")} und ${teile[teile.length - 1]}`;
-}
-
 /** Left-pads to `n` characters, like Python's f"{s:<n}". */
 function pad(s: string, n: number): string {
   return s.padEnd(n);
@@ -501,7 +496,6 @@ export function buildViewmodel(
   const gewichtig = andere.some((f) => f.prio === "hoch" || f.prio === "mittel");
   if (gewichtig && noteInfo(d.grade, kat).klasse === "good") {
     email.note_hinweis = fillStr(must(bEmail as never, "note_hinweis", "bereiche.email"), {
-      felder: aufzaehlung([...new Set(andere.map((f) => String(f.fach)))]),
       nummern: andere.map((f) => f.nr as string).join(", "),
     });
   }

@@ -494,14 +494,16 @@ async function notifyPentestLead(
   });
   if (!b.ok) console.warn("Resend (Kunde) fehlgeschlagen:", b.error);
 
-  // B16: Die Nummer kommt mit dem Versand in den Verlauf des Leads, damit sich
-  // jede vergebene Nummer einem Empfänger zuordnen lässt.
+  // B16: Die Nummer kommt nach dem Versandversuch in den Verlauf des Leads,
+  // damit sich jede verschickte Nummer einem Empfänger zuordnen lässt — und
+  // eine gescheiterte Kundenmail dort auffällt, nicht nur im Protokoll.
   const odoo = odooConfigFromEnv(env);
-  if (b.ok && pdf && berichtNr && berichtsDomain && n.leadId && odoo) {
+  if (pdf && berichtNr && berichtsDomain && n.leadId && odoo) {
     await noteReportSent(odoo, n.leadId, {
       nummer: berichtNr,
       domain: berichtsDomain,
       empfaenger: cfg.customerCopyTo ?? n.email,
+      versandt: b.ok,
     });
   }
 }

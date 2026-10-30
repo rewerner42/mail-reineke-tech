@@ -306,11 +306,13 @@ describe("states the technical review found misread", () => {
       dmarc: {
         status: "fail", summary: "DMARC unzureichend", grade: "F", score: 0,
         issues: [{ severity: "fail", code: "DMARC_MULTIPLE", message: "2 Einträge" }],
-        data: { raw: "v=DMARC1; p=reject", rua: [] },
+        data: { raw: "v=DMARC1; p=reject; rua=mailto:a@beispiel.de", rua: ["mailto:a@beispiel.de"] },
       },
     });
     expect(sig.dmarc.zustand).toBe("mehrfach");
     expect(sig.dmarc.policy).toBeNull();
+    // A record that does not apply sends no reports either.
+    expect(sig.dmarc.rua).toBe(false);
     const v = bau(sig) as any;
     expect(v.feststellungen.map((f: any) => f.key)).toContain("dmarc_mehrfach");
     expect(v.feststellungen.map((f: any) => f.key)).not.toContain("dmarc_kein_rua");

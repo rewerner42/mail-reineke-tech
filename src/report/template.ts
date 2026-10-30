@@ -24,7 +24,9 @@ type Vm = Record<string, any>;
  * Jinja2's autoescape, character for character — plus one rule: "E-Mail" never
  * breaks at its hyphen, which in the narrow columns left "E-" at a line end.
  * render.py does the same through Jinja2's `finalize`. A control character
- * instead of the span would have broken searching the PDF for "E-Mail".
+ * instead of the span would have broken searching the PDF for "E-Mail". The
+ * class is unquoted on purpose: this also runs for attribute values, and a
+ * quote there would end the attribute — none carries "E-Mail" today.
  */
 function esc(v: unknown): string {
   if (v === null || v === undefined) return "";
@@ -34,7 +36,7 @@ function esc(v: unknown): string {
     .replace(/</g, "&lt;")
     .replace(/'/g, "&#39;")
     .replace(/"/g, "&#34;")
-    .replace(/E-Mail/g, '<span class="nw">E-Mail</span>');
+    .replace(/E-Mail/g, "<span class=nw>E-Mail</span>");
 }
 
 /** K19: finding numbers in running text stay on one line, e.g. in the grade note. */

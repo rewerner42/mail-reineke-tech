@@ -65,7 +65,8 @@ def zusammenhalten(value):
     if value is None:
         return value
     # Wiederholungsfest: Die Ausgabe eines Makros läuft noch einmal hier durch.
-    return Markup(re.sub(r'(?<!<span class="nw">)E-Mail', '<span class="nw">E-Mail</span>', str(escape(value))))
+    # Ohne Anführungszeichen: läuft auch für Attributwerte, ein " beendete dort das Attribut.
+    return Markup(re.sub(r"(?<!<span class=nw>)E-Mail", "<span class=nw>E-Mail</span>", str(escape(value))))
 
 
 def nummern_zusammenhalten(value):

@@ -60,7 +60,10 @@ export function parseSpf(raw: string): SpfRecord {
     if (!token) continue;
     const mech = parseMechanism(token);
     mechanisms.push(mech);
-    if (mech.type === "all") {
+    // Evaluation stops at the first "all", which always matches (RFC 7208 5.1);
+    // anything after it is never reached. Taking the last one turned
+    // "-all +all" into "every server allowed" and "+all -all" into a pass.
+    if (mech.type === "all" && all === undefined) {
       all = mech.qualifier;
     }
   }

@@ -487,14 +487,15 @@ export async function recordScannedDomain(
 }
 
 // ─── Bericht-Nr. im Verlauf des Leads (B16) ───────────────────────────────────
-// Jede Nummer soll sich einem Empfänger zuordnen lassen. Deshalb kommt sie mit
-// dem Versand als Notiz in den Verlauf des Leads. Best-effort wie die
-// Anreicherung: Der Bericht ist dann schon unterwegs, eine fehlende Notiz darf
-// daran nichts mehr ändern.
+// Jede Nummer, die mit einem Bericht verschickt werden sollte, soll sich einem
+// Empfänger zuordnen lassen. Deshalb kommt sie nach dem Versandversuch als
+// Notiz in den Verlauf des Leads — auch wenn die Mail an den Interessenten
+// scheitert, denn vergeben ist sie dann trotzdem. Best-effort wie die
+// Anreicherung: Eine fehlende Notiz darf am Versand nichts mehr ändern.
 export async function noteReportSent(
   cfg: OdooConfig,
   leadId: number,
-  input: { nummer: string; domain: string; empfaenger: string },
+  input: { nummer: string; domain: string; empfaenger: string; versandt: boolean },
   opts: { fetchImpl?: typeof fetch; timeoutMs?: number } = {},
 ): Promise<void> {
   const fetchImpl = opts.fetchImpl ?? fetch;
@@ -503,7 +504,9 @@ export async function noteReportSent(
   try {
     const uid = await authUid(cfg, fetchImpl, controller.signal);
     if (!uid) return;
-    const body = `Sicherheitsbefund ${input.nummer} für ${input.domain} an ${input.empfaenger} versandt.`;
+    const body = input.versandt
+      ? `Sicherheitsbefund ${input.nummer} für ${input.domain} an ${input.empfaenger} versandt.`
+      : `Sicherheitsbefund ${input.nummer} für ${input.domain} erzeugt, Versand an ${input.empfaenger} fehlgeschlagen.`;
     await jsonRpc(
       cfg.url,
       "object",

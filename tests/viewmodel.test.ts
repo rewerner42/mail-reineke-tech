@@ -8,7 +8,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { aufzaehlung, buildViewmodel, type Katalog } from "../src/report/viewmodel.js";
+import { buildViewmodel, type Katalog } from "../src/report/viewmodel.js";
 import type { Signal } from "../src/report/signal.js";
 import { adaptReferenz } from "../tools/referenz-signal.js";
 import { sauber } from "../tools/synthetisch.js";
@@ -340,13 +340,6 @@ describe("B10 — the e-mail grade rates DMARC alone", () => {
 
   it("stays silent when the grade is not good", () => {
     expect(vm.get("budde.de")!.bereiche[0].note_hinweis).toBeNull();
-  });
-
-  it("lists the areas as German prose, not a chain of „und“", () => {
-    expect(aufzaehlung([])).toBe("");
-    expect(aufzaehlung(["SPF"])).toBe("SPF");
-    expect(aufzaehlung(["SPF", "DKIM"])).toBe("SPF und DKIM");
-    expect(aufzaehlung(["SPF", "DKIM", "MTA-STS"])).toBe("SPF, DKIM und MTA-STS");
   });
 });
 
