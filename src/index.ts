@@ -134,6 +134,13 @@ app.use("*", async (c, next) => {
   // Rebuild the response so headers are mutable (ASSETS responses can be immutable).
   let res = new Response(c.res.body, c.res);
   for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.headers.set(k, v);
+  // The report renderer writes the report into a blank page that has no origin
+  // of its own and loads logo, portrait and QR code from /assets/. To that page
+  // every request is cross-origin, so "same-origin" made Chrome drop all three
+  // images and the image guard stopped every report. These files are public.
+  if (url.pathname.startsWith("/assets/")) {
+    res.headers.set("Cross-Origin-Resource-Policy", "cross-origin");
+  }
   res.headers.set("Content-Security-Policy", cspFor(brand));
   // White-label: rewrite served HTML for non-default brands (no-op for default,
   // so sharp/reineke is byte-unchanged). Skips JSON/PDF/asset responses.
