@@ -261,6 +261,7 @@
   .kontakt .c { font-size: 9pt; line-height: 1.55; }
   .absender p { font-size: 8.5pt; line-height: 1.5; color: var(--ink-2); margin-top: 1.2mm; }
   .absender a.unterstr { color: var(--ink); }
+  .absender .pflicht { margin-top: 3mm; padding-top: 2mm; border-top: .2mm solid var(--linie); color: var(--ink-2); }
   .logo-voll { display: block; width: 15mm; height: auto; margin-top: .6mm; }
 
   /* ---------- Anhang ---------- */
@@ -625,6 +626,8 @@
     <div class="s12"><img class="logo-voll" src="{{ logo }}" alt="{{ firma.name }}"></div>
     <div class="s34"><span class="label">Anschrift</span><p>{{ firma.name }}<br>{{ firma.strasse }}<br>{{ firma.plz_ort }}<br><a href="{{ firma.web_url }}">{{ firma.web }}</a></p></div>
     <div class="s56"><span class="label">Penetrationstest anfragen</span><p><a class="unterstr" href="{{ firma.pentest_url }}">{{ firma.pentest_label }}</a></p></div>
+    {#- Pflichtangaben nach § 35a GmbHG (D22): Registergericht, Registernummer und alle Geschäftsführer. #}
+    <p class="s16 klein pflicht">{{ firma.pflichtangaben.registergericht }} · {{ firma.pflichtangaben.hrb }} · Geschäftsführer: {{ firma.pflichtangaben.geschaeftsfuehrer|join(', ') }} · USt-IdNr. {{ firma.pflichtangaben.ust_id }}</p>
   </div>
   {{ fuss(ns.p) }}
 </section>

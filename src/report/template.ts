@@ -305,6 +305,10 @@ export function berichtHtml(v: Vm): string {
 </section>`);
 
   // ---------------------------------------------------------------- 04 next step
+  // The sender block carries the mandatory company details required of a German
+  // GmbH on business correspondence (§ 35a GmbHG): register court, register
+  // number and every managing director. They apply to Reineke Technik GmbH; a
+  // brand that is not a German GmbH must not print them.
   seite++;
   w(`<section class="page pg spalte">
   ${kopf("Nächster Schritt")}
@@ -331,6 +335,7 @@ export function berichtHtml(v: Vm): string {
     <div class="s12"><img class="logo-voll" src="${esc(v.logo)}" alt="${esc(v.firma.name)}"></div>
     <div class="s34"><span class="label">Anschrift</span><p>${esc(v.firma.name)}<br>${esc(v.firma.strasse)}<br>${esc(v.firma.plz_ort)}<br><a href="${esc(v.firma.web_url)}">${esc(v.firma.web)}</a></p></div>
     <div class="s56"><span class="label">Penetrationstest anfragen</span><p><a class="unterstr" href="${esc(v.firma.pentest_url)}">${esc(v.firma.pentest_label)}</a></p></div>
+    <p class="s16 klein pflicht">${esc(v.firma.pflichtangaben.registergericht)} · ${esc(v.firma.pflichtangaben.hrb)} · Geschäftsführer: ${esc(v.firma.pflichtangaben.geschaeftsfuehrer.join(", "))} · USt-IdNr. ${esc(v.firma.pflichtangaben.ust_id)}</p>
   </div>
   ${fuss(seite)}
 </section>`);

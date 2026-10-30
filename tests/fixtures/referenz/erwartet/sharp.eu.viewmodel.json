@@ -598,7 +598,7 @@
   ],
   "texte": {
     "methode_kurz": "Ausgewertet wurden ausschließlich öffentlich abrufbare Informationen. Es gab keinen Eingriff in Ihre Systeme, keine Anmeldung und keine nennenswerte Last.",
-    "methode_lang": "Alle Werte wurden am 22. Oktober 2026 automatisiert mit scan.reineke-technik.de erhoben, DNS-Abfragen über Cloudflare DNS-over-HTTPS (1.1.1.1). DKIM lässt sich nur über gängige Selektoren prüfen. Die Website-Bewertung nutzt den MDN HTTP Observatory von Mozilla und gilt nur für die Startseite, nicht für Portale oder Subdomains. Ausgewertet wurden nur öffentlich abrufbare Informationen, ohne Anmeldung, Eingriff oder nennenswerte Last. Die Ergebnisse sind eine Momentaufnahme; auf Anfrage prüfen wir kostenfrei erneut.",
+    "methode_lang": "Alle Werte wurden am 22. Oktober 2026 automatisiert mit scan.reineke.tech erhoben, DNS-Abfragen über Cloudflare DNS-over-HTTPS (1.1.1.1). DKIM lässt sich nur über gängige Selektoren prüfen. Die Website-Bewertung nutzt den MDN HTTP Observatory von Mozilla und gilt nur für die Startseite, nicht für Portale oder Subdomains. Ausgewertet wurden nur öffentlich abrufbare Informationen, ohne Anmeldung, Eingriff oder nennenswerte Last. Die Ergebnisse sind eine Momentaufnahme; auf Anfrage prüfen wir kostenfrei erneut.",
     "methodik": [
       {
         "bereich": "E-Mail",
@@ -693,10 +693,10 @@
     "plz_ort": "33154 Salzkotten",
     "web": "www.reineke-technik.de",
     "web_url": "https://www.reineke-technik.de",
-    "scan_host": "scan.reineke-technik.de",
+    "scan_host": "scan.reineke.tech",
     "booking_url": "https://bookings.cloud.microsoft/bookwithme/user/99dfe8391d044c208563dd3afbc7439f%40reineke-technik.de?anonymous&ismsaljsauthenabled",
-    "pentest_url": "https://scan.reineke-technik.de/pentest",
-    "pentest_label": "scan.reineke-technik.de/pentest",
+    "pentest_url": "https://scan.reineke.tech/pentest",
+    "pentest_label": "scan.reineke.tech/pentest",
     "kontakte": [
       {
         "name": "Werner Francis Reineke",
@@ -731,8 +731,8 @@
       ],
       "foto_url": "ASSETS_URL/werner.jpg"
     },
-    "zitat": "Ein Systemhaus kann nicht prüfen, was es selbst betreibt. Belastbare Sicherheit braucht einen unabhängigen Blick von außen.",
-    "_zitat_hinweis": "zitat nutzen nur die Varianten der Runde 1 (v00–v10). Werner möchte es nicht mehr verwenden (30.10.2026). Ab v13 steht stattdessen sein Spruch aus slogan.",
+    "zitat": "Wer ein System selbst betreibt, kann es nicht unabhängig prüfen. Wie bei Buchhaltung und Wirtschaftsprüfung gehören Betrieb und Prüfung in getrennte Hände.",
+    "_zitat_hinweis": "Ab v15 ist zitat der von Werner freigegebene Satz (D23, 30.10.2026). Auf Seite 03 steht derzeit sein Spruch aus slogan, so von ihm am 30.10. entschieden; das Zitat ist damit freigegeben, aber nicht auf der Seite.",
     "slogan": [
       "Sicherheitslücken schließen,",
       "bevor sie teuer werden."
@@ -755,7 +755,7 @@
       "Penetrationstests: extern, intern, Webanwendungen",
       "ISMS-Aufbau nach ISO 27001",
       "Externes Sicherheitsmandat (eISB / vCISO)",
-      "NIS-2-Betroffenheitsanalyse",
+      "NIS-2-Bestandsaufnahme der Sicherheitsmaßnahmen",
       "TISAX-Begleitung für Zulieferer"
     ],
     "vertrauen": [
@@ -788,7 +788,17 @@
         "titel": "Webanwendung",
         "text": "Portale, Shops und Kundenzugänge"
       }
-    ]
+    ],
+    "zitat_quelle": "Werner Reineke",
+    "pflichtangaben": {
+      "registergericht": "Amtsgericht Paderborn",
+      "hrb": "HRB 15938",
+      "geschaeftsfuehrer": [
+        "Werner Francis Reineke",
+        "Karl Pieper"
+      ],
+      "ust_id": "DE353762579"
+    }
   },
   "assets": "ASSETS_URL",
   "logo": "ASSETS_URL/logo.png",

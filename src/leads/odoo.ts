@@ -201,7 +201,7 @@ interface JsonRpcResponse<T> {
   error?: { message?: string; data?: { message?: string } };
 }
 
-async function jsonRpc<T>(
+export async function jsonRpc<T>(
   url: string,
   service: string,
   method: string,
@@ -431,7 +431,7 @@ const SCANNED_MODEL = "x_reineke_scanned_domain";
 // Cache the authenticated uid per isolate to avoid re-logging-in on every scan.
 let cachedUid: number | null = null;
 
-async function authUid(
+export async function authUid(
   cfg: OdooConfig,
   fetchImpl: typeof fetch,
   signal: AbortSignal,

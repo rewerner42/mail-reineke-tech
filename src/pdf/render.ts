@@ -39,6 +39,60 @@ export function wrapReportDocument(inner: string, origin: string, css?: string):
   );
 }
 
+export interface RenderDocumentInput {
+  /** A complete HTML document, including its own <style> and @page rules. */
+  document: string;
+  origin: string;
+  /** Hard limit on the whole render; the browser is closed either way. */
+  timeoutMs?: number;
+}
+
+/**
+ * Renders a complete HTML document to PDF.
+ *
+ * Unlike renderReportPdf this does not wrap the input — the Bericht v15 template
+ * brings its own stylesheet and `@page { size: A4; margin: 0 }`, and wrapping it
+ * would override the page geometry the layout is calibrated for.
+ *
+ * Images load from our own origin rather than being inlined as data URIs: the
+ * logo sits in the header of every page, and base64 is a third larger than the
+ * bytes it carries, which alone pushed a long report past the size limit.
+ */
+export async function renderDocumentPdf(
+  endpoint: BrowserWorker,
+  { document, origin, timeoutMs = 45_000 }: RenderDocumentInput,
+): Promise<Uint8Array> {
+  const browser = await puppeteer.launch(endpoint);
+  try {
+    const page = await browser.newPage();
+    // Only our own origin and data: URIs may load — otherwise this endpoint
+    // would work as an open proxy for anything the HTML references.
+    await page.setRequestInterception(true);
+    page.on("request", (req) => {
+      const url = req.url();
+      if (url.startsWith("data:") || url.startsWith(`${origin}/`) || url === origin) {
+        void req.continue();
+      } else {
+        void req.abort();
+      }
+    });
+    await page.setContent(sanitizeReportHtml(document), {
+      waitUntil: "networkidle0",
+      timeout: timeoutMs,
+    });
+    const pdf = await page.pdf({
+      printBackground: true,
+      preferCSSPageSize: true,
+      timeout: timeoutMs,
+    });
+    return pdf as Uint8Array;
+  } finally {
+    // Always close: a browser left open holds a Browser Rendering session until
+    // it times out, and the next request then fails to launch one.
+    await browser.close();
+  }
+}
+
 export async function renderReportPdf(
   endpoint: BrowserWorker,
   { html, origin, css }: RenderInput,

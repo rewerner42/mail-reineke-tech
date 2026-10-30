@@ -50,7 +50,17 @@ function gradeClass(grade?: string | null): string {
   return map[g] ?? "g-na";
 }
 
-/** A/B → ok, C → warn, D/E/F/none → fail. */
+/**
+ * A/B → ok, C → warn, D/E/F/none → fail.
+ *
+ * Deliberately NOT the same as gradeToSeverity() in grading.ts, which answers
+ * "info" for a missing grade. That one describes a single check: nothing was
+ * measured, so there is no verdict. This one feeds the Handlungsbedarf, where a
+ * missing grade counts as a failed area — which is why a domain whose website
+ * cannot be assessed at all still raises the overall level. That behaviour is
+ * left as it is on purpose (the brief forbids changing `level`); if you unify the
+ * two functions, the report's overall verdict changes silently.
+ */
 function gradeSeverity(grade?: string | null): "ok" | "warn" | "fail" {
   if (!grade) return "fail";
   const g = grade.trim().charAt(0).toUpperCase();
@@ -83,6 +93,12 @@ function miniRow(label: string, check: CheckResult<unknown> | undefined): string
 }
 
 function obsFailList(data: ObservatoryResult | null | undefined): string {
+  // Ohne Note wurde nichts geprüft: dann ist weder "alles gesetzt" noch "Lücken"
+  // richtig. Das ist der Fall, in dem der Bericht bisher eine Entwarnung gab,
+  // die niemand gemessen hatte (ERGEBNIS A3).
+  if (!data?.grade) {
+    return '<p class="ok-note">Die Website konnte bei dieser Analyse nicht automatisch bewertet werden.</p>';
+  }
   const tests = (data?.tests ?? []).filter((t) => t.pass === false);
   if (!tests.length) return '<p class="ok-note">Alle geprüften Sicherheits-Header sind gesetzt.</p>';
   const items = tests.map(
@@ -226,11 +242,14 @@ function domainPage(
     `gefälschte Server umgeleitet werden. ` +
     (!dmEnforcing
       ? "Die DMARC-Durchsetzung ist derzeit unvollständig — gefälschte Mails werden nicht zuverlässig abgewiesen. "
-      : "DMARC wird bereits durchgesetzt — der wichtigste Schutzschritt ist getan. ") +
+      : "Der DMARC-Eintrag weist Empfänger an, gefälschte E-Mails abzuweisen oder " +
+        "auszusortieren. Das ist ein wichtiger Schutzschritt. ") +
     (gradeSeverity(dsGrade) === "fail"
       ? "Ohne DNSSEC sind die DNS-Antworten der Domain nicht gegen Manipulation geschützt. "
       : "") +
-    (gradeSeverity(obGrade) !== "ok"
+    // Nur sagen, wenn tatsächlich geprüft wurde und mindestens ein Test
+    // durchgefallen ist — ohne Note ist der Satz eine Behauptung (A3).
+    (obGrade && gradeSeverity(obGrade) !== "ok" && (obd?.testsFailed ?? 0) > 0
       ? "Bei den Website-Sicherheits-Headern bestehen Lücken. "
       : "") +
     "Die obenstehenden Empfehlungen schließen diese Lücken — in der Regel mit überschaubarem Aufwand.";
@@ -297,7 +316,7 @@ function empfehlungPage(domain: string, date: string, L: ReportLogos, brand: Bra
   ${emblem ? "" : pageHead("Empfehlung &amp; Ansprechpartner", L, brand)}
   <h2 class="sum-h">Empfehlung für ${esc(domain)}</h2>
   <p class="sum-intro">Die auf der vorigen Seite dokumentierten Punkte lassen sich kontrolliert und
-    ohne Betriebsunterbrechung schließen. So gehen wir gemeinsam vor:</p>
+    in der Regel kontrolliert und schrittweise schließen. So gehen wir gemeinsam vor:</p>
   ${offerBlock(brand)}
   ${nextStepBlock(brand)}
   ${contactsBlock(brand)}

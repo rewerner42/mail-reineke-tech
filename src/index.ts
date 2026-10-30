@@ -29,6 +29,7 @@ import {
 } from "./leads/notify.js";
 import { MAX_HTML_BYTES, renderReportPdf } from "./pdf/render.js";
 import { buildReportBody } from "./report/build.js";
+import { erzeugeBericht, scanneFuerBericht } from "./report/bericht.js";
 import {
   resolveBrand,
   BRANDS,
@@ -420,7 +421,9 @@ async function notifyPentestLead(
       // Zeitgrenze: Ohne sie könnte ein hängender Scan die Laufzeit sprengen und
       // BEIDE Mails mitreißen. Lieber ohne Anhang melden als gar nicht.
       pdf = await withTimeout(
-        buildReportPdf(env, origin, berichtsDomain, reportBrandFor(brand, n.kind)),
+        nutztBerichtV15(brand)
+          ? buildBerichtV15(env, origin, berichtsDomain).then((b) => b?.pdf ?? null)
+          : buildReportPdf(env, origin, berichtsDomain, reportBrandFor(brand, n.kind)),
         PDF_TIMEOUT_MS,
       );
       if (!pdf) pdfFehler = "Browser Rendering nicht verfügbar, Report zu groß oder Zeitgrenze erreicht.";
@@ -495,6 +498,44 @@ function withTimeout<T>(p: Promise<T>, ms: number): Promise<T | null> {
 function reportBrandFor(brand: Brand, kind: LeadKind | undefined): Brand {
   if (kind !== "bericht") return brand;
   return { ...brand, report: { ...brand.report, partner: null, reps: undefined } };
+}
+
+/**
+ * Bericht v15 gilt zunächst nur für Reineke.
+ *
+ * Der Katalog ist durchgehend deutsch, die Vorlage auf weißen Grund kalibriert,
+ * Kapitel 03 heißt wörtlich "Über Reineke Technik", und die Pflichtangaben nach
+ * § 35a GmbHG gelten für eine deutsche GmbH — bei Vörcyber, einer LLC, dürfen
+ * sie nicht erscheinen. Die anderen Marken behalten den bisherigen Vierseiter,
+ * bis sie eine eigene Fassung haben. So von Werner entschieden (30.10.2026).
+ */
+function nutztBerichtV15(brand: Brand): boolean {
+  return brand.id === "reineke";
+}
+
+/**
+ * Der Bericht v15: ein Generator für alle drei Wege. Gibt null zurück, wenn kein
+ * Browser verfügbar ist oder die Erzeugung scheitert — der Aufrufer entscheidet,
+ * ob er ohne Anhang weitermacht.
+ */
+async function buildBerichtV15(
+  env: Bindings,
+  origin: string,
+  domain: string,
+): Promise<{ pdf: Uint8Array; nummer: string } | null> {
+  if (!env.BROWSER) return null;
+  const [email, dnssec] = await Promise.all([runEmailChecks(domain, []), analyzeDnssec(domain)]);
+  const { analyze, observatory } = await scanneFuerBericht(domain, email, dnssec);
+  const bericht = await erzeugeBericht(env.BROWSER, {
+    analyze,
+    observatory,
+    origin,
+    odoo: odooConfigFromEnv(env),
+  });
+  if (bericht.nummerAus === "ersatz") {
+    console.warn(`Bericht-Nr. ohne Odoo-Zähler vergeben: ${bericht.nummer}`);
+  }
+  return { pdf: bericht.pdf, nummer: bericht.nummer };
 }
 
 // ─── Bericht als PDF (nur Kundenmail; /api/generate-report baut eigenständig) ─
@@ -1103,6 +1144,41 @@ app.post("/api/generate-report", async (c) => {
   if (!domain) return c.json(INVALID_DOMAIN, 400);
   recordDomainSafe(c, domain);
 
+  const origin = new URL(c.req.url).origin;
+  // Active brand, with the partner card swapped to the picked sales rep (if any).
+  const baseBrand = resolveBrand(c.env, new URL(c.req.url).host);
+  const rep = parseRepInput(body.rep);
+  const brand = rep ? { ...baseBrand, report: { ...baseBrand.report, partner: rep } } : baseBrand;
+
+  // Bericht v15: derselbe Generator, der auch die Mail-Anhänge erzeugt. Die
+  // Vertriebskarte entfällt hier — der Bericht nennt die festen Ansprechpartner
+  // aus den Firmendaten, eine zweite Karte hat die Vorlage nicht.
+  if (nutztBerichtV15(brand)) {
+    try {
+      const bericht = await withTimeout(buildBerichtV15(c.env, origin, domain), PDF_TIMEOUT_MS);
+      if (!bericht) {
+        return c.json(
+          { ok: false, code: "RENDER_FAILED", message: "PDF konnte nicht erstellt werden." },
+          502,
+        );
+      }
+      return new Response(bericht.pdf as BodyInit, {
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="${brand.report.filenamePrefix}-${domain}.pdf"`,
+          "X-Bericht-Nr": bericht.nummer,
+          "Cache-Control": "no-store",
+        },
+      });
+    } catch (err) {
+      console.error("Bericht v15 fehlgeschlagen:", err instanceof Error ? err.message : String(err));
+      return c.json(
+        { ok: false, code: "RENDER_FAILED", message: "PDF konnte nicht erstellt werden." },
+        502,
+      );
+    }
+  }
+
   // Scans serverseitig (autoritativ): E-Mail-Auth + DNSSEC + Website-Header.
   const [email, dnssec, observatory] = await Promise.all([
     runEmailChecks(domain, []),
@@ -1112,11 +1188,6 @@ app.post("/api/generate-report", async (c) => {
   const analyze: AnalysisResponse = { domain, queriedAt: new Date().toISOString(), ...email, dnssec };
 
   // Stylesheet + Logos aus den Assets inlinen — keine externen Fetches im Headless-Browser.
-  const origin = new URL(c.req.url).origin;
-  // Active brand, with the partner card swapped to the picked sales rep (if any).
-  const baseBrand = resolveBrand(c.env, new URL(c.req.url).host);
-  const rep = parseRepInput(body.rep);
-  const brand = rep ? { ...baseBrand, report: { ...baseBrand.report, partner: rep } } : baseBrand;
   const wordmarkMime = brand.report.wordmarkAsset.endsWith(".svg") ? "image/svg+xml" : "image/png";
   const foxMime = brand.report.foxAsset.endsWith(".svg") ? "image/svg+xml" : "image/png";
   let css = "";

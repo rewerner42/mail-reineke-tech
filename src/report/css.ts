@@ -254,6 +254,7 @@ export const BERICHT_CSS = String.raw`
   .kontakt .c { font-size: 9pt; line-height: 1.55; }
   .absender p { font-size: 8.5pt; line-height: 1.5; color: var(--ink-2); margin-top: 1.2mm; }
   .absender a.unterstr { color: var(--ink); }
+  .absender .pflicht { margin-top: 3mm; padding-top: 2mm; border-top: .2mm solid var(--linie); color: var(--ink-2); }
   .logo-voll { display: block; width: 15mm; height: auto; margin-top: .6mm; }
 
   /* ---------- Anhang ---------- */

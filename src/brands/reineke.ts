@@ -106,7 +106,7 @@ export const reineke: Brand = {
     wordmarkAlt: "Reineke Technik",
     offerHeading: "Unser Angebot — Reineke Technik",
     offerLeadIn:
-      "Wir bringen Ihre Domains kontrolliert und nachvollziehbar auf ein durchgesetztes Schutzniveau — technische Umsetzung und persönliche Betreuung aus einer Hand, durchgängig DSGVO-konform und deutschsprachig:",
+      "Wir bringen Ihre Domains kontrolliert und nachvollziehbar auf ein durchgesetztes Schutzniveau — technische Umsetzung und persönliche Betreuung aus einer Hand, deutschsprachig:",
     coBrandLine: null,
     filenamePrefix: "Reineke-Befund",
     palette: {
