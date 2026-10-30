@@ -22,7 +22,8 @@
       "score": 100,
       "satz": "Gefälschte E-Mails mit Ihrem Absender sollen abgewiesen werden.",
       "detail": "v=DMARC1; p=reject; rua=mailto:dmarc@test-ohne-befund.example",
-      "anzahl_feststellungen": 0
+      "anzahl_feststellungen": 0,
+      "note_hinweis": null
     },
     {
       "key": "domain",
@@ -36,7 +37,8 @@
       "score": 100,
       "satz": "Die Adressauskünfte Ihrer Domain sind digital signiert.",
       "detail": "Zone signiert",
-      "anzahl_feststellungen": 0
+      "anzahl_feststellungen": 0,
+      "note_hinweis": null
     },
     {
       "key": "website",
@@ -48,9 +50,10 @@
       "wort": "Sehr gut",
       "bedeutung": "Geprüfter Schutz umgesetzt",
       "score": 105,
-      "satz": "10 von 10 Tests bestanden. Die Note gewichtet nach Schwere.",
+      "satz": "Alle 10 Sicherheitstests bestanden.",
       "detail": "10 von 10 Tests bestanden",
-      "anzahl_feststellungen": 0
+      "anzahl_feststellungen": 0,
+      "note_hinweis": null
     }
   ],
   "feststellungen": [],
@@ -105,10 +108,11 @@
     {
       "key": "M_RETEST",
       "titel": "Umsetzung überprüfen",
-      "text": "Nach der Umsetzung prüfen wir kostenfrei erneut. Der neue Befund zeigt, was behoben ist.",
+      "text": "Wir wiederholen die Prüfung auf Wunsch kostenfrei, etwa nach Änderungen an Website oder Mailsystem.",
       "aufwand": "kostenfrei",
+      "zustaendig": "Reineke Technik",
       "bezug": [],
-      "bezug_text": "alle",
+      "bezug_text": "–",
       "prio": null,
       "nr": "M-1"
     }
@@ -283,23 +287,30 @@
       }
     ],
     "cta_titel": "Ergebnisbesprechung",
-    "cta_text": "In 20 Minuten legen wir gemeinsam fest, was zuerst angegangen wird, gern mit Ihrer IT. Kostenfrei und unverbindlich.",
+    "cta_text": "In den bewerteten Bereichen ist test-ohne-befund.example gut aufgestellt. In 20 Minuten besprechen wir, was eine Analyse von außen nicht sehen kann und wie Sie Ihr Sicherheitsniveau gegenüber Kunden und Prüfern belegen. Kostenfrei und unverbindlich.",
     "cta_button": "Termin wählen",
-    "ablauf": [
-      {
-        "titel": "Ergebnisbesprechung",
-        "text": "Feststellungen einordnen, Prioritäten festlegen."
-      },
-      {
-        "titel": "Umsetzung",
-        "text": "Ihre IT oder Ihr IT-Dienstleister, auf Wunsch mit unserer fachlichen Begleitung."
-      },
-      {
-        "titel": "Kontrolle",
-        "text": "Wiederholungsprüfung, auf Wunsch Penetrationstest."
-      }
-    ],
-    "vertraulich": "Vertraulich – bestimmt für den Inhaber der geprüften Domain und dessen IT-Dienstleister."
+    "ablauf": [],
+    "vertraulich": "Vertraulich – bestimmt für den Inhaber der geprüften Domain und dessen IT-Dienstleister.",
+    "umfang_kurz": "Automatisierte Momentaufnahme vom 28. Oktober 2026. Bewertet wurden ausschließlich öffentlich sichtbare Einstellungen von E-Mail, Domain und Website, nicht die Sicherheit Ihrer IT insgesamt.",
+    "begleitwort": "Vielen Dank für Ihr Interesse. Dieser Befund zeigt, wie test-ohne-befund.example von außen für einen Angreifer aussieht. Geprüft wurden am 28. Oktober 2026 ausschließlich öffentlich abrufbare Informationen, ohne Eingriff in Ihre Systeme.",
+    "next_text": "In den bewerteten Bereichen ist test-ohne-befund.example gut aufgestellt. In 20 Minuten besprechen wir, was eine Analyse von außen nicht sehen kann und wie Sie Ihr Sicherheitsniveau gegenüber Kunden und Prüfern belegen. Kostenfrei und unverbindlich.",
+    "cta_massnahmen": null,
+    "nachpruefung": null,
+    "lesehinweis": "Jede Feststellung beschreibt, was wir gefunden haben, was ein Angreifer damit tun könnte, was das für Sie bedeutet und wie aufwendig die Behebung ist. Darunter steht für Ihre IT die technische Detailzeile. Alle Messwerte finden Sie im technischen Anhang.",
+    "offen_einleitung": "Diese Punkte lassen sich mit dieser Analyse nicht abschließend beurteilen. Wir klären sie gern im Gespräch:",
+    "offen_website": "Wie die Website abschneidet, die bei dieser Analyse nicht automatisch bewertet werden konnte",
+    "karte_labels": {
+      "sachverhalt": "Sachverhalt",
+      "angriff": "Was passieren kann",
+      "auswirkung": "Folgen für Sie",
+      "aufwand": "Aufwand"
+    },
+    "zusammenfassung_labels": {
+      "handlungsbedarf": "Handlungsbedarf insgesamt",
+      "feststellungen": "Einzelne Feststellungen nach Risiko",
+      "risiko": "Risiko",
+      "zustaendig": "Üblicherweise zuständig"
+    }
   },
   "firma": {
     "_hinweis": "Feste Firmendaten und Vertrauenssignale. Werden nicht vom Scan erzeugt und bleiben in allen Varianten gleich.",

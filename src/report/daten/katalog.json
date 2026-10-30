@@ -14,7 +14,8 @@
   "status_labels": {
     "ok": "OK",
     "hinweis": "Hinweis",
-    "mangel": "Mangel"
+    "mangel": "Mangel",
+    "unbekannt": "Nicht geprüft"
   },
   "bereich_labels": {
     "email": "E-Mail",
@@ -85,8 +86,11 @@
         "reject": "Gefälschte E-Mails mit Ihrem Absender sollen abgewiesen werden.",
         "quarantine": "Gefälschte E-Mails mit Ihrem Absender sollen nur aussortiert werden.",
         "none": "Die Richtlinie „none“ fordert kein Abweisen gefälschter E-Mails.",
-        "fehlt": "Es ist nicht festgelegt, wie mit gefälschten Absendern umzugehen ist."
-      }
+        "fehlt": "Es ist nicht festgelegt, wie mit gefälschten Absendern umzugehen ist.",
+        "ungueltig": "Der DMARC-Eintrag enthält keine gültige Richtlinie und schützt nicht vor gefälschten Absendern.",
+        "nicht_pruefbar": "Ob eine Richtlinie gegen gefälschte Absender gesetzt ist, konnte nicht geprüft werden."
+      },
+      "note_hinweis": "Die Note bewertet nur DMARC; zu {felder} bestehen Feststellungen ({nummern})."
     },
     "domain": {
       "label": "Domain",
@@ -94,7 +98,9 @@
       "schutzziel": "Echtheit der Adressauskünfte",
       "satz": {
         "signiert": "Die Adressauskünfte Ihrer Domain sind digital signiert.",
-        "fehlt": "Die Adressauskünfte Ihrer Domain sind nicht gegen Fälschung geschützt."
+        "nicht_signiert": "Die Adressauskünfte Ihrer Domain sind nicht gegen Fälschung geschützt.",
+        "fehlerhaft": "Die Signatur der DNS-Antworten ist eingerichtet, lässt sich aber nicht prüfen.",
+        "nicht_pruefbar": "Ob die DNS-Antworten der Domain signiert sind, konnte nicht geprüft werden."
       }
     },
     "website": {
@@ -103,7 +109,8 @@
       "schutzziel": "Schutz Ihrer Website-Besucher",
       "satz": {
         "bewertet": "{passed} von {total} Tests bestanden. Die Note gewichtet nach Schwere.",
-        "nicht_verfuegbar": "Nicht automatisch bewertbar: weder Mangel noch Entwarnung."
+        "nicht_verfuegbar": "Nicht automatisch bewertbar: weder Mangel noch Entwarnung.",
+        "bewertet_alle": "Alle {total} Sicherheitstests bestanden."
       }
     }
   },
@@ -120,7 +127,8 @@
       "auswirkung": "Möglicher Schaden bei Kunden und Partnern sowie Vertrauensverlust in Ihre E-Mails.",
       "aufwand": "gering bis mittel",
       "aufwand_text": "DNS-Eintrag mit schrittweiser Einführung über einige Wochen.",
-      "tech": "DMARC: kein Eintrag unter _dmarc.{domain} veröffentlicht"
+      "tech": "DMARC: kein Eintrag unter _dmarc.{domain} veröffentlicht",
+      "schritt": "DMARC-Eintrag mit Berichtsadresse (rua) veröffentlichen und nach Auswertung der Berichte schrittweise bis „reject“ verschärfen"
     },
     "dmarc_none": {
       "bereich": "email",
@@ -134,7 +142,8 @@
       "auswirkung": "Möglicher Schaden bei Kunden und Partnern sowie Vertrauensverlust in Ihre E-Mails.",
       "aufwand": "gering bis mittel",
       "aufwand_text": "SPF und DKIM vervollständigen, dann schrittweise verschärfen.",
-      "tech": "DMARC: {record}"
+      "tech": "DMARC: {record}",
+      "schritt": "DMARC-Richtlinie nach Auswertung der Berichte über „quarantine“ auf „reject“ anheben"
     },
     "dmarc_quarantine": {
       "bereich": "email",
@@ -148,7 +157,8 @@
       "auswirkung": "Geringes Restrisiko bei Empfängern, die ihren Spam-Ordner prüfen.",
       "aufwand": "gering",
       "aufwand_text": "Richtlinie auf „reject“ anheben.",
-      "tech": "DMARC: {record}"
+      "tech": "DMARC: {record}",
+      "schritt": "DMARC-Richtlinie auf „reject“ anheben"
     },
     "dmarc_kein_rua": {
       "bereich": "email",
@@ -162,7 +172,8 @@
       "auswirkung": "Probleme werden erst bemerkt, wenn Kunden sich melden oder E-Mails nicht ankommen.",
       "aufwand": "gering",
       "aufwand_text": "Berichtsadresse im DMARC-Eintrag ergänzen.",
-      "tech": "DMARC: {record} (kein rua-Tag)"
+      "tech": "DMARC: {record} (kein rua-Tag)",
+      "schritt": "Berichtsadresse (rua) im DMARC-Eintrag ergänzen"
     },
     "spf_fehlt": {
       "bereich": "email",
@@ -176,7 +187,8 @@
       "auswirkung": "Zustellprobleme für Ihre E-Mails und schwächerer Schutz gegen Fälschungen.",
       "aufwand": "gering",
       "aufwand_text": "Ein DNS-Eintrag mit allen genutzten Versanddiensten.",
-      "tech": "SPF: {text}"
+      "tech": "SPF: {text}",
+      "schritt": "SPF-Eintrag mit allen genutzten Versanddiensten korrekt veröffentlichen"
     },
     "spf_hinweis": {
       "bereich": "email",
@@ -190,7 +202,9 @@
       "auswirkung": "Unnötiges Risiko bei Zustellung und Fälschungsschutz.",
       "aufwand": "gering",
       "aufwand_text": "Eintrag prüfen und bereinigen.",
-      "tech": "SPF: {text}"
+      "tech": "SPF: {text}",
+      "schritt": "SPF-Eintrag prüfen und bereinigen",
+      "offen": "Welche Versanddienste im SPF-Eintrag tatsächlich benötigt werden"
     },
     "dkim_nicht_gefunden": {
       "bereich": "email",
@@ -204,7 +218,9 @@
       "auswirkung": "Mögliche Zustellprobleme und, je nach DMARC-Richtlinie, schwächerer Fälschungsschutz.",
       "aufwand": "gering",
       "aufwand_text": "Signatur beim Mailanbieter aktivieren und Schlüssel im DNS veröffentlichen.",
-      "tech": "DKIM: {text}"
+      "tech": "DKIM: {text}",
+      "schritt": "DKIM-Signatur beim Mailanbieter aktivieren oder, falls sie bereits aktiv ist, den genutzten Selektor ermitteln",
+      "offen": "Ob Ihr Mailanbieter einen DKIM-Selektor nutzt, den die automatische Prüfung nicht kennt"
     },
     "dkim_hinweis": {
       "bereich": "email",
@@ -218,21 +234,9 @@
       "auswirkung": "Geringes Restrisiko für Fälschungsschutz und Zustellbarkeit.",
       "aufwand": "gering",
       "aufwand_text": "Länge und Nutzung je Schlüssel prüfen, ungenutzte entfernen.",
-      "tech": "DKIM: {text}"
-    },
-    "mx_einzeln": {
-      "bereich": "email",
-      "prio": "gering",
-      "massnahme": "M_MX",
-      "fach": "MX",
-      "titel": "Nur ein Mailserver eingetragen",
-      "kurz": "Für den E-Mail-Empfang ist kein Ersatzserver eingetragen.",
-      "feststellung": "Für die Domain ist nur ein Mailserver eingetragen. Bei Cloud-Anbietern ist das oft unkritisch, weil die Ausfallsicherheit beim Anbieter liegt.",
-      "angriff": "Kein Angriffsweg im engeren Sinn. Fällt dieser Server aus, versuchen sendende Mailserver die Zustellung später erneut.",
-      "auswirkung": "E-Mails an Sie kommen bei einem Ausfall verzögert an.",
-      "aufwand": "gering",
-      "aufwand_text": "Mit dem Mailanbieter klären, ob Ausfallsicherheit besteht.",
-      "tech": "MX: {text}"
+      "tech": "DKIM: {text}",
+      "schritt": "DKIM-Schlüssel je Selektor prüfen, nicht mehr genutzte entfernen",
+      "offen": "Ob die gefundenen DKIM-Schlüssel noch in Gebrauch sind"
     },
     "mta_sts_fehlt": {
       "bereich": "email",
@@ -246,7 +250,8 @@
       "auswirkung": "Vertrauliche E-Mails an Sie sind auf dem Transportweg weniger geschützt.",
       "aufwand": "gering bis mittel",
       "aufwand_text": "Richtliniendatei mit gültigem Zertifikat und DNS-Eintrag anlegen.",
-      "tech": "MTA-STS: {text}"
+      "tech": "MTA-STS: {text}",
+      "schritt": "MTA-STS einrichten, damit E-Mails an Sie nur verschlüsselt zugestellt werden dürfen"
     },
     "tls_rpt_fehlt": {
       "bereich": "email",
@@ -260,7 +265,8 @@
       "auswirkung": "Probleme werden erst bemerkt, wenn E-Mails fehlen.",
       "aufwand": "gering",
       "aufwand_text": "Ein DNS-Eintrag.",
-      "tech": "TLS-RPT: {text}"
+      "tech": "TLS-RPT: {text}",
+      "schritt": "TLS-RPT einrichten, damit Probleme bei der verschlüsselten Zustellung gemeldet werden"
     },
     "dnssec_fehlt": {
       "bereich": "domain",
@@ -276,18 +282,18 @@
       "aufwand_text": "Meist beim DNS-Anbieter einschaltbar, dazu ein Eintrag beim Domain-Anbieter.",
       "tech": "DNSSEC: Zone nicht signiert"
     },
-    "obs_csp_unsafe": {
+    "obs_generic": {
       "bereich": "website",
       "prio": "mittel",
       "massnahme": "M_WEB",
-      "fach": "Content Security Policy",
-      "titel": "Schutzregel für Skripte zu weit gefasst",
-      "kurz": "Eingeschleuster Programmcode würde auf Ihrer Website nicht blockiert.",
-      "feststellung": "Die Regel, welcher Programmcode laufen darf (Content Security Policy), lässt unsichere Skriptquellen zu und verliert so viel Schutzwirkung.",
-      "angriff": "Gelingt es, Code einzuschleusen, etwa über ein Formular oder ein veraltetes Plugin, wird er nicht blockiert. Er kann Eingaben mitlesen oder Besucher umleiten.",
-      "auswirkung": "Ihre Website könnte gegen Ihre eigenen Besucher eingesetzt werden.",
-      "aufwand": "mittel",
-      "aufwand_text": "Erfordert Abstimmung mit der Website-Entwicklung.",
+      "fach": "{label}",
+      "titel": "Sicherheitsregel unvollständig: {label}",
+      "kurz": "Eine Schutzregel der Website fehlt, ist fehlerhaft oder zu offen gesetzt.",
+      "feststellung": "Der automatische Test „{label}“ wurde nicht bestanden ({modifier} Punkte). Die Originalmeldung des Prüfwerkzeugs steht im technischen Detail.",
+      "angriff": "Fehlende, fehlerhafte oder zu offene Schutzregeln erleichtern Angriffe auf Besucher der Website.",
+      "auswirkung": "Erhöhtes Risiko für Ihre Besucher.",
+      "aufwand": "gering bis mittel",
+      "aufwand_text": "Konfiguration prüfen und ergänzen.",
       "tech": "{label}: {modifier} Punkte · „{result_text}“"
     },
     "obs_csp_missing": {
@@ -304,15 +310,421 @@
       "aufwand_text": "Erfordert Abstimmung mit der Website-Entwicklung.",
       "tech": "{label}: {modifier} Punkte · „{result_text}“"
     },
-    "obs_sri_http": {
+    "obs_csp_unsafe": {
       "bereich": "website",
       "prio": "mittel",
       "massnahme": "M_WEB",
+      "fach": "Content Security Policy",
+      "titel": "Schutzregel für Skripte zu weit gefasst",
+      "kurz": "Eingeschleuster Programmcode würde auf Ihrer Website nicht blockiert.",
+      "feststellung": "Die Regel, welcher Programmcode laufen darf (Content Security Policy), lässt unsichere Skriptquellen zu und verliert so viel Schutzwirkung.",
+      "angriff": "Gelingt es, Code einzuschleusen, etwa über ein Formular oder ein veraltetes Plugin, wird er nicht blockiert. Er kann Eingaben mitlesen oder Besucher umleiten.",
+      "auswirkung": "Ihre Website könnte gegen Ihre eigenen Besucher eingesetzt werden.",
+      "aufwand": "mittel",
+      "aufwand_text": "Erfordert Abstimmung mit der Website-Entwicklung.",
+      "tech": "{label}: {modifier} Punkte · „{result_text}“"
+    },
+    "obs_csp_unsafe-eval": {
+      "bereich": "website",
+      "prio": "mittel",
+      "massnahme": "M_WEB",
+      "fach": "Content Security Policy",
+      "titel": "Schutzregel erlaubt nachgeladenen Code",
+      "kurz": "Die Schutzregel für Skripte lässt eine riskante Technik zu.",
+      "feststellung": "Die Schutzregel für Skripte (Content Security Policy) erlaubt, Programmcode zur Laufzeit aus Text zu erzeugen („unsafe-eval“). Damit lässt sich die Regel teilweise umgehen.",
+      "angriff": "Eingeschleuster Text könnte über diesen Weg doch als Code ausgeführt werden.",
+      "auswirkung": "Der Schutz der Regel greift nicht vollständig.",
+      "aufwand": "mittel",
+      "aufwand_text": "Erfordert Abstimmung mit der Website-Entwicklung.",
+      "tech": "{label}: {modifier} Punkte · „{result_text}“"
+    },
+    "obs_csp_http": {
+      "bereich": "website",
+      "prio": "mittel",
+      "massnahme": "M_WEB",
+      "fach": "Content Security Policy",
+      "titel": "Schutzregel erlaubt unverschlüsselte Quellen",
+      "kurz": "Teile Ihrer Website dürfen laut Schutzregel unverschlüsselt geladen werden.",
+      "feststellung": "Die Schutzregel für Inhalte (Content Security Policy) erlaubt, Bestandteile der Seite über unverschlüsseltes HTTP zu laden.",
+      "angriff": "In öffentlichen WLANs könnten diese Bestandteile unterwegs ausgetauscht werden, auch wenn die Seite selbst verschlüsselt ausgeliefert wird.",
+      "auswirkung": "Besucher könnten manipulierte Inhalte sehen.",
+      "aufwand": "gering",
+      "aufwand_text": "Quellen in der Schutzregel auf HTTPS festlegen.",
+      "tech": "{label}: {modifier} Punkte · „{result_text}“"
+    },
+    "obs_csp_http-passiv": {
+      "bereich": "website",
+      "prio": "mittel",
+      "massnahme": "M_WEB",
+      "fach": "Content Security Policy",
+      "titel": "Bilder und Medien dürfen unverschlüsselt geladen werden",
+      "kurz": "Bilder und Medien dürfen laut Schutzregel unverschlüsselt geladen werden.",
+      "feststellung": "Die Schutzregel für Inhalte (Content Security Policy) ist gesetzt, erlaubt aber, Bilder und Medien über unverschlüsseltes HTTP zu laden.",
+      "angriff": "In öffentlichen WLANs könnten solche Bilder oder Medien unterwegs ausgetauscht werden. Programmcode ist davon nicht betroffen.",
+      "auswirkung": "Besucher könnten manipulierte Bilder oder Medien sehen.",
+      "aufwand": "gering",
+      "aufwand_text": "Bild- und Medienquellen in der Schutzregel auf HTTPS festlegen.",
+      "tech": "{label}: {modifier} Punkte · „{result_text}“"
+    },
+    "obs_csp_ungueltig": {
+      "bereich": "website",
+      "prio": "mittel",
+      "massnahme": "M_WEB",
+      "fach": "Content Security Policy",
+      "titel": "Schutzregel für Skripte fehlerhaft",
+      "kurz": "Die Schutzregel für Skripte ist gesetzt, aber für Browser nicht verwertbar.",
+      "feststellung": "Die Website sendet eine Schutzregel für Programmcode (Content Security Policy), die Browser nicht auswerten können. Sie wirkt damit nicht.",
+      "angriff": "Gelingt es, Code einzuschleusen, etwa über ein Formular oder ein veraltetes Plugin, wird er nicht blockiert. Er kann Eingaben mitlesen oder Besucher umleiten.",
+      "auswirkung": "Die Regel ist vorhanden, schützt aber nicht.",
+      "aufwand": "gering",
+      "aufwand_text": "Den Kopfzeilen-Eintrag korrigieren; der Aufbau ist bereits vorhanden.",
+      "tech": "{label}: {modifier} Punkte · „{result_text}“"
+    },
+    "obs_csp_nur-report": {
+      "bereich": "website",
+      "prio": "mittel",
+      "massnahme": "M_WEB",
+      "fach": "Content Security Policy",
+      "titel": "Schutzregel nur im Beobachtungsbetrieb",
+      "kurz": "Die Schutzregel für Skripte meldet Verstöße, blockiert aber nichts.",
+      "feststellung": "Die Website setzt eine Schutzregel für Programmcode nur im Beobachtungsbetrieb (Content-Security-Policy-Report-Only). Verstöße werden gemeldet, aber nicht verhindert.",
+      "angriff": "Gelingt es, Code einzuschleusen, etwa über ein Formular oder ein veraltetes Plugin, wird er nicht blockiert. Er kann Eingaben mitlesen oder Besucher umleiten.",
+      "auswirkung": "Der Beobachtungsbetrieb ist ein guter Zwischenschritt, schützt aber noch nicht.",
+      "aufwand": "gering",
+      "aufwand_text": "Die erprobte Regel aktiv schalten.",
+      "tech": "{label}: {modifier} Punkte · „{result_text}“"
+    },
+    "obs_cookies_no-httponly": {
+      "bereich": "website",
+      "prio": "mittel",
+      "massnahme": "M_WEB",
+      "fach": "Cookie-Attribut HttpOnly",
+      "titel": "Sitzungs-Cookie für Skripte lesbar",
+      "kurz": "Nutzersitzungen sind schlechter gegen Übernahme geschützt.",
+      "feststellung": "Ein Sitzungs-Cookie, das Besucher wiedererkennt, ist nicht gegen das Auslesen durch Skripte geschützt (HttpOnly fehlt).",
+      "angriff": "In Verbindung mit eingeschleustem Code können angemeldete Sitzungen übernommen werden.",
+      "auswirkung": "Bei Anmeldebereichen könnten Unbefugte Konten übernehmen.",
+      "aufwand": "gering",
+      "aufwand_text": "Cookie-Attribute in der Anwendung setzen.",
+      "tech": "{label}: {modifier} Punkte · „{result_text}“"
+    },
+    "obs_cookies_session-no-secure": {
+      "bereich": "website",
+      "prio": "hoch",
+      "massnahme": "M_WEB",
+      "fach": "Cookie-Attribut Secure",
+      "titel": "Sitzungs-Cookie ohne Verschlüsselungszwang",
+      "kurz": "Ein Sitzungs-Cookie kann unverschlüsselt übertragen werden.",
+      "feststellung": "Ein Sitzungs-Cookie, das Besucher wiedererkennt, ist nicht auf verschlüsselte Verbindungen beschränkt (Secure fehlt), und die Website erzwingt Verschlüsselung auch nicht anderweitig.",
+      "angriff": "In öffentlichen WLANs könnte das Cookie bei einem unverschlüsselten Aufruf mitgelesen werden. Damit ließe sich eine angemeldete Sitzung übernehmen.",
+      "auswirkung": "Unbefugte könnten Konten Ihrer Nutzer übernehmen.",
+      "aufwand": "gering",
+      "aufwand_text": "Cookie-Attribut Secure setzen und HSTS aktivieren.",
+      "tech": "{label}: {modifier} Punkte · „{result_text}“"
+    },
+    "obs_cookies_session-no-secure-hsts": {
+      "bereich": "website",
+      "prio": "mittel",
+      "massnahme": "M_WEB",
+      "fach": "Cookie-Attribut Secure",
+      "titel": "Sitzungs-Cookie ohne Verschlüsselungszwang, HSTS greift",
+      "kurz": "Ein Sitzungs-Cookie ist nicht ausdrücklich auf verschlüsselte Verbindungen beschränkt.",
+      "feststellung": "Ein Sitzungs-Cookie ist nicht auf verschlüsselte Verbindungen beschränkt (Secure fehlt). Weil die Website Verschlüsselung über HSTS erzwingt, wirkt das derzeit nicht.",
+      "angriff": "Entfällt HSTS künftig oder ruft ein Browser die Seite erstmals ohne HSTS-Kenntnis auf, könnte das Cookie unverschlüsselt übertragen werden.",
+      "auswirkung": "Derzeit kein Risiko, aber eine Abhängigkeit von einer zweiten Einstellung.",
+      "aufwand": "gering",
+      "aufwand_text": "Cookie-Attribut Secure ergänzen.",
+      "tech": "{label}: {modifier} Punkte · „{result_text}“"
+    },
+    "obs_cookies_no-secure": {
+      "bereich": "website",
+      "prio": "mittel",
+      "massnahme": "M_WEB",
+      "fach": "Cookie-Attribut Secure",
+      "titel": "Cookies ohne Verschlüsselungszwang",
+      "kurz": "Cookies der Website können unverschlüsselt übertragen werden.",
+      "feststellung": "Mindestens ein Cookie ist nicht auf verschlüsselte Verbindungen beschränkt (Secure fehlt), und die Website erzwingt Verschlüsselung auch nicht anderweitig.",
+      "angriff": "In öffentlichen WLANs könnten diese Cookies bei einem unverschlüsselten Aufruf mitgelesen werden.",
+      "auswirkung": "Inhalte der Cookies könnten Dritten bekannt werden.",
+      "aufwand": "gering",
+      "aufwand_text": "Cookie-Attribut Secure setzen und HSTS aktivieren.",
+      "tech": "{label}: {modifier} Punkte · „{result_text}“"
+    },
+    "obs_cookies_no-secure-hsts": {
+      "bereich": "website",
+      "prio": "gering",
+      "massnahme": "M_WEB",
+      "fach": "Cookie-Attribut Secure",
+      "titel": "Cookies ohne Verschlüsselungszwang, HSTS greift",
+      "kurz": "Cookies sind nicht ausdrücklich auf verschlüsselte Verbindungen beschränkt.",
+      "feststellung": "Mindestens ein Cookie ist nicht auf verschlüsselte Verbindungen beschränkt (Secure fehlt). Weil die Website Verschlüsselung über HSTS erzwingt, wirkt das derzeit nicht.",
+      "angriff": "Entfällt HSTS künftig, könnten diese Cookies unverschlüsselt übertragen werden.",
+      "auswirkung": "Derzeit kein Risiko, aber eine Abhängigkeit von einer zweiten Einstellung.",
+      "aufwand": "gering",
+      "aufwand_text": "Cookie-Attribut Secure ergänzen.",
+      "tech": "{label}: {modifier} Punkte · „{result_text}“"
+    },
+    "obs_cookies_samesite-ungueltig": {
+      "bereich": "website",
+      "prio": "mittel",
+      "massnahme": "M_WEB",
+      "fach": "Cookie-Attribut SameSite",
+      "titel": "Cookie-Einstellung SameSite fehlerhaft",
+      "kurz": "Eine Cookie-Einstellung ist gesetzt, aber für Browser nicht verwertbar.",
+      "feststellung": "Mindestens ein Cookie trägt für die Einstellung SameSite einen Wert, den Browser nicht auswerten können. Sie regelt, ob das Cookie bei Aufrufen von fremden Seiten mitgesendet wird.",
+      "angriff": "Browser fallen auf ihr eigenes Standardverhalten zurück. Je nach Browser könnte das Cookie bei Anfragen fremder Seiten mitgesendet werden.",
+      "auswirkung": "Vorhandene Formulare könnten von fremden Seiten aus ausgelöst werden.",
+      "aufwand": "gering",
+      "aufwand_text": "Den Wert korrigieren (Lax, Strict oder None).",
+      "tech": "{label}: {modifier} Punkte · „{result_text}“"
+    },
+    "obs_cookies_csrf-no-samesite": {
+      "bereich": "website",
+      "prio": "mittel",
+      "massnahme": "M_WEB",
+      "fach": "Cookie-Attribut SameSite",
+      "titel": "Schutz-Cookie ohne SameSite-Einstellung",
+      "kurz": "Ein Cookie zum Schutz vor fremdgesteuerten Formularen ist unvollständig gesetzt.",
+      "feststellung": "Ein Cookie, das Formulare vor Auslösen durch fremde Seiten schützt, trägt keine SameSite-Einstellung. Sie regelt, ob das Cookie bei Aufrufen von fremden Seiten mitgesendet wird.",
+      "angriff": "Eine präparierte Seite könnte Besucher dazu bringen, unbemerkt Aktionen auf Ihrer Website auszulösen.",
+      "auswirkung": "Vorhandene Formulare oder Konten könnten missbraucht werden.",
+      "aufwand": "gering",
+      "aufwand_text": "SameSite auf Lax oder Strict setzen.",
+      "tech": "{label}: {modifier} Punkte · „{result_text}“"
+    },
+    "obs_coep_ungueltig": {
+      "bereich": "website",
+      "prio": "gering",
+      "massnahme": "M_WEB",
+      "fach": "Cross-Origin-Embedder-Policy",
+      "titel": "Einstellung zur Einbettung fremder Inhalte fehlerhaft",
+      "kurz": "Eine Einstellung zur Trennung fremder Inhalte ist nicht verwertbar.",
+      "feststellung": "Die Website sendet für die Trennung eingebetteter fremder Inhalte (Cross-Origin-Embedder-Policy) einen Wert, den Browser nicht auswerten können.",
+      "angriff": "Die zusätzliche Trennung greift nicht. Ein eigener Angriffsweg entsteht daraus nicht.",
+      "auswirkung": "Eine moderne Zusatzabsicherung bleibt ohne Wirkung.",
+      "aufwand": "gering",
+      "aufwand_text": "Den Kopfzeilen-Eintrag korrigieren oder entfernen.",
+      "tech": "{label}: {modifier} Punkte · „{result_text}“"
+    },
+    "obs_coop_ungueltig": {
+      "bereich": "website",
+      "prio": "gering",
+      "massnahme": "M_WEB",
+      "fach": "Cross-Origin-Opener-Policy",
+      "titel": "Einstellung zur Fensterabschirmung fehlerhaft",
+      "kurz": "Eine Einstellung zur Abschirmung geöffneter Fenster ist nicht verwertbar.",
+      "feststellung": "Die Website sendet für die Abschirmung von Fenstern, die sie öffnet oder die sie öffnen (Cross-Origin-Opener-Policy), einen Wert, den Browser nicht auswerten können.",
+      "angriff": "Von Ihrer Seite geöffnete fremde Fenster behalten einen Zugriffspunkt zurück auf Ihr Fenster.",
+      "auswirkung": "Eine moderne Zusatzabsicherung bleibt ohne Wirkung.",
+      "aufwand": "gering",
+      "aufwand_text": "Den Kopfzeilen-Eintrag korrigieren oder entfernen.",
+      "tech": "{label}: {modifier} Punkte · „{result_text}“"
+    },
+    "obs_corp_ungueltig": {
+      "bereich": "website",
+      "prio": "gering",
+      "massnahme": "M_WEB",
+      "fach": "Cross-Origin-Resource-Policy",
+      "titel": "Einstellung zum Schutz vor fremder Einbindung fehlerhaft",
+      "kurz": "Eine Einstellung gegen das Einbinden Ihrer Inhalte ist nicht verwertbar.",
+      "feststellung": "Die Website sendet für den Schutz vor dem Einbinden ihrer Inhalte durch fremde Seiten (Cross-Origin-Resource-Policy) einen Wert, den Browser nicht auswerten können.",
+      "angriff": "Fremde Seiten könnten Inhalte Ihrer Website weiterhin einbinden.",
+      "auswirkung": "Eine moderne Zusatzabsicherung bleibt ohne Wirkung.",
+      "aufwand": "gering",
+      "aufwand_text": "Den Kopfzeilen-Eintrag korrigieren oder entfernen.",
+      "tech": "{label}: {modifier} Punkte · „{result_text}“"
+    },
+    "obs_cors_universal": {
+      "bereich": "website",
+      "prio": "hoch",
+      "massnahme": "M_WEB",
+      "fach": "CORS",
+      "titel": "Zu offene Freigabe für fremde Webseiten",
+      "kurz": "Fremde Webseiten dürfen Inhalte Ihrer Website abrufen.",
+      "feststellung": "Die Website erlaubt fremden Webseiten weitreichenden Zugriff auf ihre Inhalte (CORS).",
+      "angriff": "Präparierte Seiten können Daten aus Ihrer Website im Kontext Ihrer Besucher abrufen.",
+      "auswirkung": "Mögliche Preisgabe von Daten angemeldeter Nutzer.",
+      "aufwand": "gering bis mittel",
+      "aufwand_text": "Freigaben auf benötigte Partner beschränken.",
+      "tech": "{label}: {modifier} Punkte · „{result_text}“"
+    },
+    "obs_redirection_missing": {
+      "bereich": "website",
+      "prio": "mittel",
+      "massnahme": "M_WEB",
+      "fach": "HTTPS-Weiterleitung",
+      "titel": "Keine Umleitung auf HTTPS",
+      "kurz": "Aufrufe ohne https:// führen nicht zu einer sicheren Verbindung.",
+      "feststellung": "Unverschlüsselte Aufrufe über HTTP werden nicht auf eine verschlüsselte Verbindung umgeleitet.",
+      "angriff": "In öffentlichen WLANs (Hotel, Messe, Bahn) lassen sich unverschlüsselte Verbindungen mitlesen und verändern.",
+      "auswirkung": "Eingaben Ihrer Besucher könnten unverschlüsselt übertragen, mitgelesen oder verändert werden.",
+      "aufwand": "gering",
+      "aufwand_text": "Weiterleitung in der Serverkonfiguration.",
+      "tech": "{label}: {modifier} Punkte · „{result_text}“"
+    },
+    "obs_redirection_nicht-https": {
+      "bereich": "website",
+      "prio": "mittel",
+      "massnahme": "M_WEB",
+      "fach": "HTTPS-Weiterleitung",
+      "titel": "Umleitung führt nicht auf HTTPS",
+      "kurz": "Aufrufe ohne https:// landen wieder bei einer unverschlüsselten Adresse.",
+      "feststellung": "Unverschlüsselte Aufrufe werden umgeleitet, das Ziel ist aber erneut eine unverschlüsselte Adresse.",
+      "angriff": "In öffentlichen WLANs (Hotel, Messe, Bahn) lassen sich unverschlüsselte Verbindungen mitlesen und verändern.",
+      "auswirkung": "Eingaben Ihrer Besucher könnten unverschlüsselt übertragen, mitgelesen oder verändert werden.",
+      "aufwand": "gering",
+      "aufwand_text": "Ziel der Weiterleitung auf HTTPS ändern.",
+      "tech": "{label}: {modifier} Punkte · „{result_text}“"
+    },
+    "obs_redirection_erst-http": {
+      "bereich": "website",
+      "prio": "mittel",
+      "massnahme": "M_WEB",
+      "fach": "HTTPS-Weiterleitung",
+      "titel": "Umleitung auf HTTPS erst im zweiten Schritt",
+      "kurz": "Die Umleitung auf HTTPS ist vorhanden, führt aber über einen Umweg.",
+      "feststellung": "Unverschlüsselte Aufrufe werden auf HTTPS umgeleitet, im ersten Schritt aber noch auf eine unverschlüsselte Adresse.",
+      "angriff": "In öffentlichen WLANs kann der erste, noch unverschlüsselte Schritt abgefangen und umgeleitet werden. Der Browser kann die Anweisung zur dauerhaft verschlüsselten Verbindung (HSTS) für die zuerst aufgerufene Adresse nicht übernehmen.",
+      "auswirkung": "Zusatzrisiko für Besucher, die Ihre Adresse ohne https:// eingeben.",
+      "aufwand": "gering",
+      "aufwand_text": "Zuerst auf dieselbe Adresse mit HTTPS umleiten, danach auf die Zieladresse.",
+      "tech": "{label}: {modifier} Punkte · „{result_text}“"
+    },
+    "obs_redirection_fremder-host": {
+      "bereich": "website",
+      "prio": "gering",
+      "massnahme": "M_WEB",
+      "fach": "HTTPS-Weiterleitung",
+      "titel": "Umleitung führt über eine andere Adresse",
+      "kurz": "Die Umleitung auf HTTPS führt zunächst über eine andere Adresse.",
+      "feststellung": "Unverschlüsselte Aufrufe werden auf HTTPS umgeleitet, allerdings nicht im ersten Schritt auf dieselbe Adresse mit HTTPS.",
+      "angriff": "Der Browser kann die Anweisung zur dauerhaft verschlüsselten Verbindung (HSTS) für die zuerst aufgerufene Adresse nicht übernehmen.",
+      "auswirkung": "Geringes Zusatzrisiko für Besucher, die Ihre Adresse ohne https:// eingeben.",
+      "aufwand": "gering",
+      "aufwand_text": "Zuerst auf dieselbe Adresse mit HTTPS umleiten, danach auf die Zieladresse.",
+      "tech": "{label}: {modifier} Punkte · „{result_text}“"
+    },
+    "obs_redirection_zertifikat": {
+      "bereich": "website",
+      "prio": "mittel",
+      "massnahme": "M_WEB",
+      "fach": "HTTPS-Weiterleitung",
+      "titel": "Zertifikat der Weiterleitung nicht gültig",
+      "kurz": "Beim Umleiten auf HTTPS ist das Zertifikat nicht gültig.",
+      "feststellung": "Unverschlüsselte Aufrufe werden auf HTTPS umgeleitet, dabei ist das Zertifikat der Zieladresse jedoch nicht gültig.",
+      "angriff": "Browser zeigen eine Sicherheitswarnung. Besucher, die sie wegklicken, gewöhnen sich daran und könnten eine echte Warnung ebenso behandeln.",
+      "auswirkung": "Besucher sehen eine Warnung, bevor Ihre Website erscheint.",
+      "aufwand": "gering",
+      "aufwand_text": "Zertifikat für die Zieladresse erneuern oder passend ausstellen.",
+      "tech": "{label}: {modifier} Punkte · „{result_text}“"
+    },
+    "obs_referrer_unsafe": {
+      "bereich": "website",
+      "prio": "gering",
+      "massnahme": "M_WEB",
+      "fach": "Referrer-Policy",
+      "titel": "Seitenadressen werden zu offen weitergegeben",
+      "kurz": "Beim Aufruf fremder Seiten werden Adressen Ihrer Website weitergegeben.",
+      "feststellung": "Die Regel, welche Adressinformationen beim Aufruf fremder Seiten weitergegeben werden (Referrer-Policy), ist zu offen gesetzt.",
+      "angriff": "Seitenadressen oder Teile davon können an fremde Seiten gelangen, teils auch über unverschlüsselte Verbindungen. Enthalten Adressen Kennungen, gelangen diese mit.",
+      "auswirkung": "Geringes Datenschutzrisiko.",
+      "aufwand": "gering",
+      "aufwand_text": "Eine Zeile in der Serverkonfiguration.",
+      "tech": "{label}: {modifier} Punkte · „{result_text}“"
+    },
+    "obs_referrer_ungueltig": {
+      "bereich": "website",
+      "prio": "gering",
+      "massnahme": "M_WEB",
+      "fach": "Referrer-Policy",
+      "titel": "Regel zur Weitergabe von Seitenadressen fehlerhaft",
+      "kurz": "Die Regel zur Weitergabe von Seitenadressen ist nicht verwertbar.",
+      "feststellung": "Die Website sendet für die Weitergabe von Adressinformationen (Referrer-Policy) einen Wert, den Browser nicht auswerten können. Browser fallen auf ihr Standardverhalten zurück.",
+      "angriff": "Je nach Browser können Seitenadressen oder Teile davon an fremde Seiten gelangen.",
+      "auswirkung": "Geringes Datenschutzrisiko.",
+      "aufwand": "gering",
+      "aufwand_text": "Den Wert korrigieren.",
+      "tech": "{label}: {modifier} Punkte · „{result_text}“"
+    },
+    "obs_hsts_missing": {
+      "bereich": "website",
+      "prio": "mittel",
+      "massnahme": "M_WEB",
+      "fach": "HSTS",
+      "titel": "Verschlüsselung wird nicht erzwungen",
+      "kurz": "In öffentlichen WLANs könnten Verbindungen zu Ihrer Website abgefangen werden.",
+      "feststellung": "Die Website weist Browser nicht an, ausschließlich verschlüsselt zu verbinden (HSTS).",
+      "angriff": "In öffentlichen WLANs (Hotel, Messe, Bahn) kann der erste Aufruf auf eine unverschlüsselte Verbindung umgeleitet und mitgelesen werden.",
+      "auswirkung": "Formulareingaben und Anmeldedaten könnten dort mitgelesen werden.",
+      "aufwand": "gering",
+      "aufwand_text": "Eine Zeile in der Serverkonfiguration.",
+      "tech": "{label}: {modifier} Punkte · „{result_text}“"
+    },
+    "obs_hsts_kurz": {
+      "bereich": "website",
+      "prio": "mittel",
+      "massnahme": "M_WEB",
+      "fach": "HSTS",
+      "titel": "Verschlüsselung nur kurz erzwungen",
+      "kurz": "Die Anweisung zur verschlüsselten Verbindung gilt nur für kurze Zeit.",
+      "feststellung": "Die Website weist Browser an, ausschließlich verschlüsselt zu verbinden (HSTS), allerdings für weniger als sechs Monate.",
+      "angriff": "Besucher, die längere Zeit nicht auf der Website waren, sind beim nächsten ersten Aufruf wieder ungeschützt und könnten in öffentlichen WLANs umgeleitet werden.",
+      "auswirkung": "Der Schutz greift nur für häufige Besucher.",
+      "aufwand": "gering",
+      "aufwand_text": "Gültigkeitsdauer auf mindestens sechs Monate erhöhen.",
+      "tech": "{label}: {modifier} Punkte · „{result_text}“"
+    },
+    "obs_hsts_ungueltig": {
+      "bereich": "website",
+      "prio": "mittel",
+      "massnahme": "M_WEB",
+      "fach": "HSTS",
+      "titel": "Anweisung zur Verschlüsselung fehlerhaft",
+      "kurz": "Die Anweisung zur verschlüsselten Verbindung ist nicht verwertbar.",
+      "feststellung": "Die Website sendet die Anweisung, ausschließlich verschlüsselt zu verbinden (HSTS), in einer Form, die Browser nicht auswerten können. Sie wirkt damit nicht.",
+      "angriff": "In öffentlichen WLANs kann der erste Aufruf auf eine unverschlüsselte Verbindung umgeleitet und mitgelesen werden.",
+      "auswirkung": "Die Anweisung ist vorhanden, schützt aber nicht.",
+      "aufwand": "gering",
+      "aufwand_text": "Den Kopfzeilen-Eintrag korrigieren.",
+      "tech": "{label}: {modifier} Punkte · „{result_text}“"
+    },
+    "obs_hsts_kein-https": {
+      "bereich": "website",
+      "prio": "mittel",
+      "massnahme": "M_WEB",
+      "fach": "HSTS",
+      "titel": "Website ohne verschlüsselten Aufruf",
+      "kurz": "Die Website ist nicht über eine verschlüsselte Adresse erreichbar.",
+      "feststellung": "Die Website ist nicht über HTTPS erreichbar, deshalb kann sie Browser auch nicht zu verschlüsselten Verbindungen anweisen (HSTS).",
+      "angriff": "Der gesamte Verkehr zur Website kann in fremden Netzen mitgelesen und verändert werden.",
+      "auswirkung": "Alle Eingaben Ihrer Besucher sind unterwegs lesbar.",
+      "aufwand": "gering bis mittel",
+      "aufwand_text": "Zertifikat einrichten und die Website über HTTPS ausliefern.",
+      "tech": "{label}: {modifier} Punkte · „{result_text}“"
+    },
+    "obs_hsts_zertifikat": {
+      "bereich": "website",
+      "prio": "mittel",
+      "massnahme": "M_WEB",
+      "fach": "HSTS",
+      "titel": "Zertifikat nicht gültig, Verschlüsselung nicht erzwungen",
+      "kurz": "Das Zertifikat der Website ist nicht gültig.",
+      "feststellung": "Das Zertifikat der Website ist nicht gültig; die Anweisung zu ausschließlich verschlüsselten Verbindungen (HSTS) kann deshalb nicht gesetzt werden.",
+      "angriff": "Browser zeigen eine Sicherheitswarnung. Besucher, die sie wegklicken, können eine echte Warnung später ebenso behandeln.",
+      "auswirkung": "Besucher sehen eine Warnung, bevor Ihre Website erscheint.",
+      "aufwand": "gering",
+      "aufwand_text": "Zertifikat erneuern, danach HSTS setzen.",
+      "tech": "{label}: {modifier} Punkte · „{result_text}“"
+    },
+    "obs_sri_http": {
+      "bereich": "website",
+      "prio": "hoch",
+      "massnahme": "M_WEB",
       "fach": "Subresource Integrity",
-      "titel": "Fremde Skripte ohne Prüfung auf Veränderungen",
-      "kurz": "Fremder Programmcode wird eingebunden, ohne zu prüfen, ob er verändert wurde.",
-      "feststellung": "Die Website bindet fremde Skripte ohne Prüfung auf Veränderungen ein (Subresource Integrity), teils ohne erzwungene Verschlüsselung.",
-      "angriff": "Wird einer der fremden Anbieter gehackt, führen die Browser Ihrer Besucher den veränderten Code automatisch aus, ohne dass Ihre Website es bemerkt.",
+      "titel": "Fremde Skripte unverschlüsselt und ungeprüft",
+      "kurz": "Fremder Programmcode wird unverschlüsselt geladen, ohne Prüfung auf Veränderungen.",
+      "feststellung": "Die Website bindet fremde Skripte ohne Prüfung auf Veränderungen ein (Subresource Integrity) und teils ohne erzwungene Verschlüsselung.",
+      "angriff": "Wird einer der fremden Anbieter gehackt, führen die Browser Ihrer Besucher den veränderten Code automatisch aus, ohne dass Ihre Website es bemerkt. Ohne Verschlüsselung kann der Code außerdem unterwegs ausgetauscht werden.",
       "auswirkung": "Veränderter Code eines Drittanbieters liefe mit den Rechten Ihrer Website.",
       "aufwand": "gering bis mittel",
       "aufwand_text": "Skripte über HTTPS laden und Prüfsummen ergänzen.",
@@ -332,49 +744,21 @@
       "aufwand_text": "Prüfsummen für externe Skripte ergänzen.",
       "tech": "{label}: {modifier} Punkte · „{result_text}“"
     },
-    "obs_cookies": {
+    "obs_sri_teilweise-http": {
       "bereich": "website",
       "prio": "mittel",
       "massnahme": "M_WEB",
-      "fach": "Cookie-Attribut HttpOnly",
-      "titel": "Sitzungs-Cookie für Skripte lesbar",
-      "kurz": "Nutzersitzungen sind schlechter gegen Übernahme geschützt.",
-      "feststellung": "Ein Sitzungs-Cookie, das Besucher wiedererkennt, ist nicht gegen das Auslesen durch Skripte geschützt (HttpOnly fehlt).",
-      "angriff": "In Verbindung mit eingeschleustem Code können angemeldete Sitzungen übernommen werden.",
-      "auswirkung": "Bei Anmeldebereichen könnten Unbefugte Konten übernehmen.",
+      "fach": "Subresource Integrity",
+      "titel": "Prüfsummen vorhanden, Skripte teils unverschlüsselt",
+      "kurz": "Die Prüfung fremder Skripte ist eingerichtet, einzelne werden aber unverschlüsselt geladen.",
+      "feststellung": "Die Website prüft fremde Skripte auf Veränderungen (Subresource Integrity), lädt einzelne davon aber nicht über eine verschlüsselte Verbindung.",
+      "angriff": "Unverschlüsselt geladener Code kann unterwegs ausgetauscht werden. Die Prüfsumme verhindert dann die Ausführung, die betroffene Funktion fällt jedoch aus.",
+      "auswirkung": "Teile Ihrer Website könnten in fremden Netzen nicht funktionieren.",
       "aufwand": "gering",
-      "aufwand_text": "Cookie-Attribute in der Anwendung setzen.",
+      "aufwand_text": "Die betroffenen Skripte über HTTPS laden.",
       "tech": "{label}: {modifier} Punkte · „{result_text}“"
     },
-    "obs_hsts": {
-      "bereich": "website",
-      "prio": "mittel",
-      "massnahme": "M_WEB",
-      "fach": "HSTS",
-      "titel": "Verschlüsselung wird nicht erzwungen",
-      "kurz": "In öffentlichen WLANs könnten Verbindungen zu Ihrer Website abgefangen werden.",
-      "feststellung": "Die Website weist Browser nicht an, ausschließlich verschlüsselt zu verbinden (HSTS).",
-      "angriff": "In öffentlichen WLANs (Hotel, Messe, Bahn) kann der erste Aufruf auf eine unverschlüsselte Verbindung umgeleitet und mitgelesen werden.",
-      "auswirkung": "Formulareingaben und Anmeldedaten könnten dort mitgelesen werden.",
-      "aufwand": "gering",
-      "aufwand_text": "Eine Zeile in der Serverkonfiguration.",
-      "tech": "{label}: {modifier} Punkte · „{result_text}“"
-    },
-    "obs_xfo": {
-      "bereich": "website",
-      "prio": "mittel",
-      "massnahme": "M_WEB",
-      "fach": "X-Frame-Options",
-      "titel": "Kein Schutz vor unsichtbarer Einbettung",
-      "kurz": "Ihre Website kann in fremde Seiten eingebettet und missbraucht werden.",
-      "feststellung": "Die Website kann unsichtbar in fremde Webseiten eingebettet werden (X-Frame-Options bzw. frame-ancestors fehlt).",
-      "angriff": "Angreifer könnten Besucher unbemerkt Aktionen auf Ihrer Website auslösen lassen (Clickjacking).",
-      "auswirkung": "Vorhandene Formulare oder Konten könnten missbraucht werden.",
-      "aufwand": "gering",
-      "aufwand_text": "Eine Zeile in der Serverkonfiguration.",
-      "tech": "{label}: {modifier} Punkte · „{result_text}“"
-    },
-    "obs_xcto": {
+    "obs_xcto_missing": {
       "bereich": "website",
       "prio": "gering",
       "massnahme": "M_WEB",
@@ -388,61 +772,254 @@
       "aufwand_text": "Eine Zeile in der Serverkonfiguration.",
       "tech": "{label}: {modifier} Punkte · „{result_text}“"
     },
-    "obs_redirection": {
-      "bereich": "website",
-      "prio": "hoch",
-      "massnahme": "M_WEB",
-      "fach": "HTTPS-Weiterleitung",
-      "titel": "Keine zuverlässige Umleitung auf HTTPS",
-      "kurz": "Aufrufe ohne https:// führen nicht zuverlässig zu einer sicheren Verbindung.",
-      "feststellung": "Unverschlüsselte Aufrufe über HTTP führen nicht zuverlässig zu einer gültigen HTTPS-Verbindung.",
-      "angriff": "In öffentlichen WLANs lassen sich unverschlüsselte Verbindungen mitlesen und verändern.",
-      "auswirkung": "Eingaben Ihrer Besucher könnten unverschlüsselt übertragen, mitgelesen oder verändert werden.",
-      "aufwand": "gering",
-      "aufwand_text": "Weiterleitung in der Serverkonfiguration.",
-      "tech": "{label}: {modifier} Punkte · „{result_text}“"
-    },
-    "obs_referrer": {
+    "obs_xcto_ungueltig": {
       "bereich": "website",
       "prio": "gering",
       "massnahme": "M_WEB",
-      "fach": "Referrer-Policy",
-      "titel": "Weitergabe von Seitenadressen nicht sicher geregelt",
-      "kurz": "Die Weitergabe von Seitenadressen an fremde Seiten ist zu offen oder fehlerhaft geregelt.",
-      "feststellung": "Die Regel, welche Adressinformationen beim Aufruf fremder Seiten weitergegeben werden (Referrer-Policy), ist zu offen oder fehlerhaft gesetzt. Das genaue Prüfergebnis steht im technischen Detail.",
-      "angriff": "Je nach Einstellung können Seitenadressen oder Teile davon an fremde Seiten gelangen, teils auch über unverschlüsselte Verbindungen.",
-      "auswirkung": "Geringes Datenschutzrisiko.",
+      "fach": "X-Content-Type-Options",
+      "titel": "Dateityp-Schutz fehlerhaft gesetzt",
+      "kurz": "Die Einstellung zum Dateityp-Schutz ist nicht verwertbar.",
+      "feststellung": "Die Website sendet für den Dateityp-Schutz (X-Content-Type-Options) einen Wert, den Browser nicht auswerten können. Erwartet wird „nosniff“.",
+      "angriff": "Hochgeladene oder fremde Dateien könnten als ausführbarer Code interpretiert werden. Einzeln ein geringes Risiko.",
+      "auswirkung": "Die Einstellung ist vorhanden, wirkt aber nicht.",
+      "aufwand": "gering",
+      "aufwand_text": "Den Wert auf „nosniff“ setzen.",
+      "tech": "{label}: {modifier} Punkte · „{result_text}“"
+    },
+    "obs_xfo_missing": {
+      "bereich": "website",
+      "prio": "mittel",
+      "massnahme": "M_WEB",
+      "fach": "X-Frame-Options",
+      "titel": "Kein Schutz vor unsichtbarer Einbettung",
+      "kurz": "Ihre Website kann in fremde Seiten eingebettet und missbraucht werden.",
+      "feststellung": "Die Website kann unsichtbar in fremde Webseiten eingebettet werden (X-Frame-Options bzw. frame-ancestors fehlt).",
+      "angriff": "Angreifer könnten Besucher unbemerkt Aktionen auf Ihrer Website auslösen lassen (Clickjacking).",
+      "auswirkung": "Vorhandene Formulare oder Konten könnten missbraucht werden.",
       "aufwand": "gering",
       "aufwand_text": "Eine Zeile in der Serverkonfiguration.",
       "tech": "{label}: {modifier} Punkte · „{result_text}“"
     },
-    "obs_cors": {
+    "obs_xfo_ungueltig": {
       "bereich": "website",
       "prio": "mittel",
       "massnahme": "M_WEB",
-      "fach": "CORS",
-      "titel": "Zu offene Freigabe für fremde Webseiten",
-      "kurz": "Fremde Webseiten dürfen Inhalte Ihrer Website abrufen.",
-      "feststellung": "Die Website erlaubt fremden Webseiten weitreichenden Zugriff auf ihre Inhalte (CORS).",
-      "angriff": "Präparierte Seiten können Daten aus Ihrer Website im Kontext Ihrer Besucher abrufen.",
-      "auswirkung": "Mögliche Preisgabe von Daten angemeldeter Nutzer.",
-      "aufwand": "gering bis mittel",
-      "aufwand_text": "Freigaben auf benötigte Partner beschränken.",
+      "fach": "X-Frame-Options",
+      "titel": "Schutz vor Einbettung fehlerhaft gesetzt",
+      "kurz": "Die Einstellung gegen das Einbetten Ihrer Website ist nicht verwertbar.",
+      "feststellung": "Die Website sendet gegen das Einbetten in fremde Seiten (X-Frame-Options) einen Wert, den Browser nicht auswerten können. Sie wirkt damit nicht.",
+      "angriff": "Angreifer könnten Besucher unbemerkt Aktionen auf Ihrer Website auslösen lassen (Clickjacking).",
+      "auswirkung": "Die Einstellung ist vorhanden, schützt aber nicht.",
+      "aufwand": "gering",
+      "aufwand_text": "Den Wert korrigieren (DENY oder SAMEORIGIN) oder frame-ancestors per Schutzregel setzen.",
       "tech": "{label}: {modifier} Punkte · „{result_text}“"
     },
-    "obs_generic": {
+    "obs_scan_html-unlesbar": {
       "bereich": "website",
       "prio": "mittel",
       "massnahme": "M_WEB",
-      "fach": "{label}",
-      "titel": "Sicherheitsregel unvollständig: {label}",
-      "kurz": "Eine Schutzregel der Website fehlt, ist fehlerhaft oder zu offen gesetzt.",
-      "feststellung": "Der automatische Test „{label}“ wurde nicht bestanden ({modifier} Punkte). Die Originalmeldung des Prüfwerkzeugs steht im technischen Detail.",
-      "angriff": "Fehlende, fehlerhafte oder zu offene Schutzregeln erleichtern Angriffe auf Besucher der Website.",
-      "auswirkung": "Erhöhtes Risiko für Ihre Besucher.",
-      "aufwand": "gering bis mittel",
-      "aufwand_text": "Konfiguration prüfen und ergänzen.",
+      "fach": "Seitenaufbau",
+      "titel": "Startseite konnte nicht ausgewertet werden",
+      "kurz": "Der Aufbau der Startseite ließ sich nicht maschinell auswerten.",
+      "feststellung": "Das Prüfwerkzeug konnte die Startseite nicht als HTML auswerten. Einzelne Prüfungen, die den Seiteninhalt betreffen, liefern deshalb kein belastbares Ergebnis.",
+      "angriff": "Daraus entsteht kein eigener Angriffsweg. Es bedeutet aber, dass dieser Teil der Prüfung offen bleibt.",
+      "auswirkung": "Für die inhaltlichen Website-Prüfungen liegt kein Ergebnis vor.",
+      "aufwand": "gering",
+      "aufwand_text": "Erreichbarkeit und Auslieferung der Startseite prüfen.",
       "tech": "{label}: {modifier} Punkte · „{result_text}“"
+    },
+    "dmarc_ungueltig": {
+      "bereich": "email",
+      "prio": "hoch",
+      "massnahme": "M_MAIL_AUTH",
+      "fach": "DMARC",
+      "titel": "DMARC-Eintrag ohne gültige Richtlinie",
+      "kurz": "Der DMARC-Eintrag ist vorhanden, schützt aber nicht vor gefälschten Absendern.",
+      "feststellung": "Unter _dmarc.{domain} ist ein Eintrag veröffentlicht, er enthält aber keine gültige Richtlinie (p=). Mailserver behandeln ihn bestenfalls wie die Stufe „none“.",
+      "angriff": "Angreifer können E-Mails mit Ihrem Absender versenden, etwa an Ihre Kunden oder Ihre eigene Buchhaltung. Empfänger haben keine Anweisung, solche Mails abzuweisen.",
+      "auswirkung": "Gefälschte Rechnungen oder Zahlungsanweisungen in Ihrem Namen könnten Empfänger erreichen.",
+      "aufwand": "gering bis mittel",
+      "aufwand_text": "Eintrag korrigieren und Richtlinie schrittweise verschärfen.",
+      "tech": "DMARC: {record}",
+      "schritt": "DMARC-Eintrag korrigieren und schrittweise bis „reject“ verschärfen"
+    },
+    "dmarc_nicht_pruefbar": {
+      "bereich": "email",
+      "prio": "gering",
+      "massnahme": "M_MAIL_AUTH",
+      "fach": "DMARC",
+      "titel": "DMARC konnte nicht geprüft werden",
+      "kurz": "Die Abfrage des DMARC-Eintrags war zum Prüfzeitpunkt nicht möglich.",
+      "feststellung": "Die DNS-Abfrage für _dmarc.{domain} ist fehlgeschlagen. Ob ein DMARC-Eintrag vorhanden ist und welche Richtlinie er setzt, lässt sich aus dieser Prüfung nicht sagen.",
+      "angriff": "Aus dem fehlenden Prüfergebnis entsteht kein Angriffsweg. Es bedeutet nur, dass dieser Punkt offen bleibt.",
+      "auswirkung": "Für diesen Bereich liegt kein belastbares Ergebnis vor.",
+      "aufwand": "gering",
+      "aufwand_text": "Prüfung wiederholen.",
+      "tech": "DMARC: {text}",
+      "schritt": "DMARC-Eintrag selbst prüfen oder die Prüfung wiederholen lassen"
+    },
+    "spf_fehlt_dmarc_streng": {
+      "bereich": "email",
+      "prio": "hoch",
+      "massnahme": "M_MAIL_AUTH",
+      "fach": "SPF",
+      "titel": "Kein gültiger SPF-Eintrag bei strenger DMARC-Richtlinie",
+      "kurz": "Ob Ihre eigenen E-Mails als echt anerkannt werden, hängt allein von der digitalen Signatur (DKIM) ab.",
+      "feststellung": "Für die Domain ist kein gültiger SPF-Eintrag veröffentlicht, die DMARC-Richtlinie steht aber auf „{policy}“. Mailserver, die DMARC prüfen, lassen Ihre E-Mails damit nur noch passieren, wenn sie eine gültige DKIM-Signatur Ihrer Domain tragen.",
+      "angriff": "Kein Angriffsweg im engeren Sinn, der Fälschungsschutz greift über DMARC. Versendet ein Dienst ohne DKIM-Signatur in Ihrem Namen, etwa Newsletter, Rechnungsversand oder Kontaktformular, werden diese E-Mails abgewiesen oder aussortiert.",
+      "auswirkung": "Betroffene E-Mails erreichen Kunden und Partner nicht, oft ohne dass es sofort auffällt.",
+      "aufwand": "gering",
+      "aufwand_text": "Ein DNS-Eintrag mit allen genutzten Versanddiensten.",
+      "tech": "SPF: {text} · DMARC-Richtlinie: {policy}",
+      "schritt": "SPF-Eintrag mit allen genutzten Versanddiensten korrekt veröffentlichen"
+    },
+    "spf_nicht_pruefbar": {
+      "bereich": "email",
+      "prio": "gering",
+      "massnahme": "M_MAIL_AUTH",
+      "fach": "SPF",
+      "titel": "SPF konnte nicht geprüft werden",
+      "kurz": "Die Abfrage des SPF-Eintrags war zum Prüfzeitpunkt nicht möglich.",
+      "feststellung": "Die DNS-Abfrage für den SPF-Eintrag von {domain} ist fehlgeschlagen. Ob ein SPF-Eintrag vorhanden und korrekt ist, lässt sich aus dieser Prüfung nicht sagen.",
+      "angriff": "Aus dem fehlenden Prüfergebnis entsteht kein Angriffsweg. Es bedeutet nur, dass dieser Punkt offen bleibt.",
+      "auswirkung": "Für diesen Bereich liegt kein belastbares Ergebnis vor.",
+      "aufwand": "gering",
+      "aufwand_text": "Prüfung wiederholen.",
+      "tech": "SPF: {text}",
+      "schritt": "SPF-Eintrag selbst prüfen oder die Prüfung wiederholen lassen"
+    },
+    "dkim_nicht_pruefbar": {
+      "bereich": "email",
+      "prio": "gering",
+      "massnahme": "M_MAIL_AUTH",
+      "fach": "DKIM",
+      "titel": "DKIM konnte nicht geprüft werden",
+      "kurz": "Die Abfrage der DKIM-Schlüssel war zum Prüfzeitpunkt nicht möglich.",
+      "feststellung": "Die DNS-Abfrage der DKIM-Selektoren für {domain} ist fehlgeschlagen. Ob eine DKIM-Signatur eingerichtet ist, lässt sich aus dieser Prüfung nicht sagen.",
+      "angriff": "Aus dem fehlenden Prüfergebnis entsteht kein Angriffsweg. Es bedeutet nur, dass dieser Punkt offen bleibt.",
+      "auswirkung": "Für diesen Bereich liegt kein belastbares Ergebnis vor.",
+      "aufwand": "gering",
+      "aufwand_text": "Prüfung wiederholen.",
+      "tech": "DKIM: {text}",
+      "schritt": "DKIM beim Mailanbieter selbst prüfen oder die Prüfung wiederholen lassen"
+    },
+    "mx_ohne_ip": {
+      "bereich": "email",
+      "prio": "hoch",
+      "massnahme": "M_MX",
+      "fach": "MX (Mailserver)",
+      "titel": "Mailserver ohne erreichbare Adresse",
+      "kurz": "Ein eingetragener Mailserver ist nicht erreichbar.",
+      "feststellung": "Für mindestens einen eingetragenen Mailserver von {domain} ist keine Netzadresse hinterlegt (kein A- oder AAAA-Eintrag). Zustellversuche an diesen Server schlagen fehl.",
+      "angriff": "Kein Angriffsweg. Eingehende E-Mails können abgewiesen werden oder bleiben in Warteschlangen fremder Mailserver liegen.",
+      "auswirkung": "E-Mails von Kunden und Partnern könnten Sie nicht erreichen.",
+      "aufwand": "gering",
+      "aufwand_text": "Fehlenden DNS-Eintrag ergänzen oder den Mailserver-Eintrag korrigieren.",
+      "tech": "MX: {text}",
+      "schritt": "Netzadresse des Mailservers ergänzen oder den MX-Eintrag korrigieren"
+    },
+    "mx_nicht_pruefbar": {
+      "bereich": "email",
+      "prio": "gering",
+      "massnahme": "M_MX",
+      "fach": "MX (Mailserver)",
+      "titel": "Mailserver konnten nicht geprüft werden",
+      "kurz": "Die Abfrage der Mailserver-Einträge war zum Prüfzeitpunkt nicht möglich.",
+      "feststellung": "Die DNS-Abfrage der Mailserver-Einträge von {domain} ist fehlgeschlagen. Welche Mailserver eingetragen sind, lässt sich aus dieser Prüfung nicht sagen.",
+      "angriff": "Aus dem fehlenden Prüfergebnis entsteht kein Angriffsweg. Es bedeutet nur, dass dieser Punkt offen bleibt.",
+      "auswirkung": "Für diesen Bereich liegt kein belastbares Ergebnis vor.",
+      "aufwand": "gering",
+      "aufwand_text": "Prüfung wiederholen.",
+      "tech": "MX: {text}",
+      "schritt": "Mailserver-Einträge selbst prüfen oder die Prüfung wiederholen lassen"
+    },
+    "mta_sts_hinweis": {
+      "bereich": "email",
+      "prio": "gering",
+      "massnahme": "M_MAIL_TRANSPORT",
+      "fach": "MTA-STS",
+      "titel": "MTA-STS eingerichtet, aber nicht wirksam",
+      "kurz": "Die Regel zur verschlüsselten Zustellung ist vorhanden, greift aber nicht vollständig.",
+      "feststellung": "Für {domain} ist MTA-STS eingerichtet, die Richtlinie ist aber nicht vollständig wirksam, etwa weil sie im Testmodus läuft oder nur kurz gilt. Das genaue Prüfergebnis steht im technischen Detail.",
+      "angriff": "Sendende Mailserver dürfen bei einem Verschlüsselungsproblem weiterhin unverschlüsselt zustellen. In fremden Netzen ließen sich solche E-Mails mitlesen.",
+      "auswirkung": "Der angestrebte Schutz der eingehenden Post greift noch nicht.",
+      "aufwand": "gering",
+      "aufwand_text": "Richtlinie auf „enforce“ stellen und Gültigkeitsdauer erhöhen.",
+      "tech": "MTA-STS: {text}",
+      "schritt": "MTA-STS-Richtlinie von „testing“ auf „enforce“ stellen"
+    },
+    "mta_sts_nicht_pruefbar": {
+      "bereich": "email",
+      "prio": "gering",
+      "massnahme": "M_MAIL_TRANSPORT",
+      "fach": "MTA-STS",
+      "titel": "MTA-STS konnte nicht geprüft werden",
+      "kurz": "Die Abfrage der MTA-STS-Einstellung war zum Prüfzeitpunkt nicht möglich.",
+      "feststellung": "Die Abfrage für MTA-STS von {domain} ist fehlgeschlagen. Ob eine Richtlinie zur verschlüsselten Zustellung veröffentlicht ist, lässt sich aus dieser Prüfung nicht sagen.",
+      "angriff": "Aus dem fehlenden Prüfergebnis entsteht kein Angriffsweg. Es bedeutet nur, dass dieser Punkt offen bleibt.",
+      "auswirkung": "Für diesen Bereich liegt kein belastbares Ergebnis vor.",
+      "aufwand": "gering",
+      "aufwand_text": "Prüfung wiederholen.",
+      "tech": "MTA-STS: {text}",
+      "schritt": "MTA-STS selbst prüfen oder die Prüfung wiederholen lassen"
+    },
+    "tls_rpt_hinweis": {
+      "bereich": "email",
+      "prio": "gering",
+      "massnahme": "M_MAIL_TRANSPORT",
+      "fach": "TLS-RPT",
+      "titel": "TLS-RPT-Eintrag fehlerhaft",
+      "kurz": "Der Eintrag für Berichte über Verschlüsselungsprobleme ist nicht verwertbar.",
+      "feststellung": "Für {domain} ist ein TLS-RPT-Eintrag veröffentlicht, er ist aber nicht auswertbar. Sendende Mailserver können keine Berichte über fehlgeschlagene verschlüsselte Zustellungen schicken.",
+      "angriff": "Kein Angriffsweg. Probleme bei der verschlüsselten Zustellung bleiben unbemerkt.",
+      "auswirkung": "Störungen und Angriffe auf die Transportverschlüsselung würden Ihnen nicht gemeldet.",
+      "aufwand": "gering",
+      "aufwand_text": "Eintrag korrigieren.",
+      "tech": "TLS-RPT: {text}",
+      "schritt": "TLS-RPT-Eintrag korrigieren"
+    },
+    "tls_rpt_nicht_pruefbar": {
+      "bereich": "email",
+      "prio": "gering",
+      "massnahme": "M_MAIL_TRANSPORT",
+      "fach": "TLS-RPT",
+      "titel": "TLS-RPT konnte nicht geprüft werden",
+      "kurz": "Die Abfrage des TLS-RPT-Eintrags war zum Prüfzeitpunkt nicht möglich.",
+      "feststellung": "Die Abfrage für TLS-RPT von {domain} ist fehlgeschlagen. Ob ein Eintrag für Berichte über Verschlüsselungsprobleme vorhanden ist, lässt sich aus dieser Prüfung nicht sagen.",
+      "angriff": "Aus dem fehlenden Prüfergebnis entsteht kein Angriffsweg. Es bedeutet nur, dass dieser Punkt offen bleibt.",
+      "auswirkung": "Für diesen Bereich liegt kein belastbares Ergebnis vor.",
+      "aufwand": "gering",
+      "aufwand_text": "Prüfung wiederholen.",
+      "tech": "TLS-RPT: {text}",
+      "schritt": "TLS-RPT selbst prüfen oder die Prüfung wiederholen lassen"
+    },
+    "dnssec_fehlerhaft": {
+      "bereich": "domain",
+      "prio": "hoch",
+      "massnahme": "M_DNSSEC",
+      "fach": "DNSSEC",
+      "titel": "DNSSEC eingerichtet, aber fehlerhaft",
+      "kurz": "Die Signatur der Domain ist vorhanden, lässt sich aber nicht prüfen.",
+      "feststellung": "Für {domain} ist DNSSEC bei der übergeordneten Stelle eingetragen, die Prüfung der Signatur schlägt jedoch fehl.",
+      "angriff": "Kein Angriffsweg im engeren Sinn. Prüfende Namensserver verwerfen fehlerhaft signierte Antworten; die Domain kann dadurch für einen Teil der Nutzer nicht erreichbar sein, einschließlich der Mailzustellung.",
+      "auswirkung": "Website und E-Mail könnten für einen Teil Ihrer Kunden ausfallen.",
+      "aufwand": "gering bis mittel",
+      "aufwand_text": "Schlüssel beim DNS-Anbieter und Registrar abgleichen.",
+      "tech": "DNSSEC: {text}"
+    },
+    "dnssec_nicht_pruefbar": {
+      "bereich": "domain",
+      "prio": "gering",
+      "massnahme": "M_DNSSEC",
+      "fach": "DNSSEC",
+      "titel": "DNSSEC konnte nicht geprüft werden",
+      "kurz": "Die Abfrage des DNSSEC-Status war zum Prüfzeitpunkt nicht möglich.",
+      "feststellung": "Die Abfrage des DNSSEC-Status von {domain} ist fehlgeschlagen. Ob die Zone signiert ist, lässt sich aus dieser Prüfung nicht sagen.",
+      "angriff": "Aus dem fehlenden Prüfergebnis entsteht kein Angriffsweg. Es bedeutet nur, dass dieser Punkt offen bleibt.",
+      "auswirkung": "Für diesen Bereich liegt kein belastbares Ergebnis vor.",
+      "aufwand": "gering",
+      "aufwand_text": "Prüfung wiederholen.",
+      "tech": "DNSSEC: {text}"
     }
   },
   "observatory_labels": {
@@ -466,7 +1043,28 @@
     "mx_ok": "Mailserver eingetragen ({text})",
     "mta_sts_ok": "Richtlinie für verschlüsselte Zustellung veröffentlicht (MTA-STS)",
     "tls_rpt_ok": "Fehlerberichte zur verschlüsselten Zustellung angefordert (TLS-RPT)",
-    "dnssec_ok": "Adressauskünfte digital signiert (DNSSEC)"
+    "dnssec_ok": "Adressauskünfte digital signiert (DNSSEC)",
+    "obs_csp_streng": "Streng gesetzte Schutzregel für Programmcode (Content Security Policy)",
+    "obs_csp_ohne-unsafe": "Schutzregel für Programmcode ohne unsichere Quellen (Content Security Policy)",
+    "obs_cookies_vorbildlich": "Cookies vollständig mit allen Schutzattributen gesetzt (Secure, HttpOnly, SameSite)",
+    "obs_coep_require-corp": "Fremde Inhalte sind vom eigenen Seiteninhalt getrennt (Cross-Origin-Embedder-Policy)",
+    "obs_coep_credentialless": "Fremde Inhalte werden ohne Anmeldedaten geladen (Cross-Origin-Embedder-Policy)",
+    "obs_coop_same-origin": "Geöffnete Fenster sind gegen fremden Zugriff abgeschirmt (Cross-Origin-Opener-Policy)",
+    "obs_coop_allow-popups": "Geöffnete Fenster sind gegen fremden Zugriff abgeschirmt (Cross-Origin-Opener-Policy)",
+    "obs_coop_noopener": "Geöffnete Fenster sind gegen fremden Zugriff abgeschirmt (Cross-Origin-Opener-Policy)",
+    "obs_corp_same-origin": "Fremde Seiten dürfen Inhalte der Website nicht einbinden (Cross-Origin-Resource-Policy)",
+    "obs_corp_same-site": "Fremde Seiten dürfen Inhalte der Website nicht einbinden (Cross-Origin-Resource-Policy)",
+    "obs_referrer_privat": "Seitenadressen werden nicht an fremde Seiten weitergegeben (Referrer-Policy)",
+    "obs_hsts_preloaded": "Verschlüsselung ist erzwungen und in Browsern voreingetragen (HSTS Preload)",
+    "obs_sri_vollstaendig": "Alle eingebundenen Skripte werden auf Veränderungen geprüft (Subresource Integrity)",
+    "obs_sri_extern-ok": "Fremde Skripte werden auf Veränderungen geprüft (Subresource Integrity)",
+    "obs_xfo_per-csp": "Einbettung in fremde Seiten ist unterbunden (frame-ancestors)",
+    "obs_xfo_gesetzt": "Einbettung in fremde Seiten ist unterbunden (X-Frame-Options)",
+    "spf_teilerfolg": "Ein SPF-Eintrag ist vorhanden und kann bereinigt werden",
+    "dkim_teilerfolg": "DKIM-Schlüssel sind vorhanden und können bereinigt werden",
+    "mx_teilerfolg": "Mailserver sind eingetragen und erreichbar",
+    "mta_sts_teilerfolg": "MTA-STS ist eingerichtet und kann scharf gestellt werden",
+    "tls_rpt_teilerfolg": "Ein TLS-RPT-Eintrag ist vorhanden und kann korrigiert werden"
   },
   "positiv_einleitung": {
     "dmarc_durchgesetzt": "Ihr DMARC-Eintrag weist Mailserver an, E-Mails mit gefälschtem Absender abzuweisen oder auszusortieren: ein wesentlicher Baustein gegen Rechnungs- und Chef-Betrug.",
@@ -475,33 +1073,40 @@
   "massnahmen": {
     "M_MAIL_AUTH": {
       "titel": "E-Mail-Absender absichern",
-      "text": "Einträge einrichten oder nachbessern: {liste}. Ziel: DMARC „reject“ mit Berichtsadresse.",
-      "aufwand": "gering bis mittel"
+      "text": "{schritte}.",
+      "aufwand": "gering bis mittel",
+      "zustaendig": "Ihre IT oder Ihr IT-Dienstleister, gemeinsam mit dem Mailanbieter"
     },
     "M_DNSSEC": {
       "titel": "Adressauskünfte signieren (DNSSEC)",
       "text": "DNSSEC beim DNS-Anbieter aktivieren, DS-Eintrag dort hinterlegen, wo die Domain registriert ist.",
-      "aufwand": "gering"
+      "aufwand": "gering",
+      "zustaendig": "Ihr DNS-Anbieter und Ihr Registrar"
     },
     "M_WEB": {
       "titel": "Website-Schutzregeln ergänzen und verschärfen",
       "text": "Betroffen: {liste}.",
-      "aufwand": "gering bis mittel"
+      "aufwand": "gering bis mittel",
+      "zustaendig": "Ihre Webagentur oder Ihr Hosting-Anbieter"
     },
     "M_MAIL_TRANSPORT": {
       "titel": "Verschlüsselte E-Mail-Zustellung absichern",
-      "text": "Für die verschlüsselte Zustellung von E-Mails an Sie einrichten: {liste}.",
-      "aufwand": "gering bis mittel"
+      "text": "{schritte}.",
+      "aufwand": "gering bis mittel",
+      "zustaendig": "Ihre IT oder Ihr IT-Dienstleister, gemeinsam mit dem Mailanbieter"
     },
     "M_MX": {
       "titel": "Ausfallsicherheit des E-Mail-Empfangs klären",
       "text": "Mit dem Mailanbieter prüfen, ob ein Ausfall abgefangen wird, sonst zweiten Mailserver eintragen.",
-      "aufwand": "gering"
+      "aufwand": "gering",
+      "zustaendig": "Ihr Mailanbieter"
     },
     "M_RETEST": {
       "titel": "Umsetzung überprüfen",
       "text": "Nach der Umsetzung prüfen wir kostenfrei erneut. Der neue Befund zeigt, was behoben ist.",
-      "aufwand": "kostenfrei"
+      "aufwand": "kostenfrei",
+      "text_ohne_feststellungen": "Wir wiederholen die Prüfung auf Wunsch kostenfrei, etwa nach Änderungen an Website oder Mailsystem.",
+      "zustaendig": "Reineke Technik"
     }
   },
   "massnahmen_reihenfolge": [
@@ -578,6 +1183,27 @@
         "text": "Wiederholungsprüfung, auf Wunsch Penetrationstest."
       }
     ],
-    "vertraulich": "Vertraulich – bestimmt für den Inhaber der geprüften Domain und dessen IT-Dienstleister."
+    "vertraulich": "Vertraulich – bestimmt für den Inhaber der geprüften Domain und dessen IT-Dienstleister.",
+    "umfang_kurz": "Automatisierte Momentaufnahme vom {datum}. Bewertet wurden ausschließlich öffentlich sichtbare Einstellungen von E-Mail, Domain und Website, nicht die Sicherheit Ihrer IT insgesamt.",
+    "begleitwort": "Vielen Dank für Ihr Interesse. Dieser Befund zeigt, wie {domain} von außen für einen Angreifer aussieht. Geprüft wurden am {datum} ausschließlich öffentlich abrufbare Informationen, ohne Eingriff in Ihre Systeme.",
+    "next_text": "In einem 20-minütigen Gespräch erläutern wir die Feststellungen für {domain}, beantworten Rückfragen Ihrer IT und stimmen gemeinsam ab, welche Maßnahmen zuerst umgesetzt werden sollten.",
+    "cta_massnahmen": "Womit Sie am besten beginnen und wer welche Maßnahme übernimmt, klären wir gern in 20 Minuten.",
+    "nachpruefung": "Wenn Sie die Maßnahmen direkt mit Ihrer IT umsetzen, prüfen wir danach auf Wunsch kostenfrei erneut. Rückfragen beantworten wir auch per E-Mail oder Telefon.",
+    "lesehinweis": "Jede Feststellung beschreibt, was wir gefunden haben, was ein Angreifer damit tun könnte, was das für Sie bedeutet und wie aufwendig die Behebung ist. Darunter steht für Ihre IT die technische Detailzeile. Alle Messwerte finden Sie im technischen Anhang.",
+    "offen_einleitung": "Diese Punkte lassen sich mit dieser Analyse nicht abschließend beurteilen. Wir klären sie gern im Gespräch:",
+    "offen_website": "Wie die Website abschneidet, die bei dieser Analyse nicht automatisch bewertet werden konnte",
+    "cta_text_ohne_feststellungen": "In den bewerteten Bereichen ist {domain} gut aufgestellt. In 20 Minuten besprechen wir, was eine Analyse von außen nicht sehen kann und wie Sie Ihr Sicherheitsniveau gegenüber Kunden und Prüfern belegen. Kostenfrei und unverbindlich.",
+    "karte_labels": {
+      "sachverhalt": "Sachverhalt",
+      "angriff": "Was passieren kann",
+      "auswirkung": "Folgen für Sie",
+      "aufwand": "Aufwand"
+    },
+    "zusammenfassung_labels": {
+      "handlungsbedarf": "Handlungsbedarf insgesamt",
+      "feststellungen": "Einzelne Feststellungen nach Risiko",
+      "risiko": "Risiko",
+      "zustaendig": "Üblicherweise zuständig"
+    }
   }
 }

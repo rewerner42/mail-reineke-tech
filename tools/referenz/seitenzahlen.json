@@ -1,0 +1,14 @@
+{
+  "_hinweis": "Soll-Seitenzahlen der Referenzdatensätze. Der Bericht schätzt Seitenumbrüche aus Zeichenzahlen, deshalb verschiebt jede Katalogänderung die Seitenzahlen. Nach einer Änderung: npm run bericht:pruefen, Werte prüfen, hier festschreiben. Stand: Stufe 2, nach B6, B7, B9, B12, B13, B14, B18 und der Einstufung nach MDN-Abzug.",
+  "socialselling-academy.com": 11,
+  "budde.de": 12,
+  "sharp.eu": 10,
+  "steuerkanzlei-lauterbach.com": 13,
+  "test-ohne-befund.example": 9,
+  "maschinenbau-mustermann-beispiel.example": 14,
+  "test-18-feststellungen.example": 15,
+  "test-nur-gering.example": 9,
+  "test-8-webtests.example": 15,
+  "test-9-webtests.example": 15,
+  "test-gering-mit-hoch.example": 10
+}

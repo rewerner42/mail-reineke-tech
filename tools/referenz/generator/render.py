@@ -380,10 +380,30 @@ def kontaktbogen(pngs, ziel, spalten=4, breite=300):
     bogen.save(ziel)
 
 
-def render_dataset(variante, sig_path, kat, firma, env, dpi, ausgabe="out", nur_pruefen=False):
+def render_dataset(variante, sig_path, kat, firma, env, dpi, ausgabe="out", nur_pruefen=False,
+                   viewmodelle=None):
+    """Rendert einen Datensatz. Mit --viewmodelle kommt das View-Model fertig aus
+    der TypeScript-Umsetzung; die Python-Seite zeichnet dann nur noch die Vorlage.
+    So gibt es genau eine Logik, aber zwei unabhängige Darstellungen zum Abgleich."""
     sig = json.loads(sig_path.read_text())
     slug = sig["domain"]
-    vm = build_viewmodel(sig, kat, firma)
+    if viewmodelle:
+        vm_path = Path(viewmodelle) / f"{slug}.viewmodel.json"
+        if not vm_path.exists():
+            sys.exit(f"{vm_path} fehlt — zuerst die View-Modelle erzeugen")
+        vm = json.loads(vm_path.read_text())
+        vm = {kk: (str(ASSETS.as_uri()) if kk == "assets" else vv) for kk, vv in vm.items()}
+        for kk in ("logo", "qr_termin"):
+            if kk in vm:
+                vm[kk] = vm[kk].replace("ASSETS_URL", ASSETS.as_uri())
+        for kontakt in vm.get("firma", {}).get("kontakte", []):
+            if kontakt.get("foto_url"):
+                kontakt["foto_url"] = kontakt["foto_url"].replace("ASSETS_URL", ASSETS.as_uri())
+        vorstellung = vm.get("firma", {}).get("vorstellung", {})
+        if vorstellung.get("foto_url"):
+            vorstellung["foto_url"] = vorstellung["foto_url"].replace("ASSETS_URL", ASSETS.as_uri())
+    else:
+        vm = build_viewmodel(sig, kat, firma)
     html = env.get_template("template.html.j2").render(**vm)
 
     check = html.replace("</body>", CHECK_JS + "</body>") if "</body>" in html else html + CHECK_JS
@@ -444,6 +464,9 @@ def main():
     ap.add_argument("--ausgabe", default="out", help="Name des Ausgabeordners im Variantenordner")
     ap.add_argument("--signale", type=Path, default=SIGNALE,
                     help="Ordner mit Signal-Datensätzen (Standard: tests/fixtures/referenz/signale)")
+    ap.add_argument("--viewmodelle", type=Path,
+                    help="Ordner mit fertigen <domain>.viewmodel.json aus der TypeScript-Umsetzung; "
+                         "dann wird das View-Model nicht selbst berechnet")
     ap.add_argument("--nur-pruefen", action="store_true",
                     help="nur die Überlaufprüfung, ohne HTML, PDF und Bilder im Ausgabeordner")
     a = ap.parse_args()
@@ -463,7 +486,7 @@ def main():
         if a.nur and a.nur not in sig_path.name:
             continue
         slug, seiten, fehler, bogen = render_dataset(variante, sig_path, kat, firma, env, a.dpi, a.ausgabe,
-                                                     a.nur_pruefen)
+                                                     a.nur_pruefen, a.viewmodelle)
         status = "OK" if not fehler else f"{len(fehler)} FEHLER"
         print(f"[{status}] {slug}: {seiten} Seiten" + (f" -> {bogen}" if bogen else " (nur geprüft)"))
         for f in fehler:

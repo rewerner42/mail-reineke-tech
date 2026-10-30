@@ -20,6 +20,12 @@ const MONATE = [
 /** Finding priorities, worst first. Iteration order is part of the output. */
 const PRIO_RANG: Record<string, number> = { hoch: 0, mittel: 1, gering: 2 };
 
+/** B9/S20: at equal priority, e-mail findings come before website ones. */
+const BEREICH_RANG: Record<string, number> = { email: 0, domain: 1, website: 2 };
+
+/** Effort wording is a scale, sometimes given as a span ("gering bis mittel"). */
+const AUFWAND_RANG: Record<string, number> = { gering: 0, mittel: 1, hoch: 2 };
+
 /** Handlungsbedarf and finding priorities on one scale; "kritisch" only exists for the former. */
 const STUFE: Record<string, number> = { gering: 0, mittel: 1, hoch: 2, kritisch: 2 };
 
@@ -103,6 +109,14 @@ function noteInfo(grade: string | null | undefined, kat: Katalog): NoteInfo {
   throw new Error(`Unbekannte Note: ${grade}`);
 }
 
+/** Lowest to highest step across a set of effort spans: ["gering","mittel"] → "gering bis mittel". */
+function spanne(teile: string[][]): string {
+  const rang = (x: string) => AUFWAND_RANG[x] ?? 99;
+  const lo = teile.map((t) => t[0]!).reduce((a, b) => (rang(b) < rang(a) ? b : a));
+  const hi = teile.map((t) => t[t.length - 1]!).reduce((a, b) => (rang(b) > rang(a) ? b : a));
+  return lo === hi ? lo : `${lo} bis ${hi}`;
+}
+
 /** Left-pads to `n` characters, like Python's f"{s:<n}". */
 function pad(s: string, n: number): string {
   return s.padEnd(n);
@@ -114,6 +128,10 @@ export interface KatalogFeststellung {
   bereich: string;
   prio: string;
   massnahme: string;
+  /** B6: the instruction this finding contributes to its measure. */
+  schritt?: string;
+  /** B18/V15: what this finding leaves open, offered as a topic for the call. */
+  offen?: string;
   fach: string;
   titel: string;
   kurz: string;
@@ -137,7 +155,18 @@ export interface Katalog {
   observatory_labels: Record<string, string>;
   positiv: Record<string, string>;
   positiv_einleitung: Record<string, string>;
-  massnahmen: Record<string, { titel: string; text: string; aufwand: string }>;
+  massnahmen: Record<
+    string,
+    {
+      titel: string;
+      text: string;
+      aufwand: string;
+      /** B6/V19: who normally carries out this measure. */
+      zustaendig?: string;
+      /** B14: replacement text when the report has no findings at all. */
+      text_ohne_feststellungen?: string;
+    }
+  >;
   massnahmen_reihenfolge: string[];
   texte: Record<string, unknown>;
 }
@@ -147,6 +176,72 @@ export interface Katalog {
 type RohEintrag = [key: string, quelle: string, ctx: Record<string, unknown>];
 
 /**
+ * Which catalogue entry each state of each check maps to; `null` means the state
+ * is no finding. Declared as data rather than as branches so the coverage test
+ * can walk it: every state must have an entry, and every entry a catalogue text.
+ *
+ * `reject` is no finding because it is the goal — it belongs in the positive
+ * list. `einzeln`, `kein_mailserver` and `null_mx` are no findings per B12: one
+ * mail server is normal with Microsoft 365 or Google Workspace, and a domain
+ * that sends no mail is not defective for having no mail server.
+ */
+export const ZUSTAND_SCHLUESSEL = {
+  dmarc: {
+    reject: null,
+    quarantine: "dmarc_quarantine",
+    none: "dmarc_none",
+    ungueltig: "dmarc_ungueltig",
+    fehlt: "dmarc_fehlt",
+    nicht_pruefbar: "dmarc_nicht_pruefbar",
+  },
+  spf: {
+    ok: null,
+    hinweis: "spf_hinweis",
+    fehlt: "spf_fehlt",
+    nicht_pruefbar: "spf_nicht_pruefbar",
+  },
+  dkim: {
+    ok: null,
+    hinweis: "dkim_hinweis",
+    nicht_gefunden: "dkim_nicht_gefunden",
+    nicht_pruefbar: "dkim_nicht_pruefbar",
+  },
+  mx: {
+    ok: null,
+    einzeln: null,
+    kein_mailserver: null,
+    null_mx: null,
+    ohne_ip: "mx_ohne_ip",
+    nicht_pruefbar: "mx_nicht_pruefbar",
+  },
+  mta_sts: {
+    ok: null,
+    hinweis: "mta_sts_hinweis",
+    fehlt: "mta_sts_fehlt",
+    nicht_pruefbar: "mta_sts_nicht_pruefbar",
+  },
+  tls_rpt: {
+    ok: null,
+    hinweis: "tls_rpt_hinweis",
+    fehlt: "tls_rpt_fehlt",
+    nicht_pruefbar: "tls_rpt_nicht_pruefbar",
+  },
+  dnssec: {
+    signiert: null,
+    nicht_signiert: "dnssec_fehlt",
+    fehlerhaft: "dnssec_fehlerhaft",
+    nicht_pruefbar: "dnssec_nicht_pruefbar",
+  },
+} as const satisfies Record<string, Record<string, string | null>>;
+
+/** Looks the state up, refusing to guess when a new state appears. */
+function schluessel(bereich: keyof typeof ZUSTAND_SCHLUESSEL, zustand: string): string | null {
+  const tabelle = ZUSTAND_SCHLUESSEL[bereich] as Record<string, string | null>;
+  if (!(zustand in tabelle)) throw new Error(`Unbekannter Zustand: ${bereich}.${zustand}`);
+  return tabelle[zustand]!;
+}
+
+/**
  * Derives the catalogue keys that apply, in scan order. Returns raw keys only —
  * priorities, numbering and sorting happen in buildViewmodel.
  */
@@ -154,49 +249,44 @@ export function rohFeststellungen(sig: Signal, kat: Katalog): RohEintrag[] {
   const out: RohEintrag[] = [];
   const d = sig.dmarc;
   const mail = sig.mail;
-  const pol = d.policy;
 
-  if (pol === null) {
-    // B8: a record that exists but carries no readable policy is not "no record".
-    out.push(d.record_vorhanden ? ["dmarc_unlesbar", "dmarc", {}] : ["dmarc_fehlt", "dmarc", {}]);
-  } else if (pol === "none") {
-    out.push(["dmarc_none", "dmarc", {}]);
-  } else if (pol === "quarantine") {
-    out.push(["dmarc_quarantine", "dmarc", {}]);
+  const dmKey = schluessel("dmarc", d.zustand);
+  if (dmKey) out.push([dmKey, "dmarc", { record: d.record ?? "", text: d.text }]);
+  if (d.policy !== null && !d.rua) {
+    out.push(["dmarc_kein_rua", "dmarc", { record: d.record ?? "", text: d.text }]);
   }
-  if (pol !== null && !d.rua) out.push(["dmarc_kein_rua", "dmarc", {}]);
 
+  // SPF. B7: with DMARC already enforcing, a missing SPF endangers the domain's
+  // own mail rather than inviting forgery — a different finding, and only
+  // "mittel" when DKIM carries the authentication on its own.
   const spf = mail.spf;
-  if (spf.status === "mangel") out.push(["spf_fehlt", "spf", { ...spf }]);
-  else if (spf.status === "hinweis") out.push(["spf_hinweis", "spf", { ...spf }]);
-  else if (spf.status === "unbekannt") out.push(["spf_unbekannt", "spf", { ...spf }]);
-
-  const dkim = mail.dkim;
-  if (dkim.status === "unbekannt") out.push(["dkim_unbekannt", "dkim", { ...dkim }]);
-  else if (dkim.status !== "ok") {
-    out.push([truthy(dkim.selectors) ? "dkim_hinweis" : "dkim_nicht_gefunden", "dkim", { ...dkim }]);
+  if (spf.zustand === "fehlt") {
+    const streng = d.policy === "reject" || d.policy === "quarantine";
+    out.push([
+      streng ? "spf_fehlt_dmarc_streng" : "spf_fehlt",
+      "spf",
+      { ...spf, policy: d.policy, _prio: streng && mail.dkim.zustand === "ok" ? "mittel" : null },
+    ]);
+  } else {
+    const k = schluessel("spf", spf.zustand);
+    if (k) out.push([k, "spf", { ...spf }]);
   }
 
-  const mx = mail.mx;
-  if (mx.status === "unbekannt") out.push(["mx_unbekannt", "mx", { ...mx }]);
-  else if (mx.status !== "ok") {
-    out.push([truthy(mx.count) ? "mx_einzeln" : "mx_fehlt", "mx", { ...mx }]);
+  for (const bereich of ["dkim", "mx", "mta_sts", "tls_rpt"] as const) {
+    const c = mail[bereich];
+    const k = schluessel(bereich, c.zustand);
+    if (k) out.push([k, bereich, { ...c }]);
   }
 
-  for (const [key, stem] of [["mta_sts", "mta_sts"], ["tls_rpt", "tls_rpt"]] as const) {
-    const c = mail[key];
-    if (c.status === "unbekannt") out.push([`${stem}_unbekannt`, key, { ...c }]);
-    else if (c.status !== "ok") out.push([`${stem}_fehlt`, key, { ...c }]);
-  }
+  const dnKey = schluessel("dnssec", sig.dnssec.zustand);
+  if (dnKey) out.push([dnKey, "dnssec", { text: sig.dnssec.text }]);
 
-  if (sig.dnssec.zustand === "fehlerhaft") out.push(["dnssec_fehlerhaft", "dnssec", {}]);
-  else if (sig.dnssec.zustand === "nicht_signiert") out.push(["dnssec_fehlt", "dnssec", {}]);
-
+  // Website. Only deductions become findings: a neutral result is no defect and
+  // a bonus belongs in the positive list. A website that could not be assessed
+  // at all produces no finding either — the area tile says "nicht bewertet".
   const obs = sig.observatory;
   if (obs.available) {
     for (const t of obs.tests) {
-      // Neutral and positive results are not findings — they belong in the
-      // appendix and the positive list. Only deductions become findings.
       if (t.modifier >= 0) continue;
       const ctx: Record<string, unknown> = {
         label: kat.observatory_labels[t.id] ?? t.id,
@@ -247,6 +337,8 @@ export function buildViewmodel(
     for (const [k, v] of Object.entries(ctx)) if (!k.startsWith("_")) c[k] = v;
     const f: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(entry)) f[k] = fill(v, c);
+    // B7 lowers the priority of one finding when the measurement warrants it.
+    if (ctx._prio) f.prio = ctx._prio;
     const prio = String(f.prio);
     return {
       ...f,
@@ -263,6 +355,9 @@ export function buildViewmodel(
   findings.sort((a, b) => {
     const ra = a.prio_rang as number, rb = b.prio_rang as number;
     if (ra !== rb) return ra - rb;
+    const ba = BEREICH_RANG[String(a.bereich)] ?? 99;
+    const bb = BEREICH_RANG[String(b.bereich)] ?? 99;
+    if (ba !== bb) return ba - bb;
     const ma = (a.modifier as number) || 0, mb = (b.modifier as number) || 0;
     if (ma !== mb) return ma - mb;
     return (a._order as number) - (b._order as number);
@@ -288,17 +383,32 @@ export function buildViewmodel(
     const ob = order.includes(b) ? order.indexOf(b) : 99;
     return oa - ob;
   });
+  const ohneFeststellungen = findings.length === 0;
   const measures = [...keys, "M_RETEST"].map((k) => {
     const m = must(kat.massnahmen, k, "massnahmen");
     const fs = groups.get(k) ?? [];
     const liste = [...new Set(fs.map((f) => String(f.fach)))].join(", ");
+    // B6: the measure text is assembled from the steps of its findings, so the
+    // reader gets instructions rather than a list of topics.
+    const schritte = [...new Set(fs.map((f) => String(f.schritt ?? "")).filter(Boolean))].join("; ");
+    // B6/V1: effort spans are decomposed, then taken from lowest to highest.
+    const teile = fs.map((f) => String(f.aufwand).split(" bis "));
+    const aufwand = fs.length ? spanne(teile) : m.aufwand;
+    const text = ohneFeststellungen && k === "M_RETEST" && m.text_ohne_feststellungen
+      ? m.text_ohne_feststellungen
+      : m.text;
     return {
       key: k,
       titel: m.titel,
-      text: fillStr(m.text, { liste }),
-      aufwand: m.aufwand,
+      text: fillStr(text, { liste, schritte }),
+      aufwand,
+      zustaendig: m.zustaendig ?? null,
       bezug: fs.map((f) => f.nr as string),
-      bezug_text: fs.length ? fs.map((f) => f.nr as string).join(", ") : "alle",
+      bezug_text: fs.length
+        ? fs.map((f) => f.nr as string).join(", ")
+        : ohneFeststellungen
+          ? "–"
+          : "alle",
       prio: fs.length ? (fs[0]!.prio as string) : null,
     } as Record<string, unknown>;
   });
@@ -317,7 +427,7 @@ export function buildViewmodel(
       label: bEmail.label, pruefung: bEmail.pruefung, schutzziel: bEmail.schutzziel,
       ...noteInfo(d.grade, kat),
       score: d.score,
-      satz: must(bEmail.satz, d.policy ?? "fehlt", "bereiche.email.satz"),
+      satz: must(bEmail.satz, d.zustand, "bereiche.email.satz"),
       detail: d.record || "kein DMARC-Eintrag veröffentlicht",
     },
     {
@@ -325,7 +435,7 @@ export function buildViewmodel(
       label: bDomain.label, pruefung: bDomain.pruefung, schutzziel: bDomain.schutzziel,
       ...noteInfo(dn.grade, kat),
       score: dn.score,
-      satz: must(bDomain.satz, dn.signed ? "signiert" : "fehlt", "bereiche.domain.satz"),
+      satz: must(bDomain.satz, dn.zustand, "bereiche.domain.satz"),
       detail: dn.signed ? "Zone signiert" : "Zone nicht signiert",
     },
     {
@@ -334,7 +444,15 @@ export function buildViewmodel(
       ...noteInfo(obs.available ? obs.grade : null, kat),
       score: obs.score,
       satz: fillStr(
-        must(bWebsite.satz, obs.available ? "bewertet" : "nicht_verfuegbar", "bereiche.website.satz"),
+        must(
+          bWebsite.satz,
+          !obs.available
+            ? "nicht_verfuegbar"
+            : obs.passed !== null && obs.passed === obs.total
+              ? "bewertet_alle"
+              : "bewertet",
+          "bereiche.website.satz",
+        ),
         { passed: obs.passed, total: obs.total },
       ),
       detail: obs.available ? `${obs.passed} von ${obs.total} Tests bestanden` : "Test nicht verfügbar",
@@ -342,6 +460,17 @@ export function buildViewmodel(
   ];
   for (const a of areas) {
     a.anzahl_feststellungen = findings.filter((f) => f.bereich === a.key).length;
+    a.note_hinweis = null;
+  }
+  // B10: the e-mail grade rates DMARC alone. When SPF, DKIM or transport carry
+  // findings, a good grade next to them reads as an all-clear it is not.
+  const email = areas[0]!;
+  const andere = findings.filter((f) => f.bereich === "email" && f.quelle !== "dmarc");
+  if (andere.length && noteInfo(d.grade, kat).klasse === "good") {
+    email.note_hinweis = fillStr(must(bEmail as never, "note_hinweis", "bereiche.email"), {
+      felder: [...new Set(andere.map((f) => String(f.fach)))].join(" und "),
+      nummern: andere.map((f) => f.nr as string).join(", "),
+    });
   }
 
   // --- positive list
@@ -370,6 +499,16 @@ export function buildViewmodel(
         bereich: "website",
         text: fillStr(must(p, key, "positiv"), { label: kat.observatory_labels[t.id] ?? t.id }),
       });
+    }
+  }
+  // B13/V4: a report with nothing positive in it reads as hopeless. Partial
+  // successes are named only when the list would otherwise stay empty.
+  if (!positives.length) {
+    for (const [key] of MAIL_CHECKS) {
+      const tk = `${key}_teilerfolg`;
+      if (mail[key].zustand === "hinweis" && kat.positiv[tk]) {
+        positives.push({ bereich: "email", text: fillStr(kat.positiv[tk]!, { ...mail[key] }) });
+      }
     }
   }
   const einleitung = must(
@@ -453,6 +592,16 @@ export function buildViewmodel(
   for (const [k, v] of Object.entries(kat.texte)) {
     texte[k] = typeof v === "string" ? fill(v, basis) : v;
   }
+  // B14/V18: without findings, the appointment text, the plan of action and the
+  // re-test offer would all promise work that does not exist.
+  if (ohneFeststellungen) {
+    texte.cta_text = texte.cta_text_ohne_feststellungen;
+    texte.next_text = texte.cta_text_ohne_feststellungen;
+    texte.ablauf = [];
+    texte.cta_massnahmen = null;
+    texte.nachpruefung = null;
+  }
+  delete texte.cta_text_ohne_feststellungen;
 
   const nachPrio: Record<string, Array<Record<string, unknown>>> = {};
   for (const k of Object.keys(PRIO_RANG)) nachPrio[k] = findings.filter((f) => f.prio === k);
@@ -472,7 +621,9 @@ export function buildViewmodel(
     feststellungen: findings,
     nach_prio: nachPrio,
     anzahl: counts,
-    top: findings.slice(0, 3),
+    // B9/S17: only "hoch" and "mittel" count as substantial — listing a "gering"
+    // finding under "wesentliche Feststellungen" overstates it.
+    top: findings.filter((f) => f.prio === "hoch" || f.prio === "mittel").slice(0, 3),
     positiv: positives,
     positiv_einleitung: einleitung,
     massnahmen: measures,

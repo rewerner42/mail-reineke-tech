@@ -11,7 +11,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "cf-typegen": "wrangler types"
+    "cf-typegen": "wrangler types",
+    "bericht:viewmodelle": "tsx tools/viewmodelle.ts",
+    "bericht:pruefen": "bash tools/referenz/pruefen.sh"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250121.0",

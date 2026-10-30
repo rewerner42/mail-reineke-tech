@@ -14,14 +14,44 @@ import type {
   Severity,
 } from "../types.js";
 
-/** Catalogue-side status vocabulary. `unbekannt` means the check could not run. */
+/** Catalogue-side status vocabulary, used for the appendix badge. */
 export type SignalStatus = "ok" | "hinweis" | "mangel" | "unbekannt";
+
+/**
+ * The closed set of states each check can end in — PROMPT.md 3.1's inventory.
+ *
+ * The scanner's own `status` is too coarse to report from: it uses "info" both
+ * for "known and fine" (a web-only domain has no mail server) and for "could not
+ * check at all" (the DNS query failed). Saying "not assessed" about the first, or
+ * describing the second as a defect, would both be wrong — so the state is
+ * derived from the issue code and each state gets its own catalogue text.
+ */
+export type ZustandSpf = "ok" | "hinweis" | "fehlt" | "nicht_pruefbar";
+export type ZustandDkim = "ok" | "hinweis" | "nicht_gefunden" | "nicht_pruefbar";
+export type ZustandMx =
+  | "ok"
+  | "einzeln"
+  | "ohne_ip"
+  | "kein_mailserver"
+  | "null_mx"
+  | "nicht_pruefbar";
+export type ZustandTransport = "ok" | "hinweis" | "fehlt" | "nicht_pruefbar";
+export type ZustandDnssec = "signiert" | "nicht_signiert" | "fehlerhaft" | "nicht_pruefbar";
+export type ZustandDmarc =
+  | "reject"
+  | "quarantine"
+  | "none"
+  | "ungueltig"
+  | "fehlt"
+  | "nicht_pruefbar";
 
 /** Handlungsbedarf. Four levels — matches katalog.json `level_labels`. */
 export type SignalLevel = "kritisch" | "hoch" | "mittel" | "gering";
 
-export interface SignalCheck {
+export interface SignalCheck<Z extends string = string> {
   status: SignalStatus;
+  /** Which of this check's known states applies. Selects the catalogue text. */
+  zustand: Z;
   /** The scanner's own summary. Appendix only, never a report sentence. */
   text: string;
 }
@@ -47,18 +77,22 @@ export interface Signal {
     grade: string | null;
     score: number | null;
     record: string | null;
+    /** The scanner's own summary, for the technical detail line. */
+    text: string;
     /** Null when no record exists *or* when the record carries no readable policy. */
     policy: "none" | "quarantine" | "reject" | null;
     /** Separates "no record" from "record present but policy unreadable" (B8). */
-    record_vorhanden: boolean;
+    zustand: ZustandDmarc;
     rua: boolean;
   };
   dnssec: {
     grade: string | null;
     score: number | null;
     signed: boolean;
+    /** The scanner's own summary, for the technical detail line. */
+    text: string;
     /** `fehlerhaft`: the parent zone delegates (DS) but validation fails. */
-    zustand: "signiert" | "nicht_signiert" | "fehlerhaft";
+    zustand: ZustandDnssec;
   };
   observatory: {
     available: boolean;
@@ -69,11 +103,11 @@ export interface Signal {
     tests: SignalObsTest[];
   };
   mail: {
-    spf: SignalCheck;
-    dkim: SignalCheck & { selectors: number };
-    mx: SignalCheck & { count: number };
-    mta_sts: SignalCheck;
-    tls_rpt: SignalCheck;
+    spf: SignalCheck<ZustandSpf>;
+    dkim: SignalCheck<ZustandDkim> & { selectors: number };
+    mx: SignalCheck<ZustandMx> & { count: number };
+    mta_sts: SignalCheck<ZustandTransport>;
+    tls_rpt: SignalCheck<ZustandTransport>;
   };
 }
 
@@ -91,8 +125,49 @@ function status(sev: Severity | undefined): SignalStatus {
   }
 }
 
-function check(c: CheckResult<unknown> | undefined): SignalCheck {
-  return { status: status(c?.status), text: c?.summary ?? "" };
+/** True when the check reports this issue code. */
+function hasCode(c: CheckResult<unknown> | undefined, code: string): boolean {
+  return (c?.issues ?? []).some((i) => i.code === code);
+}
+
+/** The scanner could not reach DNS or the provider — not a verdict, an absence. */
+function nichtPruefbar(c: CheckResult<unknown> | undefined): boolean {
+  return (
+    c === undefined ||
+    hasCode(c, "DNS_ERROR") ||
+    (c.issues ?? []).some((i) => /_QUERY_FAILED$/.test(i.code))
+  );
+}
+
+function zustandSpf(c: CheckResult<unknown> | undefined): ZustandSpf {
+  if (nichtPruefbar(c)) return "nicht_pruefbar";
+  if (c!.status === "pass") return "ok";
+  return c!.status === "fail" ? "fehlt" : "hinweis";
+}
+
+function zustandDkim(c: CheckResult<unknown[]> | undefined): ZustandDkim {
+  if (nichtPruefbar(c)) return "nicht_pruefbar";
+  if (hasCode(c, "DKIM_NONE_FOUND") || (c!.data?.length ?? 0) === 0) return "nicht_gefunden";
+  return c!.status === "pass" ? "ok" : "hinweis";
+}
+
+function zustandMx(c: CheckResult<unknown[]> | undefined): ZustandMx {
+  if (nichtPruefbar(c)) return "nicht_pruefbar";
+  if (hasCode(c, "MX_NULL")) return "null_mx";
+  if (hasCode(c, "MX_NONE")) return "kein_mailserver";
+  if (hasCode(c, "MX_NO_IP")) return "ohne_ip";
+  if (hasCode(c, "MX_SINGLE")) return "einzeln";
+  return "ok";
+}
+
+function zustandTransport(c: CheckResult<unknown> | undefined): ZustandTransport {
+  if (nichtPruefbar(c)) return "nicht_pruefbar";
+  if (c!.status === "pass") return "ok";
+  return c!.status === "fail" ? "fehlt" : c!.status === "warn" ? "fehlt" : "hinweis";
+}
+
+function check<Z extends string>(c: CheckResult<unknown> | undefined, zustand: Z): SignalCheck<Z> {
+  return { status: status(c?.status), zustand, text: c?.summary ?? "" };
 }
 
 /**
@@ -165,11 +240,21 @@ export function buildSignal(
   const raw = dm.data?.raw ?? null;
   const available = !!obd?.grade;
 
-  const dnssecZustand = ds.data?.validationFailed
-    ? "fehlerhaft"
-    : ds.data?.secure
-      ? "signiert"
-      : "nicht_signiert";
+  const policy = policyOf(raw);
+  const dnssecZustand: ZustandDnssec = nichtPruefbar(ds)
+    ? "nicht_pruefbar"
+    : ds.data?.validationFailed
+      ? "fehlerhaft"
+      : ds.data?.secure
+        ? "signiert"
+        : "nicht_signiert";
+  const dmarcZustand: ZustandDmarc = nichtPruefbar(dm)
+    ? "nicht_pruefbar"
+    : policy !== null
+      ? policy
+      : raw
+        ? "ungueltig"
+        : "fehlt";
 
   return {
     domain: analyze.domain,
@@ -179,13 +264,15 @@ export function buildSignal(
       grade: dm.grade ?? null,
       score: dm.score ?? null,
       record: raw,
-      policy: policyOf(raw),
-      record_vorhanden: !!raw,
+      text: dm.summary ?? "",
+      policy,
+      zustand: dmarcZustand,
       rua: (dm.data?.rua?.length ?? 0) > 0,
     },
     dnssec: {
       grade: ds.grade ?? null,
       score: ds.score ?? null,
+      text: ds.summary ?? "",
       signed: dnssecZustand === "signiert",
       zustand: dnssecZustand,
     },
@@ -198,11 +285,17 @@ export function buildSignal(
       tests: available ? obsTests(obd) : [],
     },
     mail: {
-      spf: check(analyze.spf),
-      dkim: { ...check(analyze.dkim), selectors: analyze.dkim?.data?.length ?? 0 },
-      mx: { ...check(analyze.mx), count: analyze.mx?.data?.length ?? 0 },
-      mta_sts: check(analyze.mtaSts),
-      tls_rpt: check(analyze.tlsRpt),
+      spf: check(analyze.spf, zustandSpf(analyze.spf)),
+      dkim: {
+        ...check(analyze.dkim, zustandDkim(analyze.dkim)),
+        selectors: analyze.dkim?.data?.length ?? 0,
+      },
+      mx: {
+        ...check(analyze.mx, zustandMx(analyze.mx)),
+        count: analyze.mx?.data?.length ?? 0,
+      },
+      mta_sts: check(analyze.mtaSts, zustandTransport(analyze.mtaSts)),
+      tls_rpt: check(analyze.tlsRpt, zustandTransport(analyze.tlsRpt)),
     },
   };
 }
