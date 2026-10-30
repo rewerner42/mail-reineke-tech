@@ -100,6 +100,12 @@ export interface DnssecResult {
 export interface ObservatoryTest {
   name: string;
   title: string;
+  /**
+   * MDN's stable result code, e.g. "csp-not-implemented". The only field that
+   * identifies *which* variant of a test result this is; the German texts are
+   * keyed off it. Null when MDN omits it. See src/report/observatory-codes.ts.
+   */
+  result: string | null;
   pass: boolean | null;
   scoreModifier: number;
   reason: string;
