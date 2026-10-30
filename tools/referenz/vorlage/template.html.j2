@@ -122,6 +122,7 @@
   .nt .wort { font-size: 11pt; line-height: 1.25; font-weight: 700; }
   .nt .satz { font-size: 9pt; line-height: 1.4; color: var(--ink-2); margin-top: 1.2mm; }
   .nt .meta { font-size: 7pt; line-height: 1.3; color: var(--ink-4); margin-top: 1.8mm; letter-spacing: .02em; }
+  .nt .meta .nh { color: var(--ink); }
   .legende { margin-top: 3mm; font-size: 7pt; line-height: 1.4; color: var(--ink-4); }
   .legende span + span::before { content: " · "; }
   /* Inhaltsverzeichnis (Seite 2, v15) */
@@ -217,6 +218,7 @@
   .mz .wert { font-size: 8.5pt; line-height: 1.4; color: var(--ink); }
   .mz .bezug { font-size: 8pt; line-height: 1.4; color: var(--ink-3); margin-top: .6mm; }
   .mz .bezug .seitenref { white-space: nowrap; color: var(--ink-4); }
+  .mz .zust { font-size: 8pt; line-height: 1.4; color: var(--ink-3); margin-top: .8mm; }
   .pentest h2 { font-size: 13pt; line-height: 1.25; font-weight: 700; }
   .pentest .lead-s { margin-top: 2mm; font-size: 10pt; }
   .arten { margin-top: 3.5mm; width: 46mm; }
@@ -251,6 +253,13 @@
   .cta-gross .lead { font-size: 13pt; }
   .cta-gross .btn { font-size: 10.5pt; padding: 4mm 8mm; margin-top: 6mm; }
   .qr img { display: block; width: 32mm; height: 32mm; }
+  /* Offene Punkte: Die Seite hat keine Seitenplanung, der Block muss mit vier Punkten in die freien 48 mm passen. */
+  .blk.offen { margin-top: 7mm; }
+  .offen .lead-s { font-size: 10pt; }
+  .offen-liste { margin-top: 1.4mm; }
+  .offen-liste li { position: relative; padding-left: 4mm; font-size: 9.5pt; line-height: 1.4; color: var(--ink-2); }
+  .offen-liste li + li { margin-top: 1mm; }
+  .offen-liste li::before { content: "–"; position: absolute; left: 0; color: var(--ink-4); }
   .qr .klein { margin-top: 1.6mm; }
   .ablauf .gz-n { font-size: 30pt; line-height: 1; font-weight: 700; color: var(--ink); margin: 2mm 0 2.5mm; }
   .kontakt { display: grid; grid-template-columns: 20mm minmax(0, 1fr); column-gap: 4mm; border-top: .2mm solid var(--haar); padding-top: 3mm; }
@@ -341,7 +350,9 @@
 {% for m in massnahmen %}
   {% set tl = ((m.text|length) / 56)|round(0, 'ceil') + ((m.titel|length) / 52)|round(0, 'ceil') - 1 %}
   {% set bl = ((m.bezug|length + 1) / 3)|round(0, 'ceil') if m.bezug else 1 %}
-  {% set hs.emp = hs.emp + [11.3 + 4.3 * tl, 9.9 + 3.95 * bl]|max %}
+  {# V19: Zeile „Üblicherweise zuständig“ in 8 pt unter dem Text #}
+  {% set zl = ((texte.zusammenfassung_labels.zustaendig|length + m.zustaendig|length + 2) / 62)|round(0, 'ceil') if m.zustaendig else 0 %}
+  {% set hs.emp = hs.emp + [11.3 + 4.3 * tl + (0.8 + 3.95 * zl if zl else 0), 9.9 + 3.95 * bl]|max %}
 {% endfor %}
 {% set pt_emp = hs.emp + PENTEST <= SATZSPIEGEL %}
 {% set pt_wei = false %}
@@ -397,10 +408,10 @@
     <div class="s36 bf-fach">{{ f.bereich_label }} · {{ f.fach }} · <a href="#{{ f.massnahme_nr }}">Maßnahme {{ f.massnahme_nr }}</a></div>
   </div>
   <div class="r6 bf-text">
-    <div class="s12"><span class="label">Feststellung</span><p>{{ f.feststellung }}</p></div>
-    <div class="s34"><span class="label">Angriffsszenario</span><p>{{ f.angriff }}</p></div>
-    <div class="s56"><span class="label">Auswirkung für Sie</span><p class="wirk">{{ f.auswirkung }}</p>
-      <span class="label">Aufwand</span><p>{{ f.aufwand|capitalize }}. {{ f.aufwand_text }}</p></div>
+    <div class="s12"><span class="label">{{ texte.karte_labels.sachverhalt }}</span><p>{{ f.feststellung }}</p></div>
+    <div class="s34"><span class="label">{{ texte.karte_labels.angriff }}</span><p>{{ f.angriff }}</p></div>
+    <div class="s56"><span class="label">{{ texte.karte_labels.auswirkung }}</span><p class="wirk">{{ f.auswirkung }}</p>
+      <span class="label">{{ texte.karte_labels.aufwand }}</span><p>{{ f.aufwand|capitalize }}. {{ f.aufwand_text }}</p></div>
   </div>
   <div class="r6 bf-tech">
     <div class="s12"><span class="label">Technischer Befund</span></div>
@@ -496,7 +507,7 @@
         <div class="wort {{ a.klasse }}">{{ a.wort }}</div>
         <div class="nt-mini">{% for n in noten %}<span class="{{ n.klasse }}{% if a.note in n.noten %} an{% endif %}">{{ n.noten[0][:1] }}</span>{% endfor %}</div>
         <p class="satz">{{ a.satz }}</p>
-        <div class="meta">{% if a.score is not none %}Score {{ a.score }} · {% endif %}{{ a.bedeutung }}</div>
+        <div class="meta">{% if a.score is not none %}Score {{ a.score }} · {% endif %}{% if a.note_hinweis %}<span class="nh">{{ a.note_hinweis|nummern_zusammenhalten }}</span>{% else %}{{ a.bedeutung }}{% endif %}</div>
       </div>
       {% endfor %}
     </div>
@@ -549,7 +560,7 @@
   <div class="r6 mz{% if loop.first %} erst{% endif %}" id="{{ m.nr }}">
     <div class="s1 mnr">{{ m.nr }}</div>
     <div class="s2">{% if m.prio %}<span class="prio {{ m.prio }}">{{ m.prio|capitalize }}</span>{% else %}<span class="klein">Abschluss</span>{% endif %}</div>
-    <div class="s35"><b>{{ m.titel }}</b><p>{{ m.text }}</p></div>
+    <div class="s35"><b>{{ m.titel }}</b><p>{{ m.text }}</p>{% if m.zustaendig %}<p class="zust">{{ texte.zusammenfassung_labels.zustaendig }}: {{ m.zustaendig }}</p>{% endif %}</div>
     <div class="s6"><div class="wert">{{ m.aufwand|capitalize }}</div><div class="bezug">{% if m.bezug %}{% set ps = [] %}{% for b in m.bezug %}{% if FS[b] not in ps %}{% set _x = ps.append(FS[b]) %}{% endif %}<a class="nw" href="#{{ b }}">{{ b }}</a>{% if not loop.last %}, {% endif %}{% endfor %}{% set ps = ps|sort %} <span class="seitenref">· S.&nbsp;{% if ps|length > 1 and ps|last - ps|first + 1 == ps|length %}{{ ps|first }}–{{ ps|last }}{% else %}{{ ps|join(', ') }}{% endif %}</span>{% else %}{{ m.bezug_text|capitalize }}{% endif %}</div></div>
   </div>
   {% endfor %}
@@ -607,6 +618,12 @@
     <div class="s34"><p class="lead">{{ texte.cta_text }}</p><a class="btn" href="{{ firma.booking_url }}">{{ texte.cta_button }}</a></div>
     <div class="s56 qr"><a href="{{ firma.booking_url }}"><img src="{{ qr_termin }}" alt="QR-Code zur Terminbuchung"></a><div class="klein">Termin per QR-Code</div></div>
   </div>
+  {% if offene_punkte %}
+  <div class="r6 blk linie offen">
+    <div class="s12"><span class="label">{{ texte.offen_label }}</span></div>
+    <div class="s36"><p class="lead-s">{{ texte.offen_einleitung }}</p><ul class="offen-liste">{% for o in offene_punkte %}<li>{{ o }}</li>{% endfor %}</ul></div>
+  </div>
+  {% endif %}
   <div class="r3 drei ablauf blk">
     {% for s in texte.ablauf %}<div><span class="label">Schritt</span><div class="gz-n">{{ loop.index }}</div><h3>{{ s.titel }}</h3><p>{{ s.text }}</p></div>{% endfor %}
   </div>
@@ -639,7 +656,7 @@
   {{ kopf('Feststellungen') }}
   {% if loop.first %}
   <div class="r6 kk kk-mit" id="kap-05"><div class="nr">05</div><h1>Feststellungen im Einzelnen</h1></div>
-  <div class="r6 vorspann"><p class="s36">Zu jeder Feststellung: was wir festgestellt haben, was ein Angreifer damit erreichen kann und was das für Sie bedeutet.</p></div>
+  <div class="r6 vorspann"><p class="s36">Zu jeder Feststellung: was wir festgestellt haben, was passieren kann und was das für Sie bedeutet.</p></div>
   {% endif %}
   {% for f in chunk %}{{ befund(f, loop.first) }}{% endfor %}
   {{ fuss(ns.p) }}
@@ -730,7 +747,7 @@
   <div class="r6 az">
     <div class="s12"><b>DNSSEC</b></div>
     <div class="s3"><span class="nb {{ k_dns }}">{{ t.dnssec.note|minus }}</span>{% if t.dnssec.score is not none %}<span class="g sc">Score {{ t.dnssec.score }}</span>{% endif %}</div>
-    <div class="s46 t">{{ 'Zone signiert' if t.dnssec.signed else 'Zone nicht signiert' }}</div>
+    <div class="s46 t">{{ t.dnssec.zustand_text }}</div>
   </div>
   {% if not web_extra %}{{ webgruppe('') }}{% endif %}
   {{ fuss(ns.p) }}

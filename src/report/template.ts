@@ -20,7 +20,12 @@ import { minus } from "./viewmodel.js";
  */
 type Vm = Record<string, any>;
 
-/** Jinja2's autoescape, character for character. */
+/**
+ * Jinja2's autoescape, character for character — plus one rule: "E-Mail" never
+ * breaks at its hyphen, which in the narrow columns left "E-" at a line end.
+ * render.py does the same through Jinja2's `finalize`. A control character
+ * instead of the span would have broken searching the PDF for "E-Mail".
+ */
 function esc(v: unknown): string {
   if (v === null || v === undefined) return "";
   return String(v)
@@ -28,7 +33,13 @@ function esc(v: unknown): string {
     .replace(/>/g, "&gt;")
     .replace(/</g, "&lt;")
     .replace(/'/g, "&#39;")
-    .replace(/"/g, "&#34;");
+    .replace(/"/g, "&#34;")
+    .replace(/E-Mail/g, '<span class="nw">E-Mail</span>');
+}
+
+/** K19: finding numbers in running text stay on one line, e.g. in the grade note. */
+function nummernZusammen(html: string): string {
+  return html.replace(/F-\d+/g, (m) => `<span class="nw">${m}</span>`);
 }
 
 /** Jinja2's `|capitalize`: first character upper, the rest lower. */
@@ -75,6 +86,7 @@ export function berichtHtml(v: Vm): string {
   const fuss = (n: number) =>
     `<div class="fuss"><span class="f1">${esc(v.firma.name)} · Vertraulich</span><span class="f2">Bericht-Nr. ${esc(v.bericht_nr)}</span><span class="f3">Seite ${n} von ${N}</span></div>`;
 
+  const L = v.texte.karte_labels as Record<string, string>;
   const befund = (f: Vm, erst: boolean) => `<article class="bf${erst ? " erst" : ""}" id="${esc(f.nr)}">
   <div class="r6 bf-kopf">
     <div class="s12 bf-nr">${esc(f.nr)}</div>
@@ -85,10 +97,10 @@ export function berichtHtml(v: Vm): string {
     <div class="s36 bf-fach">${esc(f.bereich_label)} · ${esc(f.fach)} · <a href="#${esc(f.massnahme_nr)}">Maßnahme ${esc(f.massnahme_nr)}</a></div>
   </div>
   <div class="r6 bf-text">
-    <div class="s12"><span class="label">Feststellung</span><p>${esc(f.feststellung)}</p></div>
-    <div class="s34"><span class="label">Angriffsszenario</span><p>${esc(f.angriff)}</p></div>
-    <div class="s56"><span class="label">Auswirkung für Sie</span><p class="wirk">${esc(f.auswirkung)}</p>
-      <span class="label">Aufwand</span><p>${esc(cap(f.aufwand))}. ${esc(f.aufwand_text)}</p></div>
+    <div class="s12"><span class="label">${esc(L.sachverhalt)}</span><p>${esc(f.feststellung)}</p></div>
+    <div class="s34"><span class="label">${esc(L.angriff)}</span><p>${esc(f.angriff)}</p></div>
+    <div class="s56"><span class="label">${esc(L.auswirkung)}</span><p class="wirk">${esc(f.auswirkung)}</p>
+      <span class="label">${esc(L.aufwand)}</span><p>${esc(cap(f.aufwand))}. ${esc(f.aufwand_text)}</p></div>
   </div>
   <div class="r6 bf-tech">
     <div class="s12"><span class="label">Technischer Befund</span></div>
@@ -201,7 +213,7 @@ export function berichtHtml(v: Vm): string {
         <div class="wort ${esc(a.klasse)}">${esc(a.wort)}</div>
         <div class="nt-mini">${v.noten.map((n: Vm) => `<span class="${esc(n.klasse)}${n.noten.includes(a.note) ? " an" : ""}">${esc(String(n.noten[0]).slice(0, 1))}</span>`).join("")}</div>
         <p class="satz">${esc(a.satz)}</p>
-        <div class="meta">${a.score !== null && a.score !== undefined ? `Score ${esc(a.score)} · ` : ""}${esc(a.bedeutung)}</div>
+        <div class="meta">${a.score !== null && a.score !== undefined ? `Score ${esc(a.score)} · ` : ""}${a.note_hinweis ? `<span class="nh">${nummernZusammen(esc(a.note_hinweis))}</span>` : esc(a.bedeutung)}</div>
       </div>`).join("")}
     </div>
     <div class="nsk2"><span class="label">Notenskala</span>${v.noten.map((n: Vm) => `<span><i class="${esc(n.klasse)}"></i><b>${esc(minus(n.noten[0]))}${n.noten.length > 1 ? ` bis ${esc(minus(n.noten[n.noten.length - 1]))}` : ""}</b> ${esc(String(n.wort).toLowerCase())}</span>`).join("")}</div>
@@ -258,7 +270,7 @@ export function berichtHtml(v: Vm): string {
   ${v.massnahmen.map((m: Vm, i: number) => `<div class="r6 mz${i === 0 ? " erst" : ""}" id="${esc(m.nr)}">
     <div class="s1 mnr">${esc(m.nr)}</div>
     <div class="s2">${m.prio ? `<span class="prio ${esc(m.prio)}">${esc(cap(m.prio))}</span>` : `<span class="klein">Abschluss</span>`}</div>
-    <div class="s35"><b>${esc(m.titel)}</b><p>${esc(m.text)}</p></div>
+    <div class="s35"><b>${esc(m.titel)}</b><p>${esc(m.text)}</p>${m.zustaendig ? `<p class="zust">${esc(v.texte.zusammenfassung_labels.zustaendig)}: ${esc(m.zustaendig)}</p>` : ""}</div>
     <div class="s6"><div class="wert">${esc(cap(m.aufwand))}</div><div class="bezug">${bezug(m)}</div></div>
   </div>`).join("")}
 
@@ -318,6 +330,10 @@ export function berichtHtml(v: Vm): string {
     <div class="s34"><p class="lead">${esc(v.texte.cta_text)}</p><a class="btn" href="${esc(v.firma.booking_url)}">${esc(v.texte.cta_button)}</a></div>
     <div class="s56 qr"><a href="${esc(v.firma.booking_url)}"><img src="${esc(v.qr_termin)}" alt="QR-Code zur Terminbuchung"></a><div class="klein">Termin per QR-Code</div></div>
   </div>
+  ${v.offene_punkte.length ? `<div class="r6 blk linie offen">
+    <div class="s12"><span class="label">${esc(v.texte.offen_label)}</span></div>
+    <div class="s36"><p class="lead-s">${esc(v.texte.offen_einleitung)}</p><ul class="offen-liste">${v.offene_punkte.map((o: string) => `<li>${esc(o)}</li>`).join("")}</ul></div>
+  </div>` : ""}
   <div class="r3 drei ablauf blk">
     ${(v.texte.ablauf as Vm[]).map((s, i) => `<div><span class="label">Schritt</span><div class="gz-n">${i + 1}</div><h3>${esc(s.titel)}</h3><p>${esc(s.text)}</p></div>`).join("")}
   </div>
@@ -346,7 +362,7 @@ export function berichtHtml(v: Vm): string {
     w(`<section class="page pg">
   ${kopf("Feststellungen")}
   ${ci === 0 ? `<div class="r6 kk kk-mit" id="kap-05"><div class="nr">05</div><h1>Feststellungen im Einzelnen</h1></div>
-  <div class="r6 vorspann"><p class="s36">Zu jeder Feststellung: was wir festgestellt haben, was ein Angreifer damit erreichen kann und was das für Sie bedeutet.</p></div>` : ""}
+  <div class="r6 vorspann"><p class="s36">Zu jeder Feststellung: was wir festgestellt haben, was passieren kann und was das für Sie bedeutet.</p></div>` : ""}
   ${chunk.map((f, i) => befund(f as never, i === 0)).join("")}
   ${fuss(seite)}
 </section>`);
@@ -419,7 +435,7 @@ ${t.observatory.tests.map(testzeile).join("")}`;
   <div class="r6 az">
     <div class="s12"><b>DNSSEC</b></div>
     <div class="s3"><span class="nb ${esc(k_dns)}">${esc(minus(t.dnssec.note))}</span>${t.dnssec.score !== null && t.dnssec.score !== undefined ? `<span class="g sc">Score ${esc(t.dnssec.score)}</span>` : ""}</div>
-    <div class="s46 t">${t.dnssec.signed ? "Zone signiert" : "Zone nicht signiert"}</div>
+    <div class="s46 t">${esc(t.dnssec.zustand_text)}</div>
   </div>
   ${web_extra ? "" : webgruppe("")}
   ${fuss(seite)}

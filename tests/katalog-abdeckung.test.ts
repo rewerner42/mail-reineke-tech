@@ -249,3 +249,82 @@ describe("Handlungsbedarf against the highest finding priority", () => {
     }
   }
 });
+
+describe("states the technical review found misread", () => {
+  // A scan in which everything passes, with one check replaced.
+  function scan(ueber: Record<string, unknown>) {
+    return buildSignal(
+      {
+        domain: "beispiel.de",
+        queriedAt: "2026-10-30T00:00:00Z",
+        dmarc: {
+          status: "pass", summary: "DMARC aktiv", issues: [], grade: "A", score: 100,
+          data: { raw: "v=DMARC1; p=reject; rua=mailto:a@beispiel.de", rua: ["mailto:a@beispiel.de"] },
+        },
+        spf: { status: "pass", summary: "SPF korrekt", issues: [], data: null },
+        dkim: { status: "pass", summary: "", issues: [], data: [{ selector: "google" }] },
+        mx: { status: "pass", summary: "", issues: [], data: [] },
+        mtaSts: { status: "pass", summary: "", issues: [], data: {} },
+        tlsRpt: { status: "pass", summary: "", issues: [], data: {} },
+        dnssec: { status: "pass", summary: "", issues: [], data: { secure: true } },
+        ...ueber,
+      } as never,
+      undefined,
+      "2026-10-30",
+    );
+  }
+
+  it("treats SPF „+all“ as every server allowed, not as a missing SPF", () => {
+    const sig = scan({
+      spf: {
+        status: "fail", summary: "SPF erlaubt alle Server (+all)", data: null,
+        issues: [{ severity: "fail", code: "SPF_ALL_PASS", message: "+all" }],
+      },
+    });
+    expect(sig.mail.spf.zustand).toBe("alle_erlaubt");
+    const keys = (bau(sig) as any).feststellungen.map((f: any) => f.key);
+    expect(keys).toContain("spf_alle_erlaubt");
+    // Under p=reject this used to say forgery is covered by DMARC.
+    expect(keys).not.toContain("spf_fehlt_dmarc_streng");
+  });
+
+  it("leaves „+all“ to the missing-SPF texts when the record fails anyway", () => {
+    const sig = scan({
+      spf: {
+        status: "fail", summary: "Mehrere SPF-Einträge", data: null,
+        issues: [
+          { severity: "fail", code: "SPF_MULTIPLE", message: "2 Einträge" },
+          { severity: "fail", code: "SPF_ALL_PASS", message: "+all" },
+        ],
+      },
+    });
+    expect(sig.mail.spf.zustand).toBe("fehlt");
+  });
+
+  it("does not praise the first of several DMARC records", () => {
+    const sig = scan({
+      dmarc: {
+        status: "fail", summary: "DMARC unzureichend", grade: "F", score: 0,
+        issues: [{ severity: "fail", code: "DMARC_MULTIPLE", message: "2 Einträge" }],
+        data: { raw: "v=DMARC1; p=reject", rua: [] },
+      },
+    });
+    expect(sig.dmarc.zustand).toBe("mehrfach");
+    expect(sig.dmarc.policy).toBeNull();
+    const v = bau(sig) as any;
+    expect(v.feststellungen.map((f: any) => f.key)).toContain("dmarc_mehrfach");
+    expect(v.feststellungen.map((f: any) => f.key)).not.toContain("dmarc_kein_rua");
+    expect(v.positiv.map((p: any) => p.text)).not.toContain(katalog.positiv.dmarc_reject);
+    expect(v.bereiche[0].satz).toBe(katalog.bereiche.email!.satz.mehrfach);
+  });
+
+  it("names a failing DNSSEC signature as such in the appendix", () => {
+    const sig = scan({
+      dnssec: { status: "fail", summary: "Signatur ungültig", issues: [], data: { secure: false, validationFailed: true } },
+    });
+    expect(sig.dnssec.zustand).toBe("fehlerhaft");
+    const v = bau(sig) as any;
+    expect(v.technik.dnssec.zustand_text).toBe("Signatur fehlerhaft");
+    expect(v.rohdaten.join("\n")).not.toContain("Zone nicht signiert");
+  });
+});

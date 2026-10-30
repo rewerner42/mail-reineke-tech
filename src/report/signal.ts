@@ -26,7 +26,7 @@ export type SignalStatus = "ok" | "hinweis" | "mangel" | "unbekannt";
  * describing the second as a defect, would both be wrong — so the state is
  * derived from the issue code and each state gets its own catalogue text.
  */
-export type ZustandSpf = "ok" | "hinweis" | "fehlt" | "nicht_pruefbar";
+export type ZustandSpf = "ok" | "hinweis" | "fehlt" | "alle_erlaubt" | "nicht_pruefbar";
 export type ZustandDkim = "ok" | "hinweis" | "nicht_gefunden" | "nicht_pruefbar";
 export type ZustandMx =
   | "ok"
@@ -42,6 +42,7 @@ export type ZustandDmarc =
   | "quarantine"
   | "none"
   | "ungueltig"
+  | "mehrfach"
   | "fehlt"
   | "nicht_pruefbar";
 
@@ -141,6 +142,13 @@ function nichtPruefbar(c: CheckResult<unknown> | undefined): boolean {
 
 function zustandSpf(c: CheckResult<unknown> | undefined): ZustandSpf {
   if (nichtPruefbar(c)) return "nicht_pruefbar";
+  // "+all" is not a missing SPF but the opposite: every server passes — and with
+  // an aligned envelope sender, DMARC too. Under an enforcing policy it would
+  // otherwise land on spf_fehlt_dmarc_streng, which says forgery is covered.
+  // Not when the record fails anyway: several records or too many lookups end
+  // in a permanent error before "+all" is ever evaluated (RFC 7208 4.5, 4.6.4).
+  const permerror = hasCode(c, "SPF_MULTIPLE") || hasCode(c, "SPF_LOOKUP_LIMIT");
+  if (hasCode(c, "SPF_ALL_PASS") && !permerror) return "alle_erlaubt";
   if (c!.status === "pass") return "ok";
   return c!.status === "fail" ? "fehlt" : "hinweis";
 }
@@ -271,9 +279,14 @@ export function buildSignal(
       : ds.data?.secure
         ? "signiert"
         : "nicht_signiert";
+  // Several records: receivers apply none of them (RFC 7489 6.6.3), so the
+  // first record's policy must not be praised as if it were in force.
+  const mehrfach = !nichtPruefbar(dm) && hasCode(dm, "DMARC_MULTIPLE");
   const dmarcZustand: ZustandDmarc = nichtPruefbar(dm)
     ? "nicht_pruefbar"
-    : policy !== null
+    : mehrfach
+      ? "mehrfach"
+      : policy !== null
       ? policy
       : raw
         ? "ungueltig"
@@ -288,7 +301,7 @@ export function buildSignal(
       score: dm.score ?? null,
       record: raw,
       text: dm.summary ?? "",
-      policy,
+      policy: mehrfach ? null : policy,
       zustand: dmarcZustand,
       rua: (dm.data?.rua?.length ?? 0) > 0,
     },

@@ -115,6 +115,7 @@ export const BERICHT_CSS = String.raw`
   .nt .wort { font-size: 11pt; line-height: 1.25; font-weight: 700; }
   .nt .satz { font-size: 9pt; line-height: 1.4; color: var(--ink-2); margin-top: 1.2mm; }
   .nt .meta { font-size: 7pt; line-height: 1.3; color: var(--ink-4); margin-top: 1.8mm; letter-spacing: .02em; }
+  .nt .meta .nh { color: var(--ink); }
   .legende { margin-top: 3mm; font-size: 7pt; line-height: 1.4; color: var(--ink-4); }
   .legende span + span::before { content: " · "; }
   /* Inhaltsverzeichnis (Seite 2, v15) */
@@ -210,6 +211,7 @@ export const BERICHT_CSS = String.raw`
   .mz .wert { font-size: 8.5pt; line-height: 1.4; color: var(--ink); }
   .mz .bezug { font-size: 8pt; line-height: 1.4; color: var(--ink-3); margin-top: .6mm; }
   .mz .bezug .seitenref { white-space: nowrap; color: var(--ink-4); }
+  .mz .zust { font-size: 8pt; line-height: 1.4; color: var(--ink-3); margin-top: .8mm; }
   .pentest h2 { font-size: 13pt; line-height: 1.25; font-weight: 700; }
   .pentest .lead-s { margin-top: 2mm; font-size: 10pt; }
   .arten { margin-top: 3.5mm; width: 46mm; }
@@ -244,6 +246,13 @@ export const BERICHT_CSS = String.raw`
   .cta-gross .lead { font-size: 13pt; }
   .cta-gross .btn { font-size: 10.5pt; padding: 4mm 8mm; margin-top: 6mm; }
   .qr img { display: block; width: 32mm; height: 32mm; }
+  /* Offene Punkte: Die Seite hat keine Seitenplanung, der Block muss mit vier Punkten in die freien 48 mm passen. */
+  .blk.offen { margin-top: 7mm; }
+  .offen .lead-s { font-size: 10pt; }
+  .offen-liste { margin-top: 1.4mm; }
+  .offen-liste li { position: relative; padding-left: 4mm; font-size: 9.5pt; line-height: 1.4; color: var(--ink-2); }
+  .offen-liste li + li { margin-top: 1mm; }
+  .offen-liste li::before { content: "–"; position: absolute; left: 0; color: var(--ink-4); }
   .qr .klein { margin-top: 1.6mm; }
   .ablauf .gz-n { font-size: 30pt; line-height: 1; font-weight: 700; color: var(--ink); margin: 2mm 0 2.5mm; }
   .kontakt { display: grid; grid-template-columns: 20mm minmax(0, 1fr); column-gap: 4mm; border-top: .2mm solid var(--haar); padding-top: 3mm; }

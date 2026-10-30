@@ -38,6 +38,8 @@ const ZEILE = {
   positiv_text: 66,
   massnahme_text: 56,
   massnahme_titel: 52,
+  /** V19: the "usually responsible" line under a measure, set in 8 pt. */
+  massnahme_zust: 62,
   obs_result: 58,
 } as const;
 
@@ -63,6 +65,7 @@ export interface Massnahme {
   titel: string;
   text: string;
   bezug: string[];
+  zustaendig?: string | null;
 }
 
 export interface PlanEingabe {
@@ -71,6 +74,7 @@ export interface PlanEingabe {
   positiv: Array<{ text: string }>;
   positiv_einleitung: string;
   massnahmen: Massnahme[];
+  texte: { zusammenfassung_labels: { zustaendig: string } };
   technik: {
     dmarc: { record: string | null };
     observatory: { tests: Array<{ result_text: string; recommendation: string }> };
@@ -175,7 +179,14 @@ export function seitenplan(v: PlanEingabe): Seitenplan {
     const tl =
       zeilen(m.text, ZEILE.massnahme_text) + zeilen(m.titel, ZEILE.massnahme_titel) - 1;
     const bl = truthy(m.bezug) ? Math.ceil((m.bezug.length + 1) / 3) : 1;
-    hemp += Math.max(11.3 + 4.3 * tl, 9.9 + 3.95 * bl);
+    // V19: the line naming who usually carries the measure out.
+    const zl = m.zustaendig
+      ? Math.ceil(
+          (v.texte.zusammenfassung_labels.zustaendig.length + m.zustaendig.length + 2) /
+            ZEILE.massnahme_zust,
+        )
+      : 0;
+    hemp += Math.max(11.3 + 4.3 * tl + (zl ? 0.8 + 3.95 * zl : 0), 9.9 + 3.95 * bl);
   }
   const pt_emp = hemp + PENTEST <= SATZSPIEGEL;
   const pt_eigen = !pt_emp;

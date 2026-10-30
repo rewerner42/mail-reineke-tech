@@ -8,9 +8,10 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { buildViewmodel, type Katalog } from "../src/report/viewmodel.js";
+import { aufzaehlung, buildViewmodel, type Katalog } from "../src/report/viewmodel.js";
 import type { Signal } from "../src/report/signal.js";
 import { adaptReferenz } from "../tools/referenz-signal.js";
+import { sauber } from "../tools/synthetisch.js";
 import katalogJson from "../src/report/daten/katalog.json";
 import firmaJson from "../src/report/daten/firma.json";
 
@@ -84,7 +85,7 @@ describe("B6 — measures are assembled from the findings' steps", () => {
 
   it("names who normally carries out each measure", () => {
     for (const [, v] of vm) {
-      for (const m of v.massnahmen) expect(m.zustaendig).toBeTruthy();
+      for (const m of v.massnahmen) if (m.key !== "M_RETEST") expect(m.zustaendig).toBeTruthy();
     }
   });
 });
@@ -298,9 +299,10 @@ describe("A4/B18 — website results", () => {
     };
     const v = bau(andere);
     const titel = v.feststellungen.map((f: any) => f.titel);
-    expect(titel).toContain("Cookies ohne Verschlüsselungszwang");
-    expect(titel).toContain("Umleitung führt über eine andere Adresse");
-    expect(titel).not.toContain("Sitzungs-Cookie für Skripte lesbar");
+    const von = (key: string) => katalog.feststellungen[key]!.titel;
+    expect(titel).toContain(von("obs_cookies_no-secure"));
+    expect(titel).toContain(von("obs_redirection_fremder-host"));
+    expect(titel).not.toContain(von("obs_cookies_no-httponly"));
   });
 
   it("says so in one sentence when every test passed", () => {
@@ -338,6 +340,78 @@ describe("B10 — the e-mail grade rates DMARC alone", () => {
 
   it("stays silent when the grade is not good", () => {
     expect(vm.get("budde.de")!.bereiche[0].note_hinweis).toBeNull();
+  });
+
+  it("lists the areas as German prose, not a chain of „und“", () => {
+    expect(aufzaehlung([])).toBe("");
+    expect(aufzaehlung(["SPF"])).toBe("SPF");
+    expect(aufzaehlung(["SPF", "DKIM"])).toBe("SPF und DKIM");
+    expect(aufzaehlung(["SPF", "DKIM", "MTA-STS"])).toBe("SPF, DKIM und MTA-STS");
+  });
+});
+
+describe("V15 — open points become topics for the call", () => {
+  const texte = katalog.texte as Record<string, string>;
+
+  it("collects the point each finding leaves open, in finding order", () => {
+    const v = vm.get("budde.de")!;
+    const erwartet = v.feststellungen.map((f: any) => f.offen).filter(Boolean);
+    expect(erwartet.length).toBeGreaterThan(0);
+    expect(v.offene_punkte).toEqual([...new Set(erwartet)]);
+  });
+
+  it("adds the website when it could not be rated", () => {
+    const v = vm.get("sharp.eu")!;
+    expect(v.technik.observatory.available).toBe(false);
+    expect(v.offene_punkte.at(-1)).toBe(texte.offen_website);
+  });
+
+  it("has nothing to add when nothing is open", () => {
+    expect(vm.get("test-ohne-befund.example")!.offene_punkte).toEqual([]);
+  });
+});
+
+describe("V19 — every measure names who usually carries it out", () => {
+  it("passes the catalogue's assignment through", () => {
+    for (const [, v] of vm) {
+      for (const m of v.massnahmen) {
+        if (m.key === "M_RETEST") continue;
+        expect(m.zustaendig, m.key).toBe(katalog.massnahmen[m.key]!.zustaendig);
+        expect(m.zustaendig, m.key).toBeTruthy();
+      }
+    }
+  });
+
+  it("leaves it out for the re-test, whose text already says who does it", () => {
+    for (const [, v] of vm) {
+      expect(v.massnahmen.find((m: any) => m.key === "M_RETEST").zustaendig).toBeNull();
+    }
+  });
+});
+
+describe("B6 — the steps of a measure in the order they are carried out", () => {
+  it("puts sender list and signature first, then the reports, then the stricter policy", () => {
+    const sig = sauber();
+    sig.dmarc = { ...sig.dmarc, policy: "none", zustand: "none", rua: false, grade: "C" };
+    sig.mail.spf = { ...sig.mail.spf, status: "hinweis", zustand: "hinweis" };
+    sig.mail.dkim = { ...sig.mail.dkim, status: "hinweis", zustand: "hinweis" };
+    const text = bau(sig).massnahmen.find((m: any) => m.key === "M_MAIL_AUTH").text as string;
+    const pos = (k: string) => text.indexOf(katalog.feststellungen[k]!.schritt!);
+    expect(pos("spf_hinweis")).toBeGreaterThanOrEqual(0);
+    expect(pos("spf_hinweis")).toBeLessThan(pos("dkim_hinweis"));
+    expect(pos("dkim_hinweis")).toBeLessThan(pos("dmarc_kein_rua"));
+    expect(pos("dmarc_kein_rua")).toBeLessThan(pos("dmarc_none"));
+  });
+});
+
+describe("B13 — partial successes get a lead-in of their own", () => {
+  it("does not call them „ohne Beanstandung“", () => {
+    for (const [slug, v] of vm) {
+      const teil = v.positiv.length && v.positiv.every((p: any) =>
+        Object.entries(katalog.positiv).some(([k, t]) => k.endsWith("_teilerfolg") && p.text.startsWith(String(t).split("{")[0])));
+      if (teil) expect(v.positiv_einleitung, slug).toBe(katalog.positiv_einleitung.teilerfolg);
+      else expect(v.positiv_einleitung, slug).not.toBe(katalog.positiv_einleitung.teilerfolg);
+    }
   });
 });
 

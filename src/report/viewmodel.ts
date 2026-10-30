@@ -117,6 +117,24 @@ function spanne(teile: string[][]): string {
   return lo === hi ? lo : `${lo} bis ${hi}`;
 }
 
+/**
+ * B6: the order an IT team carries the steps of one measure out in — first who
+ * may send (SPF) and the signature (DKIM), then the reports, and only on their
+ * evidence a stricter policy. Transport likewise: reports (TLS-RPT) before
+ * enforcement (MTA-STS). The first matching prefix wins.
+ */
+const SCHRITT_FOLGE = ["spf_", "dkim_", "dmarc_kein_rua", "dmarc_", "tls_rpt_", "mta_sts_"];
+
+function schrittRang(key: string): number {
+  const i = SCHRITT_FOLGE.findIndex((p) => key.startsWith(p));
+  return i < 0 ? SCHRITT_FOLGE.length : i;
+}
+
+/** "A", "A und B", "A, B und C" — a German list. */
+export function aufzaehlung(teile: string[]): string {
+  return teile.length < 2 ? teile.join("") : `${teile.slice(0, -1).join(", ")} und ${teile[teile.length - 1]}`;
+}
+
 /** Left-pads to `n` characters, like Python's f"{s:<n}". */
 function pad(s: string, n: number): string {
   return s.padEnd(n);
@@ -191,6 +209,7 @@ export const ZUSTAND_SCHLUESSEL = {
     quarantine: "dmarc_quarantine",
     none: "dmarc_none",
     ungueltig: "dmarc_ungueltig",
+    mehrfach: "dmarc_mehrfach",
     fehlt: "dmarc_fehlt",
     nicht_pruefbar: "dmarc_nicht_pruefbar",
   },
@@ -198,6 +217,7 @@ export const ZUSTAND_SCHLUESSEL = {
     ok: null,
     hinweis: "spf_hinweis",
     fehlt: "spf_fehlt",
+    alle_erlaubt: "spf_alle_erlaubt",
     nicht_pruefbar: "spf_nicht_pruefbar",
   },
   dkim: {
@@ -390,7 +410,8 @@ export function buildViewmodel(
     const liste = [...new Set(fs.map((f) => String(f.fach)))].join(", ");
     // B6: the measure text is assembled from the steps of its findings, so the
     // reader gets instructions rather than a list of topics.
-    const schritte = [...new Set(fs.map((f) => String(f.schritt ?? "")).filter(Boolean))].join("; ");
+    const reihe = [...fs].sort((a, b) => schrittRang(String(a.key)) - schrittRang(String(b.key)));
+    const schritte = [...new Set(reihe.map((f) => String(f.schritt ?? "")).filter(Boolean))].join("; ");
     // B6/V1: effort spans are decomposed, then taken from lowest to highest.
     const teile = fs.map((f) => String(f.aufwand).split(" bis "));
     const aufwand = fs.length ? spanne(teile) : m.aufwand;
@@ -417,6 +438,15 @@ export function buildViewmodel(
     for (const f of findings) if (f.massnahme === m.key) f.massnahme_nr = m.nr;
   });
 
+  // "Zone nicht signiert" would be wrong for a zone whose signature fails and for
+  // one that could not be checked at all.
+  const zoneText = {
+    signiert: "Zone signiert",
+    nicht_signiert: "Zone nicht signiert oder ohne DS-Eintrag",
+    fehlerhaft: "Signatur fehlerhaft",
+    nicht_pruefbar: "nicht prüfbar",
+  }[dn.zustand];
+
   // --- area tiles
   const bEmail = must(kat.bereiche, "email", "bereiche");
   const bDomain = must(kat.bereiche, "domain", "bereiche");
@@ -436,7 +466,7 @@ export function buildViewmodel(
       ...noteInfo(dn.grade, kat),
       score: dn.score,
       satz: must(bDomain.satz, dn.zustand, "bereiche.domain.satz"),
-      detail: dn.signed ? "Zone signiert" : "Zone nicht signiert",
+      detail: zoneText,
     },
     {
       key: "website",
@@ -466,9 +496,12 @@ export function buildViewmodel(
   // findings, a good grade next to them reads as an all-clear it is not.
   const email = areas[0]!;
   const andere = findings.filter((f) => f.bereich === "email" && f.quelle !== "dmarc");
-  if (andere.length && noteInfo(d.grade, kat).klasse === "good") {
+  // Only when one of them matters: a minor point alone does not turn a good
+  // grade into a misleading all-clear.
+  const gewichtig = andere.some((f) => f.prio === "hoch" || f.prio === "mittel");
+  if (gewichtig && noteInfo(d.grade, kat).klasse === "good") {
     email.note_hinweis = fillStr(must(bEmail as never, "note_hinweis", "bereiche.email"), {
-      felder: [...new Set(andere.map((f) => String(f.fach)))].join(" und "),
+      felder: aufzaehlung([...new Set(andere.map((f) => String(f.fach)))]),
       nummern: andere.map((f) => f.nr as string).join(", "),
     });
   }
@@ -510,7 +543,8 @@ export function buildViewmodel(
   }
   // B13/V4: a report with nothing positive in it reads as hopeless. Partial
   // successes are named only when the list would otherwise stay empty.
-  if (!positives.length) {
+  const nurTeilerfolge = !positives.length;
+  if (nurTeilerfolge) {
     for (const [key] of MAIL_CHECKS) {
       const tk = `${key}_teilerfolg`;
       if (mail[key].zustand === "hinweis" && kat.positiv[tk]) {
@@ -518,9 +552,15 @@ export function buildViewmodel(
       }
     }
   }
+  // "ohne Beanstandung" would be wrong above partial successes, which are only
+  // half done by definition — they get their own lead-in.
   const einleitung = must(
     kat.positiv_einleitung,
-    d.policy === "reject" || d.policy === "quarantine" ? "dmarc_durchgesetzt" : "standard",
+    d.policy === "reject" || d.policy === "quarantine"
+      ? "dmarc_durchgesetzt"
+      : nurTeilerfolge && positives.length
+        ? "teilerfolg"
+        : "standard",
     "positiv_einleitung",
   );
 
@@ -548,7 +588,7 @@ export function buildViewmodel(
   }));
   const technik = {
     dmarc: { note: d.grade || "–", score: d.score, record: d.record, policy: d.policy, rua: d.rua },
-    dnssec: { note: dn.grade || "–", score: dn.score, signed: dn.signed },
+    dnssec: { note: dn.grade || "–", score: dn.score, signed: dn.signed, zustand_text: zoneText },
     observatory: {
       available: obs.available, note: obs.grade || "–", score: obs.score,
       passed: obs.passed, total: obs.total, tests: obsTests,
@@ -561,7 +601,7 @@ export function buildViewmodel(
     pad("DMARC", 9) + pad(d.grade || "–", 4) + pad(sc(d.score), 11) +
       (d.record || "— kein Eintrag veröffentlicht —"),
     pad("DNSSEC", 9) + pad(dn.grade || "–", 4) + pad(sc(dn.score), 11) +
-      (dn.signed ? "Zone signiert" : "Zone nicht signiert"),
+      zoneText,
   ];
   if (obs.available) {
     rohdaten.push(
@@ -615,6 +655,12 @@ export function buildViewmodel(
   const nachPrio: Record<string, Array<Record<string, unknown>>> = {};
   for (const k of Object.keys(PRIO_RANG)) nachPrio[k] = findings.filter((f) => f.prio === k);
 
+  // B18/V15: what the scan cannot settle on its own, offered as topics for the
+  // call — one point per finding that names one, and the website when it could
+  // not be rated. Shown on the next-step page; nothing to show, no block.
+  const offenePunkte = [...new Set(findings.map((f) => String(f.offen ?? "")).filter(Boolean))];
+  if (!obs.available) offenePunkte.push(must(kat.texte as Record<string, string>, "offen_website", "texte"));
+
   return {
     domain,
     datum,
@@ -636,6 +682,7 @@ export function buildViewmodel(
     positiv: positives,
     positiv_einleitung: einleitung,
     massnahmen: measures,
+    offene_punkte: offenePunkte,
     technik,
     rohdaten,
     noten: kat.noten,

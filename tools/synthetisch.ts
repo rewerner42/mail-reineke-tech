@@ -31,6 +31,28 @@ export function sauber(): Signal {
   };
 }
 
+/**
+ * Layout worst cases. They are rendered with the synthetic set but stand for no
+ * single catalogue key, so the coverage test leaves them out.
+ */
+export function grenzfaelle(): Map<string, Signal> {
+  const out = new Map<string, Signal>();
+  // The two pages without a page plan at their fullest at once: the note under
+  // a good e-mail grade (B10) on the summary, and every open point (V15) on the
+  // next-step page — SPF, DKIM, mail server and an unrated website.
+  const voll = sauber();
+  voll.level = "hoch";
+  voll.mail.spf = { ...voll.mail.spf, status: "hinweis", zustand: "hinweis" };
+  voll.mail.dkim = { ...voll.mail.dkim, status: "mangel", zustand: "nicht_gefunden", selectors: 0 };
+  voll.mail.mx = { ...voll.mail.mx, status: "mangel", zustand: "ohne_ip", count: 1 };
+  voll.mail.mta_sts = { ...voll.mail.mta_sts, status: "hinweis", zustand: "fehlt" };
+  voll.mail.tls_rpt = { ...voll.mail.tls_rpt, status: "hinweis", zustand: "fehlt" };
+  voll.dnssec = { ...voll.dnssec, grade: "F", score: 0, signed: false, zustand: "nicht_signiert" };
+  voll.observatory = { available: false, grade: null, score: null, passed: null, total: null, tests: [] };
+  out.set("grenzfall-offene-punkte", voll);
+  return out;
+}
+
 /** Everything the catalogue is asked for, as (key → a signal that triggers it). */
 export function synthetisch(): Map<string, Signal> {
   const out = new Map<string, Signal>();

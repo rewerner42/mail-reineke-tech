@@ -110,13 +110,14 @@
       "titel": "Umsetzung überprüfen",
       "text": "Wir wiederholen die Prüfung auf Wunsch kostenfrei, etwa nach Änderungen an Website oder Mailsystem.",
       "aufwand": "kostenfrei",
-      "zustaendig": "Reineke Technik",
+      "zustaendig": null,
       "bezug": [],
       "bezug_text": "–",
       "prio": null,
       "nr": "M-1"
     }
   ],
+  "offene_punkte": [],
   "technik": {
     "dmarc": {
       "note": "A+",
@@ -128,7 +129,8 @@
     "dnssec": {
       "note": "A+",
       "score": 100,
-      "signed": true
+      "signed": true,
+      "zustand_text": "Zone signiert"
     },
     "observatory": {
       "available": true,
@@ -297,8 +299,9 @@
     "cta_massnahmen": null,
     "nachpruefung": null,
     "lesehinweis": "Jede Feststellung beschreibt, was wir gefunden haben, was ein Angreifer damit tun könnte, was das für Sie bedeutet und wie aufwendig die Behebung ist. Darunter steht für Ihre IT die technische Detailzeile. Alle Messwerte finden Sie im technischen Anhang.",
-    "offen_einleitung": "Diese Punkte lassen sich mit dieser Analyse nicht abschließend beurteilen. Wir klären sie gern im Gespräch:",
-    "offen_website": "Wie die Website abschneidet, die bei dieser Analyse nicht automatisch bewertet werden konnte",
+    "offen_einleitung": "Folgende Punkte kann die automatische Prüfung nicht abschließend beurteilen. Wir klären sie gern im Gespräch:",
+    "offen_label": "Offene Punkte",
+    "offen_website": "Wie es um die Schutzregeln Ihrer Website steht",
     "karte_labels": {
       "sachverhalt": "Sachverhalt",
       "angriff": "Was passieren kann",

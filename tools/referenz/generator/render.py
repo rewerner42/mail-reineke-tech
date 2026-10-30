@@ -23,6 +23,7 @@ import tempfile
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
+from markupsafe import Markup, escape
 
 GEN = Path(__file__).resolve().parent
 BASE = GEN.parent
@@ -55,6 +56,21 @@ def fill(text, ctx):
         v = ctx.get(m.group(1))
         return m.group(0) if v is None else str(v)
     return re.sub(r"\{(\w+)\}", sub, text)
+
+
+def zusammenhalten(value):
+    """„E-Mail“ nie am Bindestrich umbrechen: In schmalen Spalten stand sonst „E-“ am
+    Zeilenende. Gilt für jede Ausgabe der Vorlage, wie esc() in src/report/template.ts.
+    Ein Steuerzeichen statt der Spanne würde die Textsuche im PDF stören."""
+    if value is None:
+        return value
+    # Wiederholungsfest: Die Ausgabe eines Makros läuft noch einmal hier durch.
+    return Markup(re.sub(r'(?<!<span class="nw">)E-Mail', '<span class="nw">E-Mail</span>', str(escape(value))))
+
+
+def nummern_zusammenhalten(value):
+    """F-Nummern im Fließtext nicht umbrechen (K19), z. B. im Hinweis zur E-Mail-Note."""
+    return Markup(re.sub(r"F-\d+", lambda m: f'<span class="nw">{m.group(0)}</span>', str(escape(value))))
 
 
 def minus(value):
@@ -478,8 +494,10 @@ def main():
     firma = json.loads((DATEN / "firma.json").read_text())
     env = Environment(loader=FileSystemLoader([str(variante), str(GEN)]),
                       autoescape=select_autoescape(["html", "j2"]),
-                      undefined=StrictUndefined, trim_blocks=True, lstrip_blocks=True)
+                      undefined=StrictUndefined, trim_blocks=True, lstrip_blocks=True,
+                      finalize=zusammenhalten)
     env.filters["minus"] = minus
+    env.filters["nummern_zusammenhalten"] = nummern_zusammenhalten
 
     gesamt_fehler = 0
     for sig_path in sorted(a.signale.glob("*.json")):

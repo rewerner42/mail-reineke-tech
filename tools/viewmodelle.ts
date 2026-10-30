@@ -16,7 +16,7 @@ import { fileURLToPath } from "node:url";
 import { buildViewmodel, type Katalog } from "../src/report/viewmodel.js";
 import type { Signal } from "../src/report/signal.js";
 import { adaptReferenz } from "./referenz-signal.js";
-import { synthetisch } from "./synthetisch.js";
+import { grenzfaelle, synthetisch } from "./synthetisch.js";
 
 const SIG = fileURLToPath(new URL("../tests/fixtures/referenz/signale", import.meta.url));
 const DATEN = fileURLToPath(new URL("../src/report/daten", import.meta.url));
@@ -46,7 +46,7 @@ function schreibe(slug: string, sig: Signal): void {
 
 let n = 0;
 if (synth) {
-  for (const [key, sig] of synthetisch()) {
+  for (const [key, sig] of [...synthetisch(), ...grenzfaelle()]) {
     schreibe(key, { ...sig, domain: key });
     n++;
   }
