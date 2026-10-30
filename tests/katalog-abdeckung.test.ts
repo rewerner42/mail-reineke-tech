@@ -12,8 +12,12 @@
 
 import { describe, expect, it } from "vitest";
 import { OBS_CODES, katalogSchluessel } from "../src/report/observatory-codes.js";
+
+/** Every short id the mapping can produce, including the scan-level one. */
+const OBS_TEST_IDS = [...new Set(Object.values(OBS_CODES).map((c) => c.id))].sort();
 import { ZUSTAND_SCHLUESSEL, buildViewmodel, type Katalog } from "../src/report/viewmodel.js";
 import { sauber, synthetisch } from "../tools/synthetisch.js";
+import { buildSignal } from "../src/report/signal.js";
 import type { Signal, SignalLevel } from "../src/report/signal.js";
 import katalogJson from "../src/report/daten/katalog.json";
 import firmaJson from "../src/report/daten/firma.json";
@@ -62,6 +66,98 @@ describe("every possible result has an approved text", () => {
         for (const f of PFLICHTFELDER) expect(e![f], `${f} fehlt`).toBeTruthy();
       });
     }
+  }
+});
+
+describe("a result code MDN adds after this release", () => {
+  // The dangerous case is not a missing sentence but a report that is never
+  // produced: a bonus code has no fallback chain, and its catalogue key would be
+  // built from an empty variant.
+  function mitUnbekanntemCode(modifier: number) {
+    const sig = sauber();
+    sig.observatory = {
+      ...sig.observatory,
+      grade: "B",
+      score: 70,
+      tests: [
+        {
+          id: "csp", variant: "", modifier, unbekannt: true,
+          code: "csp-implemented-with-trusted-types",
+          result_text: "Originalmeldung von MDN.", recommendation: "Empfehlung von MDN.",
+        },
+      ],
+    };
+    return sig;
+  }
+
+  it("does not stop the report when MDN scores it as a bonus", () => {
+    const v = bau(mitUnbekanntemCode(5)) as Record<string, any>;
+    expect(v.feststellungen.filter((f: any) => f.bereich === "website")).toEqual([]);
+    expect(v.positiv.filter((p: any) => p.bereich === "website")).toEqual([]);
+  });
+
+  it("does not stop the report when MDN scores it as a deduction", () => {
+    const v = bau(mitUnbekanntemCode(-10)) as Record<string, any>;
+    expect(() => v).not.toThrow();
+  });
+
+  it("keeps it in the appendix either way, so the measurement is not lost", () => {
+    for (const m of [5, 0, -10]) {
+      const v = bau(mitUnbekanntemCode(m)) as Record<string, any>;
+      expect(v.technik.observatory.tests, `modifier ${m}`).toHaveLength(1);
+      expect(v.technik.observatory.tests[0].result_text).toBe("Originalmeldung von MDN.");
+    }
+  });
+
+  it("is scored as neutral already in the signal layer", () => {
+    const sig = buildSignal(
+      {
+        domain: "beispiel.de",
+        queriedAt: "2026-10-30T00:00:00Z",
+        dmarc: { status: "pass", summary: "", issues: [], data: null },
+        spf: { status: "pass", summary: "", issues: [], data: null },
+        dkim: { status: "pass", summary: "", issues: [], data: [] },
+        mx: { status: "pass", summary: "", issues: [], data: [] },
+        mtaSts: { status: "pass", summary: "", issues: [], data: {} },
+        tlsRpt: { status: "pass", summary: "", issues: [], data: {} },
+        dnssec: { status: "pass", summary: "", issues: [], data: { secure: true } },
+      } as never,
+      {
+        status: "pass",
+        summary: "",
+        issues: [],
+        grade: "A",
+        data: {
+          grade: "A", score: 95, testsPassed: 12, testsFailed: 0, testsQuantity: 12,
+          scannedAt: null, detailsUrl: "",
+          tests: [
+            {
+              name: "content-security-policy",
+              title: "CSP",
+              result: "csp-implemented-with-trusted-types",
+              pass: true,
+              scoreModifier: 5,
+              reason: "x",
+              recommendation: "",
+            },
+          ],
+        },
+      } as never,
+      "2026-10-30",
+    );
+    expect(sig.observatory.tests[0]!.unbekannt).toBe(true);
+    expect(sig.observatory.tests[0]!.modifier).toBe(0);
+  });
+});
+
+describe("every test id has a German label", () => {
+  // Without this the technical detail line printed our internal short id —
+  // "coep: −5 Punkte" — in a report for a managing director.
+  for (const id of OBS_TEST_IDS) {
+    it(`${id}`, () => {
+      expect(katalog.observatory_labels[id], `observatory_labels.${id} fehlt`).toBeTruthy();
+      expect(katalog.observatory_labels[id]).not.toBe(id);
+    });
   }
 });
 

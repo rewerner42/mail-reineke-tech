@@ -491,13 +491,20 @@ export function buildViewmodel(
   }
   if (dn.signed) positives.push({ bereich: "domain", text: must(p, "dnssec_ok", "positiv") });
   // Observatory bonuses: a result MDN awards points for is something done right.
+  //
+  // Unlike the findings there is no generic fallback text here, and there must
+  // not be one — a praise sentence that fits anything says nothing. So a result
+  // with no approved text is simply left out of the list and stays in the
+  // appendix. Throwing instead would stop the whole report from being produced,
+  // for every domain that sets that one header.
   if (obs.available) {
     for (const t of obs.tests) {
       if (t.modifier <= 0) continue;
-      const key = `obs_${t.id}_${t.variant}`;
+      const text = p[`obs_${t.id}_${t.variant}`] ?? p[`obs_${t.id}`];
+      if (!text) continue;
       positives.push({
         bereich: "website",
-        text: fillStr(must(p, key, "positiv"), { label: kat.observatory_labels[t.id] ?? t.id }),
+        text: fillStr(text, { label: kat.observatory_labels[t.id] ?? t.id }),
       });
     }
   }
@@ -533,7 +540,9 @@ export function buildViewmodel(
     id: t.id,
     label: kat.observatory_labels[t.id] ?? t.id,
     modifier: t.modifier,
-    modifier_text: minus(t.modifier),
+    // A bonus needs its sign: without it "+5" prints as a bare "5" and reads
+    // like a deduction in a column of deductions.
+    modifier_text: t.modifier > 0 ? `+${t.modifier}` : minus(t.modifier),
     result_text: t.result_text,
     recommendation: t.recommendation,
   }));

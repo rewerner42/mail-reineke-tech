@@ -53,6 +53,9 @@ function gradeClass(grade?: string | null): string {
 /**
  * A/B → ok, C → warn, D/E/F/none → fail.
  *
+ * One of three. gradeSeverity() in report/signal.ts is the same rule for the
+ * v15 report, but without the fifth label "Niedrig" that this one still has.
+ *
  * Deliberately NOT the same as gradeToSeverity() in grading.ts, which answers
  * "info" for a missing grade. That one describes a single check: nothing was
  * measured, so there is no verdict. This one feeds the Handlungsbedarf, where a
@@ -315,8 +318,8 @@ function empfehlungPage(domain: string, date: string, L: ReportLogos, brand: Bra
   return `<section class="page summary${brand.funnel ? " summary-merged" : ""}">
   ${emblem ? "" : pageHead("Empfehlung &amp; Ansprechpartner", L, brand)}
   <h2 class="sum-h">Empfehlung für ${esc(domain)}</h2>
-  <p class="sum-intro">Die auf der vorigen Seite dokumentierten Punkte lassen sich kontrolliert und
-    in der Regel kontrolliert und schrittweise schließen. So gehen wir gemeinsam vor:</p>
+  <p class="sum-intro">Die auf der vorigen Seite dokumentierten Punkte lassen sich in der Regel
+    kontrolliert und schrittweise schließen. So gehen wir gemeinsam vor:</p>
   ${offerBlock(brand)}
   ${nextStepBlock(brand)}
   ${contactsBlock(brand)}

@@ -65,8 +65,16 @@ export interface RenderDocumentInput {
  */
 export async function renderDocumentPdf(
   endpoint: BrowserWorker,
-  { document: dokument, origin, timeoutMs = 30_000 }: RenderDocumentInput,
+  { document: dokument, origin, timeoutMs = 40_000 }: RenderDocumentInput,
 ): Promise<Uint8Array> {
+  // One budget for the whole render, not one per step. Two 30 s limits in a row
+  // can outlast a 45 s guard around the call, and a caller that gives up on a
+  // Promise.race does not stop this function — the browser would then stay open
+  // until Cloudflare tears the request down, holding a Browser Rendering session
+  // that the next request cannot replace.
+  const frist = Date.now() + timeoutMs;
+  const rest = () => Math.max(1_000, frist - Date.now());
+
   const browser = await puppeteer.launch(endpoint);
   try {
     const page = await browser.newPage();
@@ -83,7 +91,7 @@ export async function renderDocumentPdf(
     });
     await page.setContent(sanitizeReportHtml(dokument), {
       waitUntil: "networkidle0",
-      timeout: timeoutMs,
+      timeout: rest(),
     });
 
     // A failed image does not shift the layout — the boxes have fixed sizes — so
@@ -102,10 +110,45 @@ export async function renderDocumentPdf(
       throw new Error(`Bilder nicht geladen: ${[...new Set(fehlend)].join(", ")}`);
     }
 
+    // The pages are fixed at A4 with `overflow: hidden`, which keeps the page
+    // count right but means content past the margin is cut off without a trace.
+    // The layout is calibrated against the catalogue, but DNS records, scanner
+    // summaries and MDN's own wording go into it unbounded, so check the real
+    // document rather than trusting the estimate.
+    const ueberlauf = (await page.evaluate(() => {
+      const d = globalThis as unknown as {
+        document: { querySelectorAll: (s: string) => ArrayLike<Record<string, any>> };
+        getComputedStyle: (el: unknown) => Record<string, string>;
+      };
+      const raus: Array<{ seite: number; px: number }> = [];
+      Array.from(d.document.querySelectorAll(".page")).forEach((pg, i) => {
+        const r = pg.getBoundingClientRect();
+        const unten = r.bottom - parseFloat(d.getComputedStyle(pg).paddingBottom || "0");
+        let schlimmste = 0;
+        Array.from(pg.querySelectorAll("*") as ArrayLike<Record<string, any>>).forEach((el) => {
+          const b = el.getBoundingClientRect();
+          if (!b.width && !b.height) return;
+          const pos = d.getComputedStyle(el).position;
+          if (pos === "absolute" || pos === "fixed") return;
+          if (b.bottom - unten > schlimmste) schlimmste = b.bottom - unten;
+        });
+        if (schlimmste > 1) raus.push({ seite: i + 1, px: Math.round(schlimmste) });
+      });
+      return raus;
+    })) as Array<{ seite: number; px: number }>;
+    if (ueberlauf.length) {
+      // A clipped report is still more use than none, so this warns instead of
+      // throwing — but it must not pass unnoticed.
+      console.warn(
+        "Bericht laeuft ueber den Satzspiegel: " +
+          ueberlauf.map((u) => `Seite ${u.seite} um ${u.px} px`).join(", "),
+      );
+    }
+
     const pdf = await page.pdf({
       printBackground: true,
       preferCSSPageSize: true,
-      timeout: timeoutMs,
+      timeout: rest(),
     });
     return pdf as Uint8Array;
   } finally {

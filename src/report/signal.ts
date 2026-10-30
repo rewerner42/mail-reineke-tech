@@ -160,10 +160,18 @@ function zustandMx(c: CheckResult<unknown[]> | undefined): ZustandMx {
   return "ok";
 }
 
+/**
+ * MTA-STS and TLS-RPT. The scanner reports both "nothing published" and
+ * "published but not fully effective" as `warn`, so the state is read off the
+ * issue code: only MTASTS_MISSING / TLSRPT_MISSING mean absent. Without that,
+ * a policy running in testing mode was reported as "not laid down at all" —
+ * a statement about something that is demonstrably there.
+ */
 function zustandTransport(c: CheckResult<unknown> | undefined): ZustandTransport {
   if (nichtPruefbar(c)) return "nicht_pruefbar";
   if (c!.status === "pass") return "ok";
-  return c!.status === "fail" ? "fehlt" : c!.status === "warn" ? "fehlt" : "hinweis";
+  const fehlt = hasCode(c, "MTASTS_MISSING") || hasCode(c, "TLSRPT_MISSING");
+  return fehlt ? "fehlt" : "hinweis";
 }
 
 function check<Z extends string>(c: CheckResult<unknown> | undefined, zustand: Z): SignalCheck<Z> {
@@ -204,7 +212,16 @@ export function handlungsbedarf(
   return "gering";
 }
 
-/** A/B → ok, C → warn, D/E/F/missing → fail. */
+/**
+ * A/B → ok, C → warn, D/E/F/missing → fail.
+ *
+ * Third of three functions that grade a letter. This copy decides the verdict in
+ * the v15 report; gradeSeverity() in report/build.ts is the same rule for the
+ * other brands' four-pager, except that it still has the fifth label "Niedrig",
+ * so the same domain can read "Niedrig" there and "Gering" here.
+ * gradeToSeverity() in grading.ts answers a different question — whether one
+ * check was measurable at all — and returns "info" for a missing grade.
+ */
 function gradeSeverity(grade: string | null | undefined): "ok" | "warn" | "fail" {
   if (!grade) return "fail";
   const g = grade.trim().charAt(0).toUpperCase();
@@ -220,7 +237,13 @@ function obsTests(data: ObservatoryResult | null | undefined): SignalObsTest[] {
     return {
       id: mapped?.id ?? fallbackId,
       variant: mapped?.variant ?? "",
-      modifier: mapped?.modifier ?? t.scoreModifier ?? 0,
+      // A code MDN adds after this release has no approved text, so it counts as
+      // neutral and goes to the appendix only. Keeping MDN's own score here
+      // would route it into the findings or the positive list, where it would
+      // look for a catalogue key built from an empty variant — which cannot
+      // exist. That would not degrade one sentence, it would stop the report
+      // from being produced at all, for every domain that sets that header.
+      modifier: mapped?.modifier ?? 0,
       code: t.result ?? "",
       unbekannt: !mapped,
       result_text: t.reason ?? "",

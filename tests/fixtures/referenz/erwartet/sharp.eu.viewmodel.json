@@ -94,6 +94,7 @@
       "aufwand": "gering",
       "aufwand_text": "Meist beim DNS-Anbieter einschaltbar, dazu ein Eintrag beim Domain-Anbieter.",
       "tech": "DNSSEC: Zone nicht signiert",
+      "schritt": "DNSSEC beim DNS-Anbieter aktivieren und den DS-Eintrag beim Registrar hinterlegen",
       "key": "dnssec_fehlt",
       "quelle": "dnssec",
       "prio_label": "Mittel",
@@ -244,6 +245,7 @@
         "aufwand": "gering",
         "aufwand_text": "Meist beim DNS-Anbieter einschaltbar, dazu ein Eintrag beim Domain-Anbieter.",
         "tech": "DNSSEC: Zone nicht signiert",
+        "schritt": "DNSSEC beim DNS-Anbieter aktivieren und den DS-Eintrag beim Registrar hinterlegen",
         "key": "dnssec_fehlt",
         "quelle": "dnssec",
         "prio_label": "Mittel",
@@ -400,6 +402,7 @@
       "aufwand": "gering",
       "aufwand_text": "Meist beim DNS-Anbieter einschaltbar, dazu ein Eintrag beim Domain-Anbieter.",
       "tech": "DNSSEC: Zone nicht signiert",
+      "schritt": "DNSSEC beim DNS-Anbieter aktivieren und den DS-Eintrag beim Registrar hinterlegen",
       "key": "dnssec_fehlt",
       "quelle": "dnssec",
       "prio_label": "Mittel",
@@ -441,7 +444,7 @@
     {
       "key": "M_DNSSEC",
       "titel": "Adressauskünfte signieren (DNSSEC)",
-      "text": "DNSSEC beim DNS-Anbieter aktivieren, DS-Eintrag dort hinterlegen, wo die Domain registriert ist.",
+      "text": "DNSSEC beim DNS-Anbieter aktivieren und den DS-Eintrag beim Registrar hinterlegen.",
       "aufwand": "gering",
       "zustaendig": "Ihr DNS-Anbieter und Ihr Registrar",
       "bezug": [

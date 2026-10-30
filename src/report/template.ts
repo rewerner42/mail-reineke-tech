@@ -389,7 +389,7 @@ export function berichtHtml(v: Vm): string {
 <div class="r6 az">
   <div class="s12"><b>HTTP Observatory</b></div>
   <div class="s3"><span class="nb ${esc(k_web)}">${esc(minus(t.observatory.note))}</span>${t.observatory.score !== null && t.observatory.score !== undefined ? `<span class="g sc">Score ${esc(t.observatory.score)}</span>` : ""}</div>
-  <div class="s46 t">${t.observatory.available ? `${esc(t.observatory.passed)} von ${esc(t.observatory.total)} Tests bestanden${t.observatory.tests.length ? ". Tests mit Abzug:" : ""}` : "Test nicht verfügbar"}</div>
+  <div class="s46 t">${t.observatory.available ? `${esc(t.observatory.passed)} von ${esc(t.observatory.total)} Tests bestanden${t.observatory.tests.length ? ". Einzelergebnisse:" : ""}` : "Test nicht verfügbar"}</div>
 </div>
 ${t.observatory.tests.map(testzeile).join("")}`;
 

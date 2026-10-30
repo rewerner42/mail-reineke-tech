@@ -422,9 +422,11 @@ async function notifyPentestLead(
       // BEIDE Mails mitreißen. Lieber ohne Anhang melden als gar nicht.
       pdf = await withTimeout(
         nutztBerichtV15(brand)
-          ? buildBerichtV15(env, origin, berichtsDomain).then((b) => b?.pdf ?? null)
+          ? // Der v15-Generator bringt seine eigene Frist mit; der Wettlauf hier
+            // ist nur das Netz darunter und liegt deshalb darueber.
+            buildBerichtV15(env, origin, berichtsDomain).then((b) => b?.pdf ?? null)
           : buildReportPdf(env, origin, berichtsDomain, reportBrandFor(brand, n.kind)),
-        PDF_TIMEOUT_MS,
+        PDF_TIMEOUT_MS + 10_000,
       );
       if (!pdf) pdfFehler = "Browser Rendering nicht verfügbar, Report zu groß oder Zeitgrenze erreicht.";
     } catch (err) {
@@ -437,7 +439,12 @@ async function notifyPentestLead(
       ? [
           {
             filename: `${brand.report.filenamePrefix}-${berichtsDomain}.pdf`,
-            content: bufToBase64(pdf.buffer as ArrayBuffer),
+            // Sicht in den Puffer, nicht der ganze Puffer: page.pdf() kann einen
+            // Ausschnitt eines groesseren Speicherblocks liefern, sonst laegen
+            // fremde Bytes im Anhang.
+            content: bufToBase64(
+              pdf.buffer.slice(pdf.byteOffset, pdf.byteOffset + pdf.byteLength) as ArrayBuffer,
+            ),
             content_type: "application/pdf",
           },
         ]
@@ -1155,7 +1162,11 @@ app.post("/api/generate-report", async (c) => {
   // aus den Firmendaten, eine zweite Karte hat die Vorlage nicht.
   if (nutztBerichtV15(brand)) {
     try {
-      const bericht = await withTimeout(buildBerichtV15(c.env, origin, domain), PDF_TIMEOUT_MS);
+      // Keine aeussere Zeitgrenze: renderDocumentPdf fuehrt eine eigene Frist
+      // ueber den ganzen Lauf und schliesst den Browser in jedem Fall. Ein
+      // Promise.race davor wuerde den Lauf nicht beenden, sondern nur aufhoeren,
+      // auf ihn zu warten — und die Rendering-Sitzung bliebe offen.
+      const bericht = await buildBerichtV15(c.env, origin, domain);
       if (!bericht) {
         return c.json(
           { ok: false, code: "RENDER_FAILED", message: "PDF konnte nicht erstellt werden." },

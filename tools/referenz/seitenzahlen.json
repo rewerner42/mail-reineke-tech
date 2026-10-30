@@ -1,6 +1,6 @@
 {
-  "_hinweis": "Soll-Seitenzahlen der Referenzdatensätze. Der Bericht schätzt Seitenumbrüche aus Zeichenzahlen, deshalb verschiebt jede Katalogänderung die Seitenzahlen. Nach einer Änderung: npm run bericht:pruefen, Werte prüfen, hier festschreiben. Stand: Stufe 2, nach B6, B7, B9, B12, B13, B14, B18 und der Einstufung nach MDN-Abzug.",
-  "socialselling-academy.com": 11,
+  "_hinweis": "Soll-Seitenzahlen der Referenzdatensätze. Der Bericht schätzt Seitenumbrüche aus Zeichenzahlen, deshalb verschiebt jede Katalogänderung die Seitenzahlen. Nach einer Änderung: npm run bericht:pruefen, Werte prüfen, hier festschreiben. Stand: nach der Fachpruefung der Katalogtexte (30.10.2026).",
+  "socialselling-academy.com": 12,
   "budde.de": 12,
   "sharp.eu": 10,
   "steuerkanzlei-lauterbach.com": 13,
