@@ -16,7 +16,7 @@ mkdir -p "$ARBEIT"
 if [ ! -x "$VENV/bin/python" ]; then
   echo "Richte Python-Umgebung in $VENV ein ..."
   python3 -m venv "$VENV"
-  "$VENV/bin/pip" install --quiet jinja2 pillow
+  "$VENV/bin/pip" install --quiet jinja2 pillow pypdf
 fi
 
 if [ "${1:-}" = "synth" ]; then
@@ -68,5 +68,10 @@ npx tsx tools/seitenplan-pruefen.ts tools/referenz/vorlage/out "$ARBEIT/referenz
 # The ported template (src/report/template.ts) against the HTML the Jinja2
 # template produced for the same view model, character for character.
 npx tsx tools/template-pruefen.ts tools/referenz/vorlage/out "$ARBEIT/referenz"
+
+# Acceptance point 7: every link in the PDF has to work — the appointment
+# button, the QR code, the pentest link, mailto:, tel: and the jump marks from
+# the table of contents. A dangling anchor is invisible until someone clicks it.
+"$VENV/bin/python" tools/referenz/links-pruefen.py tools/referenz/vorlage/out
 
 exit $STATUS
