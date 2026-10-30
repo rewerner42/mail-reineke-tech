@@ -17,3 +17,4 @@ worker-configuration.d.ts
 
 # Rendered report proofs from the layout check (tools/referenz/pruefen.sh)
 tools/referenz/vorlage/out/
+tools/referenz/vorlage/synth-out/

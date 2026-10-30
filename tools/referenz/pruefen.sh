@@ -20,10 +20,15 @@ if [ ! -x "$VENV/bin/python" ]; then
 fi
 
 if [ "${1:-}" = "synth" ]; then
-  rm -rf "$ARBEIT/synth"
+  rm -rf "$ARBEIT/synth" tools/referenz/vorlage/synth-out
   npx tsx tools/viewmodelle.ts "$ARBEIT/synth" --synthetisch
-  exec "$VENV/bin/python" tools/referenz/generator/render.py tools/referenz/vorlage \
+  set +e
+  "$VENV/bin/python" tools/referenz/generator/render.py tools/referenz/vorlage \
     --signale "$ARBEIT/synth/signale" --viewmodelle "$ARBEIT/synth" --ausgabe synth-out
+  STATUS=$?
+  set -e
+  npx tsx tools/template-pruefen.ts tools/referenz/vorlage/synth-out "$ARBEIT/synth"
+  exit $STATUS
 fi
 
 rm -rf "$ARBEIT/referenz"
@@ -59,5 +64,9 @@ PYEOF
 # The ported page planning (src/report/seitenplan.ts) against the numbers the
 # template itself rendered: page count and every entry in the contents.
 npx tsx tools/seitenplan-pruefen.ts tools/referenz/vorlage/out "$ARBEIT/referenz"
+
+# The ported template (src/report/template.ts) against the HTML the Jinja2
+# template produced for the same view model, character for character.
+npx tsx tools/template-pruefen.ts tools/referenz/vorlage/out "$ARBEIT/referenz"
 
 exit $STATUS
