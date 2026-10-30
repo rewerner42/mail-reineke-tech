@@ -23,7 +23,7 @@ if [ "${1:-}" = "synth" ]; then
   rm -rf "$ARBEIT/synth"
   npx tsx tools/viewmodelle.ts "$ARBEIT/synth" --synthetisch
   exec "$VENV/bin/python" tools/referenz/generator/render.py tools/referenz/vorlage \
-    --signale "$ARBEIT/synth/signale" --viewmodelle "$ARBEIT/synth" --nur-pruefen
+    --signale "$ARBEIT/synth/signale" --viewmodelle "$ARBEIT/synth" --ausgabe synth-out
 fi
 
 rm -rf "$ARBEIT/referenz"
@@ -56,4 +56,8 @@ if abweichung:
     sys.exit(1)
 print(f"\nSeitenzahlen: {len(soll)} von {len(soll)} wie hinterlegt.")
 PYEOF
+# The ported page planning (src/report/seitenplan.ts) against the numbers the
+# template itself rendered: page count and every entry in the contents.
+npx tsx tools/seitenplan-pruefen.ts tools/referenz/vorlage/out "$ARBEIT/referenz"
+
 exit $STATUS
