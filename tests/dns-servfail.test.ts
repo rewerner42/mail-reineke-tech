@@ -68,6 +68,32 @@ describe("DKIM on an unresolvable zone", () => {
   });
 });
 
+describe("DKIM at IONOS", () => {
+  const echtesFetch = globalThis.fetch;
+  afterEach(() => {
+    globalThis.fetch = echtesFetch;
+    vi.restoreAllMocks();
+  });
+
+  // IONOS publishes its customers' keys under s1-ionos/s2-ionos. Without them in
+  // the probe list, every IONOS domain read "DKIM nicht nachweisbar" (mittel).
+  it("finds a key published under the IONOS selector", async () => {
+    globalThis.fetch = vi.fn(async (url: string | URL) => {
+      const name = new URL(String(url)).searchParams.get("name");
+      if (name === "s1-ionos._domainkey.beispiel.de") {
+        return {
+          ok: true,
+          json: async () => ({ Status: 0, Answer: [{ type: 16, data: '"v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3"' }] }),
+        } as unknown as Response;
+      }
+      return antwort(3);
+    }) as unknown as typeof fetch;
+    const r = await analyzeDkim("beispiel.de");
+    expect(r.data?.map((d) => d.selector)).toContain("s1-ionos");
+    expect(r.issues.map((i) => i.code)).not.toContain("DKIM_NONE_FOUND");
+  });
+});
+
 describe("MTA-STS and TLS-RPT: published but ineffective is not absent", () => {
   // The scanner reports "nothing published" and "published, running in testing
   // mode" both as warn. Reading only the severity made the report state that

@@ -26,6 +26,8 @@ const COMMON_SELECTORS = [
   "mailjet", // Mailjet
   "amazonses", // Amazon SES
   "protonmail", // Proton Mail
+  "s1-ionos", // IONOS — widespread among German small businesses
+  "s2-ionos",
 ];
 
 export function parseDkim(selector: string, raw: string): DkimRecord | null {
