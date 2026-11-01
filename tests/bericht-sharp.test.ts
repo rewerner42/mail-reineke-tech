@@ -118,8 +118,10 @@ describe("die Sharp-Fassung", () => {
     for (const { name, html } of DOKUMENTE) {
       expect(html.match(/id="angebot"/g) ?? [], name).toHaveLength(1);
       expect(html, name).not.toContain('id="pentest"');
-      expect(html, name).toContain("<h2>Unser Angebot — Reineke Technik &amp; Sharp Business Systems Deutschland</h2>");
-      expect(html, name).toContain("DNSSEC-Aktivierung");
+      // Sharp zuerst, die Punkte in der Sprache von v15 (Werner, 01.11.2026).
+      expect(html, name).toContain("<h2>Unser Angebot — Sharp Business Systems Deutschland &amp; Reineke Technik</h2>");
+      expect(html, name).toContain("Adressauskünfte Ihrer Domain signieren und beim Registrar hinterlegen.");
+      expect(html, name).not.toMatch(/SPF-\/DKIM-Alignment|X-Content-Type-Options und SRI/);
     }
     // Das Inhaltsverzeichnis springt zum Angebot.
     expect(HTML).toMatch(/<a class="inh-sub" href="#angebot"><span class="inh-nr"><\/span><span class="inh-t">Unser Angebot/);

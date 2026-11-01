@@ -175,11 +175,12 @@ export function berichtHtml(v: Vm): string {
 
   // ---------------------------------------------------------------- cover
   const dl = String(v.domain).length;
-  // Markenfassung: Markenlogo oben, Reineke unten bei „Erstellt von“.
+  // Markenfassung: Markenlogo oben; unten die Co-Brand-Zeile bei „Erstellt von“
+  // und das Reineke-Zeichen neben „Vertraulich“.
   const deckLogo = marke
     ? `<div class="dcw-marke"><img src="${esc(marke.logo)}" alt="${esc(marke.logo_alt)}"></div>`
     : `<div class="dcw-logo"><img class="dcw-fuchs" src="${esc(v.logo)}" alt="Reineke Technik"><img class="dcw-wort" src="${esc(v.logo)}" alt=""></div>`;
-  w(`<section class="page dcw${dl > 34 ? " dcw--xl" : dl > 26 ? " dcw--l" : ""}${marke ? " dcw--marke" : ""}">
+  w(`<section class="page dcw${dl > 34 ? " dcw--xl" : dl > 26 ? " dcw--l" : ""}">
 <style>${DECKBLATT_CSS}</style>
   ${deckLogo}
   <div class="dcw-titel">

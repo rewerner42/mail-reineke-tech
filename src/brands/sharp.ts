@@ -93,9 +93,10 @@ export const sharp: Brand = {
     foxAsset: "/assets/reineke-official.svg",
     showFox: true,
     wordmarkAlt: "sharp",
-    offerHeading: "Unser Angebot — Reineke Technik &amp; Sharp Business Systems Deutschland",
+    // Sharp zuerst, Reineke als Fachpartner dahinter (Werner, 01.11.2026).
+    offerHeading: "Unser Angebot — Sharp Business Systems Deutschland &amp; Reineke Technik",
     offerLeadIn:
-      "Gemeinsam bringen wir Ihre Domains kontrolliert und nachvollziehbar auf ein durchgesetztes Schutzniveau — die technische Umsetzung durch Reineke Technik, persönliche Betreuung über den Direktvertrieb von Sharp Business Systems, deutschsprachig:",
+      "Gemeinsam bringen wir Ihre Domains kontrolliert und nachvollziehbar auf ein durchgesetztes Schutzniveau — persönliche Betreuung über den Direktvertrieb von Sharp Business Systems, die technische Umsetzung durch Reineke Technik, deutschsprachig:",
     coBrandLine: "in Zusammenarbeit mit Sharp Business Systems Deutschland GmbH",
     filenamePrefix: "Sharp-Befund",
     // Sharp-Fassung des Berichts v15, Inhalte von Werner am 01.11.2026 entschieden:
@@ -125,23 +126,24 @@ export const sharp: Brand = {
           { titel: "Sharp Business Systems", text: "Persönliche Betreuung über den Direktvertrieb" },
           { titel: "Reineke Technik", text: "Prüfung und technische Umsetzung" },
         ],
-        // Die vier Punkte des Vierseiters (src/report/build.ts, offerBlock).
+        // Die vier Punkte des Vierseiters (src/report/build.ts, offerBlock), in
+        // der Sprache von v15: Kapitel 01–04 sind für die Geschäftsführung.
         punkte: [
           {
-            titel: "DMARC-Einführung & -Härtung",
-            text: "Begleiteter Rollout von p=none über p=quarantine bis p=reject, inkl. SPF-/DKIM-Alignment und Auswertung der Aggregat-Reports.",
+            titel: "DMARC-Einführung und -Härtung",
+            text: "Schritt für Schritt bis zur Abweisung gefälschter Absender, mit Auswertung der Berichte.",
           },
           {
             titel: "DNSSEC-Aktivierung",
-            text: "Signierung der Zonen und Hinterlegung des DS-Eintrags beim Registrar.",
+            text: "Adressauskünfte Ihrer Domain signieren und beim Registrar hinterlegen.",
           },
           {
             titel: "Website-Härtung",
-            text: "CSP, HSTS, X-Frame-Options, X-Content-Type-Options und SRI sauber gesetzt.",
+            text: "Schutzregeln Ihrer Website sauber setzen.",
           },
           {
             titel: "Laufendes Monitoring",
-            text: "Kontinuierliche Überwachung und verständliche Berichte — jederzeit kostenfrei nachprüfbar unter sharp.reineke.tech.",
+            text: "Regelmäßige Prüfung mit verständlichen Berichten, jederzeit kostenfrei nachprüfbar unter sharp.reineke.tech.",
           },
         ],
       },

@@ -20,9 +20,9 @@ const SATZSPIEGEL = 242;
 const PENTEST = 90;
 /**
  * Der Angebotskasten einer Markenfassung an derselben Stelle (Sharp), mit
- * Abständen: gemessen 100,7 mm (npm run bericht:pruefen:marke, --messen .angebot).
+ * Abständen: gemessen 96,5 mm (npm run bericht:pruefen:marke, --messen .angebot).
  */
-const ANGEBOT = 101;
+const ANGEBOT = 97;
 /** One-line lead-in above the recommendations, present only when there are findings. */
 const VORSPANN_EMP = 8;
 /** Chapter heading of 05 on its first page. */
