@@ -1,0 +1,1078 @@
+{
+  "domain": "sollich.com",
+  "datum": "30. Oktober 2026",
+  "datum_iso": "2026-10-30",
+  "bericht_nr": "RT-DS-00000000-0000",
+  "level": {
+    "key": "hoch",
+    "label": "Hoch",
+    "satz": "Lücken bei den geprüften Schutzmechanismen sollten zeitnah geschlossen werden, meist mit wenig Aufwand.",
+    "hinweis": "Der Handlungsbedarf ist die Gesamtbewertung des Scanners. Er kann höher ausfallen als die Einstufung der einzelnen Feststellungen."
+  },
+  "bereiche": [
+    {
+      "key": "email",
+      "label": "E-Mail",
+      "pruefung": "DMARC",
+      "schutzziel": "Schutz vor gefälschten Absendern",
+      "note": "A+",
+      "klasse": "good",
+      "wort": "Sehr gut",
+      "bedeutung": "Geprüfter Schutz umgesetzt",
+      "score": 100,
+      "satz": "Gefälschte E-Mails mit Ihrem Absender sollen nur aussortiert werden.",
+      "detail": "v=DMARC1;p=quarantine;pct=100;rua=mailto:Mailbox-DMARC@sollich.com;ruf=mailto:Mailbox-DMARC@sollich.com;ri=84600;fo=1",
+      "anzahl_feststellungen": 4,
+      "note_hinweis": "Die Note bewertet nur DMARC; zu DKIM und MTA-STS und TLS-RPT bestehen Feststellungen (F-06, F-07, F-08)."
+    },
+    {
+      "key": "domain",
+      "label": "Domain",
+      "pruefung": "DNSSEC",
+      "schutzziel": "Echtheit der Adressauskünfte",
+      "note": "F",
+      "klasse": "bad",
+      "wort": "Ungenügend",
+      "bedeutung": "Wesentlicher Schutz fehlt",
+      "score": 0,
+      "satz": "Die Adressauskünfte Ihrer Domain sind nicht gegen Fälschung geschützt.",
+      "detail": "Zone nicht signiert",
+      "anzahl_feststellungen": 1,
+      "note_hinweis": null
+    },
+    {
+      "key": "website",
+      "label": "Website",
+      "pruefung": "HTTP Observatory",
+      "schutzziel": "Schutz Ihrer Website-Besucher",
+      "note": "D",
+      "klasse": "bad",
+      "wort": "Mangelhaft",
+      "bedeutung": "Zeitnah beheben",
+      "score": 30,
+      "satz": "8 von 12 Tests bestanden. Die Note gewichtet nach Schwere.",
+      "detail": "8 von 12 Tests bestanden",
+      "anzahl_feststellungen": 4,
+      "note_hinweis": null
+    }
+  ],
+  "feststellungen": [
+    {
+      "bereich": "domain",
+      "prio": "mittel",
+      "massnahme": "M_DNSSEC",
+      "fach": "DNSSEC",
+      "titel": "Adressauskünfte der Domain nicht signiert",
+      "kurz": "Mit erheblichem Aufwand ließen sich Besucher und E-Mails auf gefälschte Server umleiten.",
+      "feststellung": "Die Adressauskünfte Ihrer Domain (DNS), unter welcher Adresse Website und Mailserver erreichbar sind, tragen keine digitale Signatur (DNSSEC).",
+      "angriff": "Mit erheblichem Aufwand lassen sich Adressauskünfte fälschen und, ohne MTA-STS, E-Mails umleiten. Besucher schützt vor allem erzwungenes HTTPS.",
+      "auswirkung": "E-Mails an Sie oder Eingaben Ihrer Besucher könnten abgefangen werden.",
+      "aufwand": "gering",
+      "aufwand_text": "Meist beim DNS-Anbieter einschaltbar, dazu ein Eintrag beim Domain-Anbieter.",
+      "tech": "DNSSEC: Zone nicht signiert",
+      "key": "dnssec_fehlt",
+      "quelle": "dnssec",
+      "prio_label": "Mittel",
+      "prio_rang": 1,
+      "bereich_label": "Domain",
+      "modifier": null,
+      "signal_text": "Kein DNSSEC (Note F)",
+      "nr": "F-01",
+      "massnahme_nr": "M-2"
+    },
+    {
+      "bereich": "website",
+      "prio": "mittel",
+      "massnahme": "M_WEB",
+      "fach": "Content Security Policy",
+      "titel": "Keine Schutzregel für Skripte",
+      "kurz": "Eingeschleuster Programmcode würde auf Ihrer Website nicht blockiert.",
+      "feststellung": "Die Website legt nicht fest, welcher Programmcode ausgeführt werden darf (Content Security Policy fehlt).",
+      "angriff": "Gelingt es, Code einzuschleusen, etwa über ein Formular oder ein veraltetes Plugin, wird er nicht blockiert. Er kann Eingaben mitlesen oder Besucher umleiten.",
+      "auswirkung": "Ihre Website könnte gegen Ihre eigenen Besucher eingesetzt werden.",
+      "aufwand": "mittel",
+      "aufwand_text": "Erfordert Abstimmung mit der Website-Entwicklung.",
+      "tech": "Content Security Policy (CSP): −25 Punkte · „Content-Security-Policy-Header nicht implementiert.“",
+      "key": "obs_csp_missing",
+      "quelle": "observatory",
+      "prio_label": "Mittel",
+      "prio_rang": 1,
+      "bereich_label": "Website",
+      "modifier": -25,
+      "signal_text": "Content-Security-Policy-Header nicht implementiert.",
+      "nr": "F-02",
+      "massnahme_nr": "M-1"
+    },
+    {
+      "bereich": "website",
+      "prio": "mittel",
+      "massnahme": "M_WEB",
+      "fach": "HSTS",
+      "titel": "Verschlüsselung wird nicht erzwungen",
+      "kurz": "In öffentlichen WLANs könnten Verbindungen zu Ihrer Website abgefangen werden.",
+      "feststellung": "Die Website weist Browser nicht an, ausschließlich verschlüsselt zu verbinden (HSTS).",
+      "angriff": "In öffentlichen WLANs (Hotel, Messe, Bahn) kann der erste Aufruf auf eine unverschlüsselte Verbindung umgeleitet und mitgelesen werden.",
+      "auswirkung": "Formulareingaben und Anmeldedaten könnten dort mitgelesen werden.",
+      "aufwand": "gering",
+      "aufwand_text": "Eine Zeile in der Serverkonfiguration.",
+      "tech": "HSTS (Strict-Transport-Security): −20 Punkte · „Strict-Transport-Security-Header nicht implementiert.“",
+      "key": "obs_hsts_missing",
+      "quelle": "observatory",
+      "prio_label": "Mittel",
+      "prio_rang": 1,
+      "bereich_label": "Website",
+      "modifier": -20,
+      "signal_text": "Strict-Transport-Security-Header nicht implementiert.",
+      "nr": "F-03",
+      "massnahme_nr": "M-1"
+    },
+    {
+      "bereich": "website",
+      "prio": "mittel",
+      "massnahme": "M_WEB",
+      "fach": "X-Frame-Options",
+      "titel": "Kein Schutz vor unsichtbarer Einbettung",
+      "kurz": "Ihre Website kann in fremde Seiten eingebettet und missbraucht werden.",
+      "feststellung": "Die Website kann unsichtbar in fremde Webseiten eingebettet werden (X-Frame-Options bzw. frame-ancestors fehlt).",
+      "angriff": "Angreifer könnten Besucher unbemerkt Aktionen auf Ihrer Website auslösen lassen (Clickjacking).",
+      "auswirkung": "Vorhandene Formulare oder Konten könnten missbraucht werden.",
+      "aufwand": "gering",
+      "aufwand_text": "Eine Zeile in der Serverkonfiguration.",
+      "tech": "X-Frame-Options: −20 Punkte · „X-Frame-Options-Header (XFO) nicht implementiert.“",
+      "key": "obs_xfo_missing",
+      "quelle": "observatory",
+      "prio_label": "Mittel",
+      "prio_rang": 1,
+      "bereich_label": "Website",
+      "modifier": -20,
+      "signal_text": "X-Frame-Options-Header (XFO) nicht implementiert.",
+      "nr": "F-04",
+      "massnahme_nr": "M-1"
+    },
+    {
+      "bereich": "email",
+      "prio": "gering",
+      "massnahme": "M_MAIL_AUTH",
+      "fach": "DMARC",
+      "titel": "Gefälschte E-Mails sollen nur aussortiert werden",
+      "kurz": "Gefälschte E-Mails landen im Spam-Ordner, statt abgewiesen zu werden.",
+      "feststellung": "Der DMARC-Eintrag steht auf „quarantine“. Gefälschte E-Mails werden in den Spam-Ordner verschoben, aber nicht abgewiesen.",
+      "angriff": "Gefälschte Nachrichten bleiben im Spam-Ordner lesbar und werden dort gelegentlich doch geöffnet.",
+      "auswirkung": "Geringes Restrisiko bei Empfängern, die ihren Spam-Ordner prüfen.",
+      "aufwand": "gering",
+      "aufwand_text": "Richtlinie auf „reject“ anheben.",
+      "tech": "DMARC: v=DMARC1;p=quarantine;pct=100;rua=mailto:Mailbox-DMARC@sollich.com;ruf=mailto:Mailbox-DMARC@sollich.com;ri=84600;fo=1",
+      "schritt": "DMARC-Richtlinie auf „reject“ anheben",
+      "key": "dmarc_quarantine",
+      "quelle": "dmarc",
+      "prio_label": "Gering",
+      "prio_rang": 2,
+      "bereich_label": "E-Mail",
+      "modifier": null,
+      "signal_text": "DMARC aktiv (Note A+, p=quarantine).",
+      "nr": "F-05",
+      "massnahme_nr": "M-3"
+    },
+    {
+      "bereich": "email",
+      "prio": "gering",
+      "massnahme": "M_MAIL_AUTH",
+      "fach": "DKIM",
+      "titel": "Digitale E-Mail-Signatur prüfen",
+      "kurz": "Die Prüfung bestätigt die E-Mail-Signatur nicht als einwandfrei.",
+      "feststellung": "Mindestens ein DKIM-Schlüssel ist veröffentlicht (1 DKIM-Selektor gefunden). Die Prüfung bestätigt die Einrichtung nicht als einwandfrei.",
+      "angriff": "Kein direkter Angriffsweg. Zu kurze oder ungenutzte Schlüssel können den Fälschungsschutz schwächen.",
+      "auswirkung": "Geringes Restrisiko für Fälschungsschutz und Zustellbarkeit.",
+      "aufwand": "gering",
+      "aufwand_text": "Länge und Nutzung je Schlüssel prüfen, ungenutzte entfernen.",
+      "tech": "DKIM: 1 DKIM-Selektor gefunden",
+      "schritt": "DKIM-Schlüssel je Selektor prüfen, nicht mehr genutzte entfernen",
+      "offen": "Ob die gefundenen DKIM-Schlüssel noch in Gebrauch sind",
+      "key": "dkim_hinweis",
+      "quelle": "dkim",
+      "prio_label": "Gering",
+      "prio_rang": 2,
+      "bereich_label": "E-Mail",
+      "modifier": null,
+      "signal_text": "1 DKIM-Selektor gefunden",
+      "nr": "F-06",
+      "massnahme_nr": "M-3"
+    },
+    {
+      "bereich": "email",
+      "prio": "gering",
+      "massnahme": "M_MAIL_TRANSPORT",
+      "fach": "MTA-STS",
+      "titel": "Verschlüsselte Zustellung nicht verbindlich",
+      "kurz": "E-Mails an Sie können auf dem Transportweg unverschlüsselt übertragen werden.",
+      "feststellung": "Es ist nicht verbindlich festgelegt, dass E-Mails an Ihre Domain nur verschlüsselt zugestellt werden dürfen (MTA-STS).",
+      "angriff": "Wer Zugriff auf den Übertragungsweg zwischen den Mailservern hat, kann die Verschlüsselung unterdrücken und E-Mails mitlesen.",
+      "auswirkung": "Vertrauliche E-Mails an Sie sind auf dem Transportweg weniger geschützt.",
+      "aufwand": "gering bis mittel",
+      "aufwand_text": "Richtliniendatei mit gültigem Zertifikat und DNS-Eintrag anlegen.",
+      "tech": "MTA-STS: Kein MTA-STS",
+      "schritt": "MTA-STS einrichten, damit E-Mails an Sie nur verschlüsselt zugestellt werden dürfen",
+      "key": "mta_sts_fehlt",
+      "quelle": "mta_sts",
+      "prio_label": "Gering",
+      "prio_rang": 2,
+      "bereich_label": "E-Mail",
+      "modifier": null,
+      "signal_text": "Kein MTA-STS",
+      "nr": "F-07",
+      "massnahme_nr": "M-4"
+    },
+    {
+      "bereich": "email",
+      "prio": "gering",
+      "massnahme": "M_MAIL_TRANSPORT",
+      "fach": "TLS-RPT",
+      "titel": "Keine Fehlerberichte zur Verschlüsselung",
+      "kurz": "Sie erfahren nicht, wenn verschlüsselte Zustellung scheitert.",
+      "feststellung": "Für Berichte über Probleme bei der verschlüsselten Zustellung ist keine gültige Adresse hinterlegt (TLS-RPT).",
+      "angriff": "Störungen oder Manipulationen der Transportverschlüsselung bleiben unbemerkt.",
+      "auswirkung": "Probleme werden erst bemerkt, wenn E-Mails fehlen.",
+      "aufwand": "gering",
+      "aufwand_text": "Ein DNS-Eintrag.",
+      "tech": "TLS-RPT: Kein TLS-RPT",
+      "schritt": "TLS-RPT einrichten, damit Probleme bei der verschlüsselten Zustellung gemeldet werden",
+      "key": "tls_rpt_fehlt",
+      "quelle": "tls_rpt",
+      "prio_label": "Gering",
+      "prio_rang": 2,
+      "bereich_label": "E-Mail",
+      "modifier": null,
+      "signal_text": "Kein TLS-RPT",
+      "nr": "F-08",
+      "massnahme_nr": "M-4"
+    },
+    {
+      "bereich": "website",
+      "prio": "gering",
+      "massnahme": "M_WEB",
+      "fach": "Subresource Integrity",
+      "titel": "Fremde Skripte ohne Prüfung auf Veränderungen",
+      "kurz": "Fremder Programmcode wird geladen, ohne zu prüfen, ob er verändert wurde.",
+      "feststellung": "Die Website lädt Programmcode fremder Server verschlüsselt, aber ohne dass Browser prüfen können, ob er verändert wurde (Subresource Integrity).",
+      "angriff": "Wird einer der fremden Anbieter gehackt, führen die Browser Ihrer Besucher den veränderten Code automatisch aus, ohne dass Ihre Website es bemerkt.",
+      "auswirkung": "Abhängigkeit von der Sicherheit fremder Anbieter.",
+      "aufwand": "gering",
+      "aufwand_text": "Prüfsummen für externe Skripte ergänzen.",
+      "tech": "Subresource Integrity (SRI): −5 Punkte · „Subresource Integrity (SRI) nicht implementiert, aber alle externen Skripte werden über HTTPS geladen.“",
+      "key": "obs_sri_https",
+      "quelle": "observatory",
+      "prio_label": "Gering",
+      "prio_rang": 2,
+      "bereich_label": "Website",
+      "modifier": -5,
+      "signal_text": "Subresource Integrity (SRI) nicht implementiert, aber alle externen Skripte werden über HTTPS geladen.",
+      "nr": "F-09",
+      "massnahme_nr": "M-1"
+    }
+  ],
+  "nach_prio": {
+    "hoch": [],
+    "mittel": [
+      {
+        "bereich": "domain",
+        "prio": "mittel",
+        "massnahme": "M_DNSSEC",
+        "fach": "DNSSEC",
+        "titel": "Adressauskünfte der Domain nicht signiert",
+        "kurz": "Mit erheblichem Aufwand ließen sich Besucher und E-Mails auf gefälschte Server umleiten.",
+        "feststellung": "Die Adressauskünfte Ihrer Domain (DNS), unter welcher Adresse Website und Mailserver erreichbar sind, tragen keine digitale Signatur (DNSSEC).",
+        "angriff": "Mit erheblichem Aufwand lassen sich Adressauskünfte fälschen und, ohne MTA-STS, E-Mails umleiten. Besucher schützt vor allem erzwungenes HTTPS.",
+        "auswirkung": "E-Mails an Sie oder Eingaben Ihrer Besucher könnten abgefangen werden.",
+        "aufwand": "gering",
+        "aufwand_text": "Meist beim DNS-Anbieter einschaltbar, dazu ein Eintrag beim Domain-Anbieter.",
+        "tech": "DNSSEC: Zone nicht signiert",
+        "key": "dnssec_fehlt",
+        "quelle": "dnssec",
+        "prio_label": "Mittel",
+        "prio_rang": 1,
+        "bereich_label": "Domain",
+        "modifier": null,
+        "signal_text": "Kein DNSSEC (Note F)",
+        "nr": "F-01",
+        "massnahme_nr": "M-2"
+      },
+      {
+        "bereich": "website",
+        "prio": "mittel",
+        "massnahme": "M_WEB",
+        "fach": "Content Security Policy",
+        "titel": "Keine Schutzregel für Skripte",
+        "kurz": "Eingeschleuster Programmcode würde auf Ihrer Website nicht blockiert.",
+        "feststellung": "Die Website legt nicht fest, welcher Programmcode ausgeführt werden darf (Content Security Policy fehlt).",
+        "angriff": "Gelingt es, Code einzuschleusen, etwa über ein Formular oder ein veraltetes Plugin, wird er nicht blockiert. Er kann Eingaben mitlesen oder Besucher umleiten.",
+        "auswirkung": "Ihre Website könnte gegen Ihre eigenen Besucher eingesetzt werden.",
+        "aufwand": "mittel",
+        "aufwand_text": "Erfordert Abstimmung mit der Website-Entwicklung.",
+        "tech": "Content Security Policy (CSP): −25 Punkte · „Content-Security-Policy-Header nicht implementiert.“",
+        "key": "obs_csp_missing",
+        "quelle": "observatory",
+        "prio_label": "Mittel",
+        "prio_rang": 1,
+        "bereich_label": "Website",
+        "modifier": -25,
+        "signal_text": "Content-Security-Policy-Header nicht implementiert.",
+        "nr": "F-02",
+        "massnahme_nr": "M-1"
+      },
+      {
+        "bereich": "website",
+        "prio": "mittel",
+        "massnahme": "M_WEB",
+        "fach": "HSTS",
+        "titel": "Verschlüsselung wird nicht erzwungen",
+        "kurz": "In öffentlichen WLANs könnten Verbindungen zu Ihrer Website abgefangen werden.",
+        "feststellung": "Die Website weist Browser nicht an, ausschließlich verschlüsselt zu verbinden (HSTS).",
+        "angriff": "In öffentlichen WLANs (Hotel, Messe, Bahn) kann der erste Aufruf auf eine unverschlüsselte Verbindung umgeleitet und mitgelesen werden.",
+        "auswirkung": "Formulareingaben und Anmeldedaten könnten dort mitgelesen werden.",
+        "aufwand": "gering",
+        "aufwand_text": "Eine Zeile in der Serverkonfiguration.",
+        "tech": "HSTS (Strict-Transport-Security): −20 Punkte · „Strict-Transport-Security-Header nicht implementiert.“",
+        "key": "obs_hsts_missing",
+        "quelle": "observatory",
+        "prio_label": "Mittel",
+        "prio_rang": 1,
+        "bereich_label": "Website",
+        "modifier": -20,
+        "signal_text": "Strict-Transport-Security-Header nicht implementiert.",
+        "nr": "F-03",
+        "massnahme_nr": "M-1"
+      },
+      {
+        "bereich": "website",
+        "prio": "mittel",
+        "massnahme": "M_WEB",
+        "fach": "X-Frame-Options",
+        "titel": "Kein Schutz vor unsichtbarer Einbettung",
+        "kurz": "Ihre Website kann in fremde Seiten eingebettet und missbraucht werden.",
+        "feststellung": "Die Website kann unsichtbar in fremde Webseiten eingebettet werden (X-Frame-Options bzw. frame-ancestors fehlt).",
+        "angriff": "Angreifer könnten Besucher unbemerkt Aktionen auf Ihrer Website auslösen lassen (Clickjacking).",
+        "auswirkung": "Vorhandene Formulare oder Konten könnten missbraucht werden.",
+        "aufwand": "gering",
+        "aufwand_text": "Eine Zeile in der Serverkonfiguration.",
+        "tech": "X-Frame-Options: −20 Punkte · „X-Frame-Options-Header (XFO) nicht implementiert.“",
+        "key": "obs_xfo_missing",
+        "quelle": "observatory",
+        "prio_label": "Mittel",
+        "prio_rang": 1,
+        "bereich_label": "Website",
+        "modifier": -20,
+        "signal_text": "X-Frame-Options-Header (XFO) nicht implementiert.",
+        "nr": "F-04",
+        "massnahme_nr": "M-1"
+      }
+    ],
+    "gering": [
+      {
+        "bereich": "email",
+        "prio": "gering",
+        "massnahme": "M_MAIL_AUTH",
+        "fach": "DMARC",
+        "titel": "Gefälschte E-Mails sollen nur aussortiert werden",
+        "kurz": "Gefälschte E-Mails landen im Spam-Ordner, statt abgewiesen zu werden.",
+        "feststellung": "Der DMARC-Eintrag steht auf „quarantine“. Gefälschte E-Mails werden in den Spam-Ordner verschoben, aber nicht abgewiesen.",
+        "angriff": "Gefälschte Nachrichten bleiben im Spam-Ordner lesbar und werden dort gelegentlich doch geöffnet.",
+        "auswirkung": "Geringes Restrisiko bei Empfängern, die ihren Spam-Ordner prüfen.",
+        "aufwand": "gering",
+        "aufwand_text": "Richtlinie auf „reject“ anheben.",
+        "tech": "DMARC: v=DMARC1;p=quarantine;pct=100;rua=mailto:Mailbox-DMARC@sollich.com;ruf=mailto:Mailbox-DMARC@sollich.com;ri=84600;fo=1",
+        "schritt": "DMARC-Richtlinie auf „reject“ anheben",
+        "key": "dmarc_quarantine",
+        "quelle": "dmarc",
+        "prio_label": "Gering",
+        "prio_rang": 2,
+        "bereich_label": "E-Mail",
+        "modifier": null,
+        "signal_text": "DMARC aktiv (Note A+, p=quarantine).",
+        "nr": "F-05",
+        "massnahme_nr": "M-3"
+      },
+      {
+        "bereich": "email",
+        "prio": "gering",
+        "massnahme": "M_MAIL_AUTH",
+        "fach": "DKIM",
+        "titel": "Digitale E-Mail-Signatur prüfen",
+        "kurz": "Die Prüfung bestätigt die E-Mail-Signatur nicht als einwandfrei.",
+        "feststellung": "Mindestens ein DKIM-Schlüssel ist veröffentlicht (1 DKIM-Selektor gefunden). Die Prüfung bestätigt die Einrichtung nicht als einwandfrei.",
+        "angriff": "Kein direkter Angriffsweg. Zu kurze oder ungenutzte Schlüssel können den Fälschungsschutz schwächen.",
+        "auswirkung": "Geringes Restrisiko für Fälschungsschutz und Zustellbarkeit.",
+        "aufwand": "gering",
+        "aufwand_text": "Länge und Nutzung je Schlüssel prüfen, ungenutzte entfernen.",
+        "tech": "DKIM: 1 DKIM-Selektor gefunden",
+        "schritt": "DKIM-Schlüssel je Selektor prüfen, nicht mehr genutzte entfernen",
+        "offen": "Ob die gefundenen DKIM-Schlüssel noch in Gebrauch sind",
+        "key": "dkim_hinweis",
+        "quelle": "dkim",
+        "prio_label": "Gering",
+        "prio_rang": 2,
+        "bereich_label": "E-Mail",
+        "modifier": null,
+        "signal_text": "1 DKIM-Selektor gefunden",
+        "nr": "F-06",
+        "massnahme_nr": "M-3"
+      },
+      {
+        "bereich": "email",
+        "prio": "gering",
+        "massnahme": "M_MAIL_TRANSPORT",
+        "fach": "MTA-STS",
+        "titel": "Verschlüsselte Zustellung nicht verbindlich",
+        "kurz": "E-Mails an Sie können auf dem Transportweg unverschlüsselt übertragen werden.",
+        "feststellung": "Es ist nicht verbindlich festgelegt, dass E-Mails an Ihre Domain nur verschlüsselt zugestellt werden dürfen (MTA-STS).",
+        "angriff": "Wer Zugriff auf den Übertragungsweg zwischen den Mailservern hat, kann die Verschlüsselung unterdrücken und E-Mails mitlesen.",
+        "auswirkung": "Vertrauliche E-Mails an Sie sind auf dem Transportweg weniger geschützt.",
+        "aufwand": "gering bis mittel",
+        "aufwand_text": "Richtliniendatei mit gültigem Zertifikat und DNS-Eintrag anlegen.",
+        "tech": "MTA-STS: Kein MTA-STS",
+        "schritt": "MTA-STS einrichten, damit E-Mails an Sie nur verschlüsselt zugestellt werden dürfen",
+        "key": "mta_sts_fehlt",
+        "quelle": "mta_sts",
+        "prio_label": "Gering",
+        "prio_rang": 2,
+        "bereich_label": "E-Mail",
+        "modifier": null,
+        "signal_text": "Kein MTA-STS",
+        "nr": "F-07",
+        "massnahme_nr": "M-4"
+      },
+      {
+        "bereich": "email",
+        "prio": "gering",
+        "massnahme": "M_MAIL_TRANSPORT",
+        "fach": "TLS-RPT",
+        "titel": "Keine Fehlerberichte zur Verschlüsselung",
+        "kurz": "Sie erfahren nicht, wenn verschlüsselte Zustellung scheitert.",
+        "feststellung": "Für Berichte über Probleme bei der verschlüsselten Zustellung ist keine gültige Adresse hinterlegt (TLS-RPT).",
+        "angriff": "Störungen oder Manipulationen der Transportverschlüsselung bleiben unbemerkt.",
+        "auswirkung": "Probleme werden erst bemerkt, wenn E-Mails fehlen.",
+        "aufwand": "gering",
+        "aufwand_text": "Ein DNS-Eintrag.",
+        "tech": "TLS-RPT: Kein TLS-RPT",
+        "schritt": "TLS-RPT einrichten, damit Probleme bei der verschlüsselten Zustellung gemeldet werden",
+        "key": "tls_rpt_fehlt",
+        "quelle": "tls_rpt",
+        "prio_label": "Gering",
+        "prio_rang": 2,
+        "bereich_label": "E-Mail",
+        "modifier": null,
+        "signal_text": "Kein TLS-RPT",
+        "nr": "F-08",
+        "massnahme_nr": "M-4"
+      },
+      {
+        "bereich": "website",
+        "prio": "gering",
+        "massnahme": "M_WEB",
+        "fach": "Subresource Integrity",
+        "titel": "Fremde Skripte ohne Prüfung auf Veränderungen",
+        "kurz": "Fremder Programmcode wird geladen, ohne zu prüfen, ob er verändert wurde.",
+        "feststellung": "Die Website lädt Programmcode fremder Server verschlüsselt, aber ohne dass Browser prüfen können, ob er verändert wurde (Subresource Integrity).",
+        "angriff": "Wird einer der fremden Anbieter gehackt, führen die Browser Ihrer Besucher den veränderten Code automatisch aus, ohne dass Ihre Website es bemerkt.",
+        "auswirkung": "Abhängigkeit von der Sicherheit fremder Anbieter.",
+        "aufwand": "gering",
+        "aufwand_text": "Prüfsummen für externe Skripte ergänzen.",
+        "tech": "Subresource Integrity (SRI): −5 Punkte · „Subresource Integrity (SRI) nicht implementiert, aber alle externen Skripte werden über HTTPS geladen.“",
+        "key": "obs_sri_https",
+        "quelle": "observatory",
+        "prio_label": "Gering",
+        "prio_rang": 2,
+        "bereich_label": "Website",
+        "modifier": -5,
+        "signal_text": "Subresource Integrity (SRI) nicht implementiert, aber alle externen Skripte werden über HTTPS geladen.",
+        "nr": "F-09",
+        "massnahme_nr": "M-1"
+      }
+    ]
+  },
+  "anzahl": {
+    "hoch": 0,
+    "mittel": 4,
+    "gering": 5,
+    "gesamt": 9
+  },
+  "top": [
+    {
+      "bereich": "domain",
+      "prio": "mittel",
+      "massnahme": "M_DNSSEC",
+      "fach": "DNSSEC",
+      "titel": "Adressauskünfte der Domain nicht signiert",
+      "kurz": "Mit erheblichem Aufwand ließen sich Besucher und E-Mails auf gefälschte Server umleiten.",
+      "feststellung": "Die Adressauskünfte Ihrer Domain (DNS), unter welcher Adresse Website und Mailserver erreichbar sind, tragen keine digitale Signatur (DNSSEC).",
+      "angriff": "Mit erheblichem Aufwand lassen sich Adressauskünfte fälschen und, ohne MTA-STS, E-Mails umleiten. Besucher schützt vor allem erzwungenes HTTPS.",
+      "auswirkung": "E-Mails an Sie oder Eingaben Ihrer Besucher könnten abgefangen werden.",
+      "aufwand": "gering",
+      "aufwand_text": "Meist beim DNS-Anbieter einschaltbar, dazu ein Eintrag beim Domain-Anbieter.",
+      "tech": "DNSSEC: Zone nicht signiert",
+      "key": "dnssec_fehlt",
+      "quelle": "dnssec",
+      "prio_label": "Mittel",
+      "prio_rang": 1,
+      "bereich_label": "Domain",
+      "modifier": null,
+      "signal_text": "Kein DNSSEC (Note F)",
+      "nr": "F-01",
+      "massnahme_nr": "M-2"
+    },
+    {
+      "bereich": "website",
+      "prio": "mittel",
+      "massnahme": "M_WEB",
+      "fach": "Content Security Policy",
+      "titel": "Keine Schutzregel für Skripte",
+      "kurz": "Eingeschleuster Programmcode würde auf Ihrer Website nicht blockiert.",
+      "feststellung": "Die Website legt nicht fest, welcher Programmcode ausgeführt werden darf (Content Security Policy fehlt).",
+      "angriff": "Gelingt es, Code einzuschleusen, etwa über ein Formular oder ein veraltetes Plugin, wird er nicht blockiert. Er kann Eingaben mitlesen oder Besucher umleiten.",
+      "auswirkung": "Ihre Website könnte gegen Ihre eigenen Besucher eingesetzt werden.",
+      "aufwand": "mittel",
+      "aufwand_text": "Erfordert Abstimmung mit der Website-Entwicklung.",
+      "tech": "Content Security Policy (CSP): −25 Punkte · „Content-Security-Policy-Header nicht implementiert.“",
+      "key": "obs_csp_missing",
+      "quelle": "observatory",
+      "prio_label": "Mittel",
+      "prio_rang": 1,
+      "bereich_label": "Website",
+      "modifier": -25,
+      "signal_text": "Content-Security-Policy-Header nicht implementiert.",
+      "nr": "F-02",
+      "massnahme_nr": "M-1"
+    },
+    {
+      "bereich": "website",
+      "prio": "mittel",
+      "massnahme": "M_WEB",
+      "fach": "HSTS",
+      "titel": "Verschlüsselung wird nicht erzwungen",
+      "kurz": "In öffentlichen WLANs könnten Verbindungen zu Ihrer Website abgefangen werden.",
+      "feststellung": "Die Website weist Browser nicht an, ausschließlich verschlüsselt zu verbinden (HSTS).",
+      "angriff": "In öffentlichen WLANs (Hotel, Messe, Bahn) kann der erste Aufruf auf eine unverschlüsselte Verbindung umgeleitet und mitgelesen werden.",
+      "auswirkung": "Formulareingaben und Anmeldedaten könnten dort mitgelesen werden.",
+      "aufwand": "gering",
+      "aufwand_text": "Eine Zeile in der Serverkonfiguration.",
+      "tech": "HSTS (Strict-Transport-Security): −20 Punkte · „Strict-Transport-Security-Header nicht implementiert.“",
+      "key": "obs_hsts_missing",
+      "quelle": "observatory",
+      "prio_label": "Mittel",
+      "prio_rang": 1,
+      "bereich_label": "Website",
+      "modifier": -20,
+      "signal_text": "Strict-Transport-Security-Header nicht implementiert.",
+      "nr": "F-03",
+      "massnahme_nr": "M-1"
+    }
+  ],
+  "positiv": [
+    {
+      "bereich": "email",
+      "text": "Gefälschte E-Mails sollen aussortiert werden (DMARC „quarantine“)"
+    },
+    {
+      "bereich": "email",
+      "text": "Auswertungsberichte angefordert (DMARC)"
+    },
+    {
+      "bereich": "email",
+      "text": "Berechtigte Mailserver festgelegt (SPF)"
+    }
+  ],
+  "positiv_einleitung": "Ihr DMARC-Eintrag weist Mailserver an, E-Mails mit gefälschtem Absender abzuweisen oder auszusortieren: ein wesentlicher Baustein gegen Rechnungs- und Chef-Betrug.",
+  "massnahmen": [
+    {
+      "key": "M_WEB",
+      "titel": "Website-Schutzregeln ergänzen und verschärfen",
+      "text": "Betroffen: Content Security Policy, HSTS, X-Frame-Options, Subresource Integrity.",
+      "aufwand": "gering bis mittel",
+      "zustaendig": "Ihre Webagentur oder Ihr Hosting-Anbieter",
+      "bezug": [
+        "F-02",
+        "F-03",
+        "F-04",
+        "F-09"
+      ],
+      "bezug_text": "F-02, F-03, F-04, F-09",
+      "prio": "mittel",
+      "nr": "M-1"
+    },
+    {
+      "key": "M_DNSSEC",
+      "titel": "Adressauskünfte signieren (DNSSEC)",
+      "text": "DNSSEC beim DNS-Anbieter aktivieren, DS-Eintrag dort hinterlegen, wo die Domain registriert ist.",
+      "aufwand": "gering",
+      "zustaendig": "Ihr DNS-Anbieter und Ihr Registrar",
+      "bezug": [
+        "F-01"
+      ],
+      "bezug_text": "F-01",
+      "prio": "mittel",
+      "nr": "M-2"
+    },
+    {
+      "key": "M_MAIL_AUTH",
+      "titel": "E-Mail-Absender absichern",
+      "text": "DMARC-Richtlinie auf „reject“ anheben; DKIM-Schlüssel je Selektor prüfen, nicht mehr genutzte entfernen.",
+      "aufwand": "gering",
+      "zustaendig": "Ihre IT oder Ihr IT-Dienstleister, gemeinsam mit dem Mailanbieter",
+      "bezug": [
+        "F-05",
+        "F-06"
+      ],
+      "bezug_text": "F-05, F-06",
+      "prio": "gering",
+      "nr": "M-3"
+    },
+    {
+      "key": "M_MAIL_TRANSPORT",
+      "titel": "Verschlüsselte E-Mail-Zustellung absichern",
+      "text": "MTA-STS einrichten, damit E-Mails an Sie nur verschlüsselt zugestellt werden dürfen; TLS-RPT einrichten, damit Probleme bei der verschlüsselten Zustellung gemeldet werden.",
+      "aufwand": "gering bis mittel",
+      "zustaendig": "Ihre IT oder Ihr IT-Dienstleister, gemeinsam mit dem Mailanbieter",
+      "bezug": [
+        "F-07",
+        "F-08"
+      ],
+      "bezug_text": "F-07, F-08",
+      "prio": "gering",
+      "nr": "M-4"
+    },
+    {
+      "key": "M_RETEST",
+      "titel": "Umsetzung überprüfen",
+      "text": "Nach der Umsetzung prüfen wir kostenfrei erneut. Der neue Befund zeigt, was behoben ist.",
+      "aufwand": "kostenfrei",
+      "zustaendig": "Reineke Technik",
+      "bezug": [],
+      "bezug_text": "alle",
+      "prio": null,
+      "nr": "M-5"
+    }
+  ],
+  "technik": {
+    "dmarc": {
+      "note": "A+",
+      "score": 100,
+      "record": "v=DMARC1;p=quarantine;pct=100;rua=mailto:Mailbox-DMARC@sollich.com;ruf=mailto:Mailbox-DMARC@sollich.com;ri=84600;fo=1",
+      "policy": "quarantine",
+      "rua": true
+    },
+    "dnssec": {
+      "note": "F",
+      "score": 0,
+      "signed": false
+    },
+    "observatory": {
+      "available": true,
+      "note": "D",
+      "score": 30,
+      "passed": 8,
+      "total": 12,
+      "tests": [
+        {
+          "id": "csp",
+          "label": "Content Security Policy (CSP)",
+          "modifier": -25,
+          "modifier_text": "−25",
+          "result_text": "Content-Security-Policy-Header nicht implementiert.",
+          "recommendation": "CSP einführen — siehe MDN-Dokumentation zu Content Security Policy."
+        },
+        {
+          "id": "hsts",
+          "label": "HSTS (Strict-Transport-Security)",
+          "modifier": -20,
+          "modifier_text": "−20",
+          "result_text": "Strict-Transport-Security-Header nicht implementiert.",
+          "recommendation": "HSTS hinzufügen, ggf. zunächst mit kürzeren Zeiträumen (siehe hstspreload.org)."
+        },
+        {
+          "id": "xfo",
+          "label": "X-Frame-Options",
+          "modifier": -20,
+          "modifier_text": "−20",
+          "result_text": "X-Frame-Options-Header (XFO) nicht implementiert.",
+          "recommendation": "frame-ancestors per CSP umsetzen."
+        },
+        {
+          "id": "sri",
+          "label": "Subresource Integrity (SRI)",
+          "modifier": -5,
+          "modifier_text": "−5",
+          "result_text": "Subresource Integrity (SRI) nicht implementiert, aber alle externen Skripte werden über HTTPS geladen.",
+          "recommendation": "SRI für externe Skripte ergänzen."
+        },
+        {
+          "id": "cookies",
+          "label": "Cookies",
+          "modifier": 0,
+          "modifier_text": "0",
+          "result_text": "Keine Cookies erkannt.",
+          "recommendation": ""
+        },
+        {
+          "id": "coep",
+          "label": "coep",
+          "modifier": 0,
+          "modifier_text": "0",
+          "result_text": "Cross-Origin-Embedder-Policy header not implemented.",
+          "recommendation": "Set to require-corp or credentialless."
+        },
+        {
+          "id": "coop",
+          "label": "coop",
+          "modifier": 0,
+          "modifier_text": "0",
+          "result_text": "Cross-Origin-Opener-Policy header not implemented.",
+          "recommendation": "Set to same-origin, same-origin-allow-popups, or noopener-allow-popups."
+        },
+        {
+          "id": "cors",
+          "label": "CORS",
+          "modifier": 0,
+          "modifier_text": "0",
+          "result_text": "Inhalte sind nicht per Cross-Origin Resource Sharing (CORS) sichtbar.",
+          "recommendation": ""
+        },
+        {
+          "id": "redirection",
+          "label": "Weiterleitung auf HTTPS",
+          "modifier": 0,
+          "modifier_text": "0",
+          "result_text": "Erste Weiterleitung geht per HTTPS auf denselben Host, Endziel ist HTTPS.",
+          "recommendation": ""
+        },
+        {
+          "id": "referrer",
+          "label": "Referrer-Policy",
+          "modifier": 0,
+          "modifier_text": "0",
+          "result_text": "Referrer-Policy-Header nicht implementiert.",
+          "recommendation": "Mindestens auf strict-origin-when-cross-origin setzen."
+        },
+        {
+          "id": "xcto",
+          "label": "X-Content-Type-Options",
+          "modifier": 0,
+          "modifier_text": "0",
+          "result_text": "X-Content-Type-Options auf nosniff gesetzt.",
+          "recommendation": ""
+        },
+        {
+          "id": "corp",
+          "label": "Cross-Origin-Resource-Policy",
+          "modifier": 0,
+          "modifier_text": "0",
+          "result_text": "Cross-Origin Resource Policy (CORP) nicht implementiert (Standard: cross-origin).",
+          "recommendation": ""
+        }
+      ]
+    },
+    "mail": [
+      {
+        "key": "spf",
+        "label": "SPF",
+        "status": "ok",
+        "status_label": "OK",
+        "text": "SPF korrekt (4/10 Lookups)."
+      },
+      {
+        "key": "dkim",
+        "label": "DKIM",
+        "status": "hinweis",
+        "status_label": "Hinweis",
+        "text": "1 DKIM-Selektor gefunden"
+      },
+      {
+        "key": "mx",
+        "label": "MX (Mailserver)",
+        "status": "hinweis",
+        "status_label": "Hinweis",
+        "text": "1 MX-Server gefunden"
+      },
+      {
+        "key": "mta_sts",
+        "label": "MTA-STS",
+        "status": "hinweis",
+        "status_label": "Hinweis",
+        "text": "Kein MTA-STS"
+      },
+      {
+        "key": "tls_rpt",
+        "label": "TLS-RPT",
+        "status": "hinweis",
+        "status_label": "Hinweis",
+        "text": "Kein TLS-RPT"
+      }
+    ]
+  },
+  "rohdaten": [
+    "DMARC    A+  Score 100  v=DMARC1;p=quarantine;pct=100;rua=mailto:Mailbox-DMARC@sollich.com;ruf=mailto:Mailbox-DMARC@sollich.com;ri=84600;fo=1",
+    "DNSSEC   F   Score 0    Zone nicht signiert",
+    "Website  D   Score 30   HTTP Observatory: 8/12 Tests bestanden",
+    "                        Content Security Policy (CSP) −25 · HSTS (Strict-Transport-Security) −20 · X-Frame-Options −20 · Subresource Integrity (SRI) −5",
+    "SPF      OK             SPF korrekt (4/10 Lookups).",
+    "DKIM     Hinweis        1 DKIM-Selektor gefunden",
+    "MX       Hinweis        1 MX-Server gefunden",
+    "MTA-STS  Hinweis        Kein MTA-STS",
+    "TLS-RPT  Hinweis        Kein TLS-RPT"
+  ],
+  "noten": [
+    {
+      "noten": [
+        "A+",
+        "A",
+        "A-"
+      ],
+      "klasse": "good",
+      "wort": "Sehr gut",
+      "bedeutung": "Geprüfter Schutz umgesetzt"
+    },
+    {
+      "noten": [
+        "B+",
+        "B",
+        "B-"
+      ],
+      "klasse": "good",
+      "wort": "Gut",
+      "bedeutung": "Geringfügige Verbesserungen möglich"
+    },
+    {
+      "noten": [
+        "C+",
+        "C",
+        "C-"
+      ],
+      "klasse": "warn",
+      "wort": "Verbesserungswürdig",
+      "bedeutung": "Bei nächster Gelegenheit angehen"
+    },
+    {
+      "noten": [
+        "D+",
+        "D",
+        "D-"
+      ],
+      "klasse": "bad",
+      "wort": "Mangelhaft",
+      "bedeutung": "Zeitnah beheben"
+    },
+    {
+      "noten": [
+        "F"
+      ],
+      "klasse": "bad",
+      "wort": "Ungenügend",
+      "bedeutung": "Wesentlicher Schutz fehlt"
+    }
+  ],
+  "texte": {
+    "methode_kurz": "Ausgewertet wurden ausschließlich öffentlich abrufbare Informationen. Es gab keinen Eingriff in Ihre Systeme, keine Anmeldung und keine nennenswerte Last.",
+    "methode_lang": "Alle Werte wurden am 30. Oktober 2026 automatisiert mit scan.reineke.tech erhoben, DNS-Abfragen über Cloudflare DNS-over-HTTPS (1.1.1.1). DKIM lässt sich nur über gängige Selektoren prüfen. Die Website-Bewertung nutzt den MDN HTTP Observatory von Mozilla und gilt nur für die Startseite, nicht für Portale oder Subdomains. Ausgewertet wurden nur öffentlich abrufbare Informationen, ohne Anmeldung, Eingriff oder nennenswerte Last. Die Ergebnisse sind eine Momentaufnahme; auf Anfrage prüfen wir kostenfrei erneut.",
+    "methodik": [
+      {
+        "bereich": "E-Mail",
+        "pruefung": "DMARC, SPF, DKIM, MX, MTA-STS, TLS-RPT",
+        "text": "DMARC legt fest, wie Mailserver mit E-Mails umgehen sollen, die Ihre Absenderadresse nur vortäuschen: „reject“ weist ab, „quarantine“ sortiert aus, „none“ beobachtet nur. SPF und DKIM liefern die Prüfgrundlage."
+      },
+      {
+        "bereich": "Domain",
+        "pruefung": "DNSSEC",
+        "text": "DNSSEC signiert die Adressauskünfte Ihrer Domain. Prüfende DNS-Server erkennen so Fälschungen, die E-Mails oder Besucher umleiten könnten."
+      },
+      {
+        "bereich": "Website",
+        "pruefung": "MDN HTTP Observatory",
+        "text": "Der HTTP Observatory von Mozilla prüft die Schutzregeln Ihrer Website, etwa CSP und HSTS. Die Note ergibt sich aus gewichteten Punktabzügen."
+      }
+    ],
+    "zusammenfassung": {
+      "kritisch": "Lücken bei den geprüften Schutzmechanismen sollten vorrangig geschlossen werden, meist mit wenig Aufwand.",
+      "hoch": "Lücken bei den geprüften Schutzmechanismen sollten zeitnah geschlossen werden, meist mit wenig Aufwand.",
+      "mittel": "Die Grundlagen der geprüften Schutzmechanismen sind vorhanden; einige Punkte sollten bei nächster Gelegenheit verbessert werden.",
+      "gering": "Die geprüften Schutzmechanismen sind weitgehend umgesetzt. Ob Ihre Systeme auch einem gezielten Angriff standhalten, klärt ein Penetrationstest."
+    },
+    "handlungsbedarf_hinweis": {
+      "hoeher": "Der Handlungsbedarf ist die Gesamtbewertung des Scanners. Er kann höher ausfallen als die Einstufung der einzelnen Feststellungen.",
+      "niedriger": "Der Handlungsbedarf ist die Gesamtbewertung des Scanners. Er kann niedriger ausfallen als die Einstufung einzelner Feststellungen."
+    },
+    "pentest_titel": "Über diesen Befund hinaus: Penetrationstest",
+    "pentest_text": "Dieser Befund zeigt einen Ausschnitt dessen, was von außen sichtbar ist. Ein Penetrationstest klärt, was ein Angreifer erreicht, wenn er Schwachstellen zu einem Angriffspfad verkettet. Sie erhalten priorisierte Maßnahmen und einen Nachweis für Kunden und Prüfer.",
+    "pentest_ablauf": [
+      {
+        "titel": "Vorbereitung",
+        "text": "Ziele, Systeme und Prüftiefe festlegen, Zeitfenster betriebsschonend abstimmen."
+      },
+      {
+        "titel": "Test",
+        "text": "Manuell und mit eigenen Werkzeugen, jeder Schritt nachvollziehbar dokumentiert."
+      },
+      {
+        "titel": "Bericht und Besprechung",
+        "text": "Priorisierte Feststellungen mit konkreten Behebungsempfehlungen."
+      },
+      {
+        "titel": "Nachtest",
+        "text": "Nach Ihrer Nachbesserung prüfen wir die Wirksamkeit erneut."
+      }
+    ],
+    "cta_titel": "Ergebnisbesprechung",
+    "cta_text": "In 20 Minuten legen wir gemeinsam fest, was zuerst angegangen wird, gern mit Ihrer IT. Kostenfrei und unverbindlich.",
+    "cta_button": "Termin wählen",
+    "ablauf": [
+      {
+        "titel": "Ergebnisbesprechung",
+        "text": "Feststellungen einordnen, Prioritäten festlegen."
+      },
+      {
+        "titel": "Umsetzung",
+        "text": "Ihre IT oder Ihr IT-Dienstleister, auf Wunsch mit unserer fachlichen Begleitung."
+      },
+      {
+        "titel": "Kontrolle",
+        "text": "Wiederholungsprüfung, auf Wunsch Penetrationstest."
+      }
+    ],
+    "vertraulich": "Vertraulich – bestimmt für den Inhaber der geprüften Domain und dessen IT-Dienstleister.",
+    "umfang_kurz": "Automatisierte Momentaufnahme vom 30. Oktober 2026. Bewertet wurden ausschließlich öffentlich sichtbare Einstellungen von E-Mail, Domain und Website, nicht die Sicherheit Ihrer IT insgesamt.",
+    "begleitwort": "Vielen Dank für Ihr Interesse. Dieser Befund zeigt, wie sollich.com von außen für einen Angreifer aussieht. Geprüft wurden am 30. Oktober 2026 ausschließlich öffentlich abrufbare Informationen, ohne Eingriff in Ihre Systeme.",
+    "next_text": "In einem 20-minütigen Gespräch erläutern wir die Feststellungen für sollich.com, beantworten Rückfragen Ihrer IT und stimmen gemeinsam ab, welche Maßnahmen zuerst umgesetzt werden sollten.",
+    "cta_massnahmen": "Womit Sie am besten beginnen und wer welche Maßnahme übernimmt, klären wir gern in 20 Minuten.",
+    "nachpruefung": "Wenn Sie die Maßnahmen direkt mit Ihrer IT umsetzen, prüfen wir danach auf Wunsch kostenfrei erneut. Rückfragen beantworten wir auch per E-Mail oder Telefon.",
+    "lesehinweis": "Jede Feststellung beschreibt, was wir gefunden haben, was ein Angreifer damit tun könnte, was das für Sie bedeutet und wie aufwendig die Behebung ist. Darunter steht für Ihre IT die technische Detailzeile. Alle Messwerte finden Sie im technischen Anhang.",
+    "offen_einleitung": "Diese Punkte lassen sich mit dieser Analyse nicht abschließend beurteilen. Wir klären sie gern im Gespräch:",
+    "offen_website": "Wie die Website abschneidet, die bei dieser Analyse nicht automatisch bewertet werden konnte",
+    "karte_labels": {
+      "sachverhalt": "Sachverhalt",
+      "angriff": "Was passieren kann",
+      "auswirkung": "Folgen für Sie",
+      "aufwand": "Aufwand"
+    },
+    "zusammenfassung_labels": {
+      "handlungsbedarf": "Handlungsbedarf insgesamt",
+      "feststellungen": "Einzelne Feststellungen nach Risiko",
+      "risiko": "Risiko",
+      "zustaendig": "Üblicherweise zuständig"
+    }
+  },
+  "firma": {
+    "_hinweis": "Feste Firmendaten und Vertrauenssignale. Werden nicht vom Scan erzeugt und bleiben in allen Varianten gleich.",
+    "name": "Reineke Technik GmbH",
+    "kurzname": "Reineke Technik",
+    "strasse": "Geseker Straße 26",
+    "plz_ort": "33154 Salzkotten",
+    "web": "www.reineke-technik.de",
+    "web_url": "https://www.reineke-technik.de",
+    "scan_host": "scan.reineke.tech",
+    "booking_url": "https://bookings.cloud.microsoft/bookwithme/user/99dfe8391d044c208563dd3afbc7439f%40reineke-technik.de?anonymous&ismsaljsauthenabled",
+    "pentest_url": "https://scan.reineke.tech/pentest",
+    "pentest_label": "scan.reineke.tech/pentest",
+    "kontakte": [
+      {
+        "name": "Werner Francis Reineke",
+        "rolle": "Geschäftsführer",
+        "email": "wf.reineke@reineke-technik.de",
+        "telefon": "+49 172 2872390",
+        "telefon_href": "+491722872390",
+        "foto": "werner.jpg",
+        "mobil": null,
+        "mobil_href": null,
+        "foto_url": "file:///Users/werner/dmarc/public/assets/werner.jpg"
+      },
+      {
+        "name": "Karl Pieper",
+        "rolle": "Geschäftsführer",
+        "email": "k.pieper@reineke-technik.de",
+        "telefon": "+49 5259 9870",
+        "telefon_href": "+4952599870",
+        "mobil": "+49 172 5209052",
+        "mobil_href": "+491725209052",
+        "foto": null,
+        "foto_url": null
+      }
+    ],
+    "vorstellung": {
+      "name": "Werner Francis Reineke",
+      "rolle": "Geschäftsführer, Reineke Technik GmbH",
+      "foto": "werner.jpg",
+      "absaetze": [
+        "Reineke Technik prüft die IT-Sicherheit mittelständischer Industrie- und Produktionsunternehmen und unterstützt bei Anforderungen wie NIS-2, ISO 27001 und TISAX.",
+        "Wir haben Netzwerke selbst aufgebaut und betrieben. Diese Praxis fließt in jede Prüfung ein: Wir wissen, wo Angreifer ansetzen und wo im Betriebsalltag Lücken entstehen."
+      ],
+      "foto_url": "file:///Users/werner/dmarc/public/assets/werner.jpg"
+    },
+    "zitat": "Wer ein System selbst betreibt, kann es nicht unabhängig prüfen. Wie bei Buchhaltung und Wirtschaftsprüfung gehören Betrieb und Prüfung in getrennte Hände.",
+    "_zitat_hinweis": "Ab v15 ist zitat der von Werner freigegebene Satz (D23, 30.10.2026). Auf Seite 03 steht derzeit sein Spruch aus slogan, so von ihm am 30.10. entschieden; das Zitat ist damit freigegeben, aber nicht auf der Seite.",
+    "slogan": [
+      "Sicherheitslücken schließen,",
+      "bevor sie teuer werden."
+    ],
+    "prinzipien": [
+      {
+        "titel": "Unabhängig",
+        "text": "Wir prüfen Systeme, die wir nicht selbst betreiben, und verkaufen keine Technik, die wir anschließend kontrollieren."
+      },
+      {
+        "titel": "Verständlich",
+        "text": "Jeder Bericht enthält eine Zusammenfassung für die Geschäftsführung und einen priorisierten Maßnahmenplan."
+      },
+      {
+        "titel": "Nachweisbar",
+        "text": "Nach der Behebung prüfen wir erneut. So wird Sicherheit gegenüber Kunden und Prüfern belegbar."
+      }
+    ],
+    "leistungen": [
+      "Penetrationstests: extern, intern, Webanwendungen",
+      "ISMS-Aufbau nach ISO 27001",
+      "Externes Sicherheitsmandat (eISB / vCISO)",
+      "NIS-2-Bestandsaufnahme der Sicherheitsmaßnahmen",
+      "TISAX-Begleitung für Zulieferer"
+    ],
+    "vertrauen": [
+      {
+        "label": "Kunden",
+        "wert": "47",
+        "text": "Unternehmen seit Gründung, überwiegend Industrie und Zulieferer"
+      },
+      {
+        "label": "Fachvorträge",
+        "wert": "Live-Hacking",
+        "text": "Referent, u. a. in der Cybersecurity-Vortragsreihe von SHARP"
+      },
+      {
+        "label": "Standort",
+        "wert": "Salzkotten",
+        "text": "Ostwestfalen-Lippe, vor Ort in NRW"
+      }
+    ],
+    "pentest_arten": [
+      {
+        "titel": "Extern",
+        "text": "Aus dem Internet erreichbare Systeme und Dienste"
+      },
+      {
+        "titel": "Intern / Active Directory",
+        "text": "Firmennetz, Berechtigungen, Rechteausweitung"
+      },
+      {
+        "titel": "Webanwendung",
+        "text": "Portale, Shops und Kundenzugänge"
+      }
+    ],
+    "zitat_quelle": "Werner Reineke",
+    "pflichtangaben": {
+      "registergericht": "Amtsgericht Paderborn",
+      "hrb": "HRB 15938",
+      "geschaeftsfuehrer": [
+        "Werner Francis Reineke",
+        "Karl Pieper"
+      ],
+      "ust_id": "DE353762579"
+    }
+  },
+  "assets": "file:///Users/werner/dmarc/public/assets",
+  "logo": "file:///Users/werner/dmarc/public/assets/logo.png",
+  "qr_termin": "file:///Users/werner/dmarc/public/assets/qr-termin.svg"
+}

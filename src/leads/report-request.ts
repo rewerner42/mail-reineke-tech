@@ -3,6 +3,16 @@
 import { normalizeDomain } from "../domain.js";
 import { validateEmail } from "./odoo.js";
 
+/**
+ * Führendes „www.“ (Werner, 01.11.2026): Wer „www.firma.de“ eintippt, meint seine
+ * Firma. Mit „www.“ sucht die E-Mail-Prüfung den DMARC-Eintrag unter
+ * _dmarc.www.firma.de — ohne Rückgriff auf die Hauptdomain — und der Bericht
+ * würde zu Unrecht rot. Abgeschnitten wird nur, wenn danach noch eine Domain mit
+ * Punkt übrig bleibt („www.de“ bleibt, wie es ist). public/bericht.js zeigt die
+ * Domain mit derselben Regel an.
+ */
+export const WWW_PRAEFIX = /^www\.(?=[^.]+\.)/;
+
 export interface ReportRequestFields {
   email: string;
   contactName: string;
@@ -46,7 +56,10 @@ export function parseReportRequest(body: Record<string, unknown>): ReportRequest
   if (!contactName) {
     return { ok: false, code: "MISSING_FIELDS", message: "Bitte geben Sie Ihren Namen an.", status: 400 };
   }
-  const reportDomain = normalizeDomain(typeof body.domain === "string" ? body.domain : "");
+  const reportDomain = normalizeDomain(typeof body.domain === "string" ? body.domain : "")?.replace(
+    WWW_PRAEFIX,
+    "",
+  );
   if (!reportDomain) {
     return {
       ok: false,

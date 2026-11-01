@@ -95,7 +95,7 @@ export const sharp: Brand = {
     wordmarkAlt: "sharp",
     offerHeading: "Unser Angebot — Reineke Technik &amp; Sharp Business Systems Deutschland",
     offerLeadIn:
-      "Gemeinsam bringen wir Ihre Domains kontrolliert und nachvollziehbar auf ein durchgesetztes Schutzniveau — die technische Umsetzung durch Reineke Technik, persönliche Betreuung über den Direktvertrieb von Sharp Business Systems, durchgängig DSGVO-konform und deutschsprachig:",
+      "Gemeinsam bringen wir Ihre Domains kontrolliert und nachvollziehbar auf ein durchgesetztes Schutzniveau — die technische Umsetzung durch Reineke Technik, persönliche Betreuung über den Direktvertrieb von Sharp Business Systems, deutschsprachig:",
     coBrandLine: "in Zusammenarbeit mit Sharp Business Systems Deutschland GmbH",
     filenamePrefix: "Sharp-Befund",
     palette: {

@@ -17,6 +17,11 @@ describe("parseSpf", () => {
     expect(parseSpf("v=spf1 mx").all).toBeUndefined();
   });
 
+  it("takes the first all, where evaluation stops", () => {
+    expect(parseSpf("v=spf1 -all +all").all).toBe("-");
+    expect(parseSpf("v=spf1 +all -all").all).toBe("+");
+  });
+
   it("parses include with target value", () => {
     const r = parseSpf("v=spf1 include:_spf.google.com -all");
     const inc = r.mechanisms.find((m) => m.type === "include")!;

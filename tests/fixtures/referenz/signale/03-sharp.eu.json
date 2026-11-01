@@ -1,0 +1,20 @@
+{
+  "_quelle": "Reineke-Befund-sharp.eu.pdf (Generator, 22.10.2026) – Grenzfall: Website nicht bewertbar, DMARC p=none",
+  "domain": "sharp.eu",
+  "scan_date": "2026-10-22",
+  "level": "kritisch",
+  "dmarc": {
+    "grade": "D+", "score": 40,
+    "record": "v=DMARC1; p=none; rua=mailto:dmarc_rua@sharp.eu",
+    "policy": "none", "rua": true
+  },
+  "dnssec": { "grade": "F", "score": 0, "signed": false },
+  "observatory": { "available": false, "grade": null, "score": null, "passed": null, "total": null, "tests": [] },
+  "mail": {
+    "spf": { "status": "hinweis", "text": "SPF vorhanden, Verbesserungen möglich." },
+    "dkim": { "status": "hinweis", "text": "4 DKIM-Selektoren gefunden", "selectors": 4 },
+    "mx": { "status": "ok", "text": "3 MX-Server gefunden", "count": 3 },
+    "mta_sts": { "status": "hinweis", "text": "Kein MTA-STS" },
+    "tls_rpt": { "status": "hinweis", "text": "Kein TLS-RPT" }
+  }
+}
