@@ -347,7 +347,9 @@ b, strong { font-weight: 700; }
 
 .cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  /* min(): Auf 320-px-Telefonen sind keine 320 px Platz — sonst ragten die
+     Kacheln über den Rand. */
+  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
   gap: 1.5rem;
 }
 .card {
@@ -549,7 +551,9 @@ b, strong { font-weight: 700; }
 }
 
 @media (max-width: 600px) {
-  .observatory-layout { flex-direction: column; gap: 1.25rem; }
+  /* stretch statt flex-start: Sonst nimmt der Kartenrumpf die Breite seines
+     längsten Worts an (z. B. einer rua-Adresse) und die Karte schneidet ihn ab. */
+  .observatory-layout { flex-direction: column; gap: 1.25rem; align-items: stretch; }
   .grade-badge { width: 100%; min-height: 90px; font-size: 3rem; }
 }
 
@@ -666,13 +670,14 @@ b, strong { font-weight: 700; }
 
 .kv-grid {
   display: grid;
-  grid-template-columns: max-content 1fr;
+  grid-template-columns: max-content minmax(0, 1fr);
   gap: 0.4rem 1rem;
   margin-top: 0.85rem;
   font-size: 0.9rem;
 }
 .kv-grid dt { font-weight: 700; color: var(--rt-gray); text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.78rem; align-self: center; }
-.kv-grid dd { margin: 0; font-family: var(--rt-mono); color: var(--rt-black); }
+/* Lange Werte (rua-Adressen, Hostnamen) brechen um, statt über die Karte hinauszuragen. */
+.kv-grid dd { margin: 0; font-family: var(--rt-mono); color: var(--rt-black); overflow-wrap: anywhere; }
 
 .mx-list, .dkim-list {
   list-style: none;
@@ -1528,7 +1533,7 @@ body.is-report .site-footer { display: none; }
 .pt-success { background: #fff; border: 1px solid var(--rt-border); border-left: 4px solid var(--rt-red); padding: 1.6rem 1.7rem; }
 .pt-legal { margin-top: 2rem; font-size: 0.85rem; color: var(--rt-gray); font-style: italic; }
 @media (max-width: 860px) {
-  .pt-scoping { grid-template-columns: 1fr; }
+  .pt-scoping { grid-template-columns: minmax(0, 1fr); }
   .pt-form-grid { grid-template-columns: 1fr; }
 }
 
@@ -1585,6 +1590,16 @@ body.is-report .site-footer { display: none; }
   /* Vier Reiter in einer Zeile, mit Reserve statt auf Kante */
   .header-tabs { justify-content: space-between; }
   .tab { white-space: nowrap; padding: 0.85rem 0.45rem; font-size: 0.7rem; letter-spacing: 0.02em; }
+
+  /* Der Schriftzug ist ein Bild: Mit Spalten "auto" zwänge seine Eigenbreite die
+     Kopfzeile bei 320 px über den Rand. */
+  .header-inner:has(.brand-lockup) { grid-template-columns: minmax(0, 1fr) auto; }
+}
+
+@media (max-width: 359px) {
+  /* 320 px (iPhone SE der 1. Generation, iPhone mit Anzeigezoom): Die vier Reiter
+     brauchten 300 px, Platz sind 275. */
+  .header-inner:has(.brand-lockup) .tab { padding-left: 0.25rem; padding-right: 0.25rem; letter-spacing: 0; }
 }
 
 @media (max-width: 768px) {
