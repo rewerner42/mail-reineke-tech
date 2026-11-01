@@ -1,0 +1,3 @@
+# Nicht hochladen: Finder-Metadaten des Mac. Sie enthalten Dateinamen aus diesem
+# Ordner und lagen sonst öffentlich unter /.DS_Store.
+.DS_Store

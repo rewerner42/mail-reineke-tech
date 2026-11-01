@@ -992,7 +992,8 @@ app.get("/dnssec", (c) => c.env.ASSETS.fetch(new Request(new URL("/index.html", 
 
 app.get("/report", (c) => c.env.ASSETS.fetch(new Request(new URL("/report.html", c.req.url))));
 
-// Pentest-Seite (nur Marken mit Lead-Strecke; sonst greift der SPA-Fallback).
+// Pentest-Seite (nur Marken mit Lead-Strecke). Andere Marken kommen hier gar
+// nicht an: Die Middleware sperrt /pentest vorher (reineke.privateAssets).
 app.get("/pentest", async (c, next) => {
   const brand = resolveBrand(c.env, new URL(c.req.url).host);
   if (!brand.funnel) return next();
