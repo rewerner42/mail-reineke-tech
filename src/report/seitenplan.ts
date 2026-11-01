@@ -18,6 +18,11 @@ import { truthy } from "./viewmodel.js";
 const SATZSPIEGEL = 242;
 /** The pentest box including its spacing, measured at 89.7 mm; the estimate errs high. */
 const PENTEST = 90;
+/**
+ * Der Angebotskasten einer Markenfassung an derselben Stelle (Sharp), mit
+ * Abständen: gemessen 100,7 mm (npm run bericht:pruefen:marke, --messen .angebot).
+ */
+const ANGEBOT = 101;
 /** One-line lead-in above the recommendations, present only when there are findings. */
 const VORSPANN_EMP = 8;
 /** Chapter heading of 05 on its first page. */
@@ -79,6 +84,8 @@ export interface PlanEingabe {
     dmarc: { record: string | null };
     observatory: { tests: Array<{ result_text: string; recommendation: string }> };
   };
+  /** Markenfassung (src/report/fassung.ts): ihr Angebot steht statt des Pentest-Kastens. */
+  marke?: unknown;
 }
 
 export interface Seitenplan {
@@ -188,7 +195,7 @@ export function seitenplan(v: PlanEingabe): Seitenplan {
       : 0;
     hemp += Math.max(11.3 + 4.3 * tl + (zl ? 0.8 + 3.95 * zl : 0), 9.9 + 3.95 * bl);
   }
-  const pt_emp = hemp + PENTEST <= SATZSPIEGEL;
+  const pt_emp = hemp + (v.marke ? ANGEBOT : PENTEST) <= SATZSPIEGEL;
   const pt_eigen = !pt_emp;
 
   // Appendix A: measurements.

@@ -29,6 +29,7 @@ const DATEIEN = new Set([
   "/index.html",
   "/report.html",
   "/assets/sharp-logo.png",
+  "/assets/sharp-logo.svg",
   ...REINEKE_EIGEN.filter((p) => p.includes(".")),
 ]);
 const ASSETS = {
@@ -67,9 +68,15 @@ describe("Gegenprobe", () => {
     expect(res.status).toBe(200);
   });
 
-  it("das Sharp-Logo bleibt auf Reineke gesperrt", async () => {
-    const res = await app.request("https://scan.reineke-technik.de/assets/sharp-logo.png", {}, reineke);
+  // Das SVG kam am 01.11.2026 fuer die Sharp-Fassung des Berichts v15 dazu.
+  it.each(["/assets/sharp-logo.png", "/assets/sharp-logo.svg"])("das Sharp-Logo %s bleibt auf Reineke gesperrt", async (pfad) => {
+    const res = await app.request(`https://scan.reineke-technik.de${pfad}`, {}, reineke);
     expect(res.status).toBe(404);
+  });
+
+  it("das Sharp-Logo als Vektor ist auf Sharp erreichbar", async () => {
+    const res = await app.request("https://sharp.reineke.tech/assets/sharp-logo.svg", {}, sharp);
+    expect(res.status).toBe(200);
   });
 });
 

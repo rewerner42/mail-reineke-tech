@@ -7,6 +7,7 @@
 
 import { analyzeObservatory } from "../observatory.js";
 import { renderDocumentPdf } from "../pdf/render.js";
+import { wendeFassungAn, type Fassung } from "./fassung.js";
 import { berichtNummer } from "./nummer.js";
 import { buildSignal, type Signal } from "./signal.js";
 import { berichtHtml } from "./template.js";
@@ -40,6 +41,8 @@ export interface BerichtEingabe {
   origin: string;
   /** Null when Odoo is not configured — the number then falls back. */
   odoo: OdooConfig | null;
+  /** Markenfassung (Sharp); ohne sie entsteht die Reineke-Fassung. */
+  fassung?: Fassung | null;
   now?: Date;
 }
 
@@ -55,12 +58,13 @@ export interface Bericht {
 /** Builds the view model and the HTML, without touching the network. */
 export function berichtDokument(
   signal: Signal,
-  opts: { origin: string; nummer: string },
+  opts: { origin: string; nummer: string; fassung?: Fassung | null },
 ): { html: string; viewmodel: Record<string, unknown> } {
-  const viewmodel = buildViewmodel(signal, KATALOG, firmaJson as never, {
+  const grund = buildViewmodel(signal, KATALOG, firmaJson as never, {
     assets: `${opts.origin}/assets`,
     berichtNr: opts.nummer,
   });
+  const viewmodel = opts.fassung ? wendeFassungAn(grund, opts.fassung) : grund;
   return { html: berichtHtml(viewmodel), viewmodel };
 }
 
@@ -70,8 +74,8 @@ export async function erzeugeBericht(
 ): Promise<Bericht> {
   const now = e.now ?? new Date();
   const signal = buildSignal(e.analyze, e.observatory, scanDatum(now));
-  const { nummer, aus } = await berichtNummer(e.odoo, { now });
-  const { html } = berichtDokument(signal, { origin: e.origin, nummer });
+  const { nummer, aus } = await berichtNummer(e.odoo, { now, kreis: e.fassung?.nummer });
+  const { html } = berichtDokument(signal, { origin: e.origin, nummer, fassung: e.fassung });
   // Fail loudly. The old path checked a cap and returned null on breach, which
   // on the mail route meant a mail going out without its attachment and nobody
   // noticing.

@@ -10,8 +10,26 @@
 
 import { authUid, jsonRpc, type OdooConfig } from "../leads/odoo.js";
 
-/** `ir.sequence.code` of the counter. Created on first use if it is missing. */
-const SEQUENZ_CODE = "reineke.bericht";
+/**
+ * Ein Nummernkreis: Kürzel vor dem Datum und der Odoo-Zähler dahinter. Jede
+ * Marke mit eigener Berichtsfassung zählt für sich (Sharp: SH-DS, eigener
+ * Zähler — Werner, 01.11.2026).
+ */
+export interface Nummernkreis {
+  /** Steht vor dem Datum, z. B. "RT-DS". */
+  kuerzel: string;
+  /** `ir.sequence.code` des Zählers. Fehlt er, wird er beim ersten Gebrauch angelegt. */
+  code: string;
+  /** Name, unter dem der Zähler in Odoo angelegt wird. */
+  name: string;
+}
+
+/** Der Nummernkreis von Reineke Technik, wie er seit v15 besteht. */
+export const REINEKE_KREIS: Nummernkreis = {
+  kuerzel: "RT-DS",
+  code: "reineke.bericht",
+  name: "Sicherheitsbefund — Bericht-Nr.",
+};
 
 function datumsteil(now: Date): string {
   return [
@@ -26,11 +44,11 @@ function datumsteil(now: Date): string {
  * Carries the time to the second, so two reports collide only if they are drawn
  * in the same second. Marked with `T` so it is recognisable as the fallback.
  */
-export function ersatzNummer(now: Date = new Date()): string {
+export function ersatzNummer(now: Date = new Date(), kuerzel = REINEKE_KREIS.kuerzel): string {
   const zeit = [now.getUTCHours(), now.getUTCMinutes(), now.getUTCSeconds()]
     .map((x) => String(x).padStart(2, "0"))
     .join("");
-  return `RT-DS-${datumsteil(now)}-T${zeit}`;
+  return `${kuerzel}-${datumsteil(now)}-T${zeit}`;
 }
 
 /**
@@ -39,17 +57,19 @@ export function ersatzNummer(now: Date = new Date()): string {
  */
 export async function berichtNummer(
   cfg: OdooConfig | null,
-  opts: { fetchImpl?: typeof fetch; timeoutMs?: number; now?: Date } = {},
+  opts: { fetchImpl?: typeof fetch; timeoutMs?: number; now?: Date; kreis?: Nummernkreis } = {},
 ): Promise<{ nummer: string; aus: "odoo" | "ersatz" }> {
   const now = opts.now ?? new Date();
-  if (!cfg) return { nummer: ersatzNummer(now), aus: "ersatz" };
+  const kreis = opts.kreis ?? REINEKE_KREIS;
+  const ersatz = () => ({ nummer: ersatzNummer(now, kreis.kuerzel), aus: "ersatz" as const });
+  if (!cfg) return ersatz();
 
   const fetchImpl = opts.fetchImpl ?? fetch;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), opts.timeoutMs ?? 8000);
   try {
     const uid = await authUid(cfg, fetchImpl, controller.signal);
-    if (!uid) return { nummer: ersatzNummer(now), aus: "ersatz" };
+    if (!uid) return ersatz();
     const exec = <T>(model: string, method: string, args: unknown[]) =>
       jsonRpc<T>(
         cfg.url,
@@ -61,13 +81,13 @@ export async function berichtNummer(
       );
 
     const vorhanden = await exec<number[]>("ir.sequence", "search", [
-      [["code", "=", SEQUENZ_CODE]],
+      [["code", "=", kreis.code]],
     ]);
     if (!vorhanden.length) {
       await exec("ir.sequence", "create", [
         {
-          name: "Sicherheitsbefund — Bericht-Nr.",
-          code: SEQUENZ_CODE,
+          name: kreis.name,
+          code: kreis.code,
           implementation: "standard",
           padding: 4,
           number_increment: 1,
@@ -75,11 +95,11 @@ export async function berichtNummer(
         },
       ]);
     }
-    const laufend = await exec<string | false>("ir.sequence", "next_by_code", [SEQUENZ_CODE]);
-    if (!laufend) return { nummer: ersatzNummer(now), aus: "ersatz" };
-    return { nummer: `RT-DS-${datumsteil(now)}-${laufend}`, aus: "odoo" };
+    const laufend = await exec<string | false>("ir.sequence", "next_by_code", [kreis.code]);
+    if (!laufend) return ersatz();
+    return { nummer: `${kreis.kuerzel}-${datumsteil(now)}-${laufend}`, aus: "odoo" };
   } catch {
-    return { nummer: ersatzNummer(now), aus: "ersatz" };
+    return ersatz();
   } finally {
     clearTimeout(timer);
   }

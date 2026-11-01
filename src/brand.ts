@@ -13,6 +13,7 @@
 
 import { sharp } from "./brands/sharp.js";
 import { reineke } from "./brands/reineke.js";
+import type { Nummernkreis } from "./report/nummer.js";
 
 export interface BrandContact {
   name: string;
@@ -25,6 +26,30 @@ export interface BrandContact {
   addr: string;
   web: string;
   short?: string; // short org name in the report brand-foot parenthetical
+}
+
+/**
+ * Was eine Marke am Bericht v15 anders braucht als Reineke. Überschrift und
+ * Einleitung des Angebots, die Co-Brand-Zeile, die Prüfadresse und die zweite
+ * Kontaktkarte kommen aus den übrigen `report`-Feldern der Marke.
+ */
+export interface BerichtMarke {
+  nummer: Nummernkreis;
+  /** Datei in /assets: Logo oben auf dem Deckblatt und in jeder Kopfzeile. */
+  logo: string;
+  logoAlt: string;
+  /** Überschrift von Kapitel 03, auch im Inhalt und in der Kopfzeile. */
+  kapitel03: string;
+  /** Absatz zur Zusammenarbeit oben in Kapitel 03; links stehen Label und Logo. */
+  partner: { label: string; text: string };
+  /** Kasten am Ende von Kapitel 02, an der Stelle des Penetrationstests. */
+  angebot: {
+    label: string;
+    rollen: Array<{ titel: string; text: string }>;
+    punkte: Array<{ titel: string; text: string }>;
+  };
+  /** Rechte Spalte im Absenderblock von Kapitel 04, statt der Pentest-Anfrage. */
+  absender: { label: string; url: string; text: string };
 }
 
 export interface Brand {
@@ -131,6 +156,9 @@ export interface Brand {
     offerLeadIn: string;
     coBrandLine: string | null; // method brand-foot "in Zusammenarbeit mit …"
     filenamePrefix: string; // /api/generate-report → "<prefix>-<domain>.pdf"
+    // Bericht v15 als eigene Markenfassung (src/report/fassung.ts). Ohne das Feld
+    // gibt es v15 nur als Reineke-Fassung aus src/report/daten/firma.json.
+    v15?: BerichtMarke;
     palette: {
       red: string;
       redDark: string;

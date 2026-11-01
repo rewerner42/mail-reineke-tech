@@ -31,6 +31,7 @@ import {
 import { MAX_HTML_BYTES, renderReportPdf } from "./pdf/render.js";
 import { buildReportBody } from "./report/build.js";
 import { erzeugeBericht, scanneFuerBericht } from "./report/bericht.js";
+import { fassungFuer, type Fassung } from "./report/fassung.js";
 import {
   resolveBrand,
   BRANDS,
@@ -437,7 +438,7 @@ async function notifyPentestLead(
         nutztBerichtV15(brand)
           ? // Der v15-Generator bringt seine eigene Frist mit; der Wettlauf hier
             // ist nur das Netz darunter und liegt deshalb darueber.
-            buildBerichtV15(env, origin, berichtsDomain).then((b) => {
+            buildBerichtV15(env, origin, berichtsDomain, fassungFuer(reportBrandFor(brand, n.kind))).then((b) => {
                 berichtNr = b?.nummer ?? null;
                 return b?.pdf ?? null;
               })
@@ -537,16 +538,16 @@ function reportBrandFor(brand: Brand, kind: LeadKind | undefined): Brand {
 }
 
 /**
- * Bericht v15 gilt zunächst nur für Reineke.
+ * Bericht v15 gilt für Reineke und für Marken mit eigener Fassung
+ * (`report.v15`, heute Sharp — Werner, 01.11.2026).
  *
  * Der Katalog ist durchgehend deutsch, die Vorlage auf weißen Grund kalibriert,
- * Kapitel 03 heißt wörtlich "Über Reineke Technik", und die Pflichtangaben nach
- * § 35a GmbHG gelten für eine deutsche GmbH — bei Vörcyber, einer LLC, dürfen
- * sie nicht erscheinen. Die anderen Marken behalten den bisherigen Vierseiter,
- * bis sie eine eigene Fassung haben. So von Werner entschieden (30.10.2026).
+ * und die Pflichtangaben nach § 35a GmbHG gelten für eine deutsche GmbH — bei
+ * Vörcyber, einer LLC, dürfen sie nicht erscheinen. Marken ohne eigene Fassung
+ * behalten den bisherigen Vierseiter. So von Werner entschieden (30.10.2026).
  */
 function nutztBerichtV15(brand: Brand): boolean {
-  return brand.id === "reineke";
+  return brand.id === "reineke" || Boolean(brand.report.v15);
 }
 
 /**
@@ -558,6 +559,7 @@ async function buildBerichtV15(
   env: Bindings,
   origin: string,
   domain: string,
+  fassung: Fassung | null,
 ): Promise<{ pdf: Uint8Array; nummer: string } | null> {
   if (!env.BROWSER) return null;
   const [email, dnssec] = await Promise.all([runEmailChecks(domain, []), analyzeDnssec(domain)]);
@@ -567,6 +569,7 @@ async function buildBerichtV15(
     observatory,
     origin,
     odoo: odooConfigFromEnv(env),
+    fassung,
   });
   if (bericht.nummerAus === "ersatz") {
     console.warn(`Bericht-Nr. ohne Odoo-Zähler vergeben: ${bericht.nummer}`);
@@ -1209,16 +1212,16 @@ app.post("/api/generate-report", async (c) => {
   const rep = parseRepInput(body.rep);
   const brand = rep ? { ...baseBrand, report: { ...baseBrand.report, partner: rep } } : baseBrand;
 
-  // Bericht v15: derselbe Generator, der auch die Mail-Anhänge erzeugt. Die
-  // Vertriebskarte entfällt hier — der Bericht nennt die festen Ansprechpartner
-  // aus den Firmendaten, eine zweite Karte hat die Vorlage nicht.
+  // Bericht v15: derselbe Generator, der auch die Mail-Anhänge erzeugt. Reineke
+  // nennt die festen Ansprechpartner aus den Firmendaten; eine Marke mit eigener
+  // Fassung (Sharp) setzt den gewählten Vertriebler als zweite Karte neben Werner.
   if (nutztBerichtV15(brand)) {
     try {
       // Keine aeussere Zeitgrenze: renderDocumentPdf fuehrt eine eigene Frist
       // ueber den ganzen Lauf und schliesst den Browser in jedem Fall. Ein
       // Promise.race davor wuerde den Lauf nicht beenden, sondern nur aufhoeren,
       // auf ihn zu warten — und die Rendering-Sitzung bliebe offen.
-      const bericht = await buildBerichtV15(c.env, origin, domain);
+      const bericht = await buildBerichtV15(c.env, origin, domain, fassungFuer(brand));
       if (!bericht) {
         return c.json(
           { ok: false, code: "RENDER_FAILED", message: "PDF konnte nicht erstellt werden." },

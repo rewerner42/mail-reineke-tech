@@ -10,6 +10,7 @@
 // check rather than as a quietly different PDF.
 
 import { BERICHT_CSS, DECKBLATT_CSS } from "./css.js";
+import { MARKE_CSS } from "./css-marke.js";
 import { seitenplan, type Seitenplan } from "./seitenplan.js";
 import { minus } from "./viewmodel.js";
 
@@ -79,8 +80,16 @@ export function berichtHtml(v: Vm): string {
   const out: string[] = [];
   const w = (s: string) => out.push(s);
 
+  // Markenfassung (src/report/fassung.ts). Fehlt sie, entsteht die
+  // Reineke-Fassung, zeichengleich mit der Jinja2-Vorlage.
+  const marke = v.marke as Vm | undefined;
+  const kap03 = marke ? String(marke.kapitel03) : `Über ${v.firma.kurzname}`;
+
+  const kMarke = marke
+    ? `<div class="k-marke"><img class="k-logo" src="${esc(marke.logo)}" alt="${esc(marke.logo_alt)}"><span>Sicherheitsbefund</span></div>`
+    : `<div class="k-marke"><span class="fuchs"><img src="${esc(v.logo)}" alt=""></span><b>${esc(v.firma.kurzname)}</b><span>Sicherheitsbefund</span></div>`;
   const kopf = (kap: string) => `<div class="kopf">
-  <div class="k-marke"><span class="fuchs"><img src="${esc(v.logo)}" alt=""></span><b>${esc(v.firma.kurzname)}</b><span>Sicherheitsbefund</span></div>
+  ${kMarke}
   <div class="k-domain">${esc(v.domain)}</div>
   <div class="k-kap">${esc(kap)}</div>
 </div>`;
@@ -135,21 +144,44 @@ export function berichtHtml(v: Vm): string {
   </div>
 </div>`;
 
+  // Markenfassung: das Angebot der Marke an der Stelle des Penetrationstests,
+  // im selben Aufbau. Die Höhe ist in seitenplan.ts als ANGEBOT kalibriert.
+  const angebotBlock = (abstand: string) => `<div class="r6 ${esc(abstand)} linie pentest angebot" id="angebot">
+  <div class="s12">
+    <span class="label">${esc(marke!.angebot.label)}</span>
+    <ul class="arten">
+      ${marke!.angebot.rollen.map((k: Vm) => `<li><b>${esc(k.titel)}</b><span>${esc(k.text)}</span></li>`).join("")}
+    </ul>
+  </div>
+  <div class="s36">
+    <h2>${esc(marke!.angebot.titel)}</h2>
+    <p class="lead-s">${esc(marke!.angebot.einleitung)}</p>
+    <ol class="schritte r2">
+      ${marke!.angebot.punkte.map((s: Vm, i: number) => `<li><span class="n">${i + 1}</span><span><b>${esc(s.titel)}</b>${esc(s.text)}</span></li>`).join("")}
+    </ol>
+  </div>
+</div>`;
+  const kasten = marke ? angebotBlock : pentestBlock;
+
   // ---------------------------------------------------------------- head
   w(`<!doctype html>
 <html lang="de">
 <head>
 <meta charset="utf-8">
 <title>Sicherheitsbefund ${esc(v.domain)}</title>
-<style>${BERICHT_CSS}</style>
+<style>${BERICHT_CSS}</style>${marke ? `\n<style>${MARKE_CSS}</style>` : ""}
 </head>
 <body>`);
 
   // ---------------------------------------------------------------- cover
   const dl = String(v.domain).length;
-  w(`<section class="page dcw${dl > 34 ? " dcw--xl" : dl > 26 ? " dcw--l" : ""}">
+  // Markenfassung: Markenlogo oben, Reineke unten bei „Erstellt von“.
+  const deckLogo = marke
+    ? `<div class="dcw-marke"><img src="${esc(marke.logo)}" alt="${esc(marke.logo_alt)}"></div>`
+    : `<div class="dcw-logo"><img class="dcw-fuchs" src="${esc(v.logo)}" alt="Reineke Technik"><img class="dcw-wort" src="${esc(v.logo)}" alt=""></div>`;
+  w(`<section class="page dcw${dl > 34 ? " dcw--xl" : dl > 26 ? " dcw--l" : ""}${marke ? " dcw--marke" : ""}">
 <style>${DECKBLATT_CSS}</style>
-  <div class="dcw-logo"><img class="dcw-fuchs" src="${esc(v.logo)}" alt="Reineke Technik"><img class="dcw-wort" src="${esc(v.logo)}" alt=""></div>
+  ${deckLogo}
   <div class="dcw-titel">
     <div class="dcw-kicker">SICHERHEITSBEFUND · E-MAIL, DOMAIN UND WEBSITE</div>
     <div class="dcw-domain">${esc(v.domain)}</div>
@@ -157,9 +189,11 @@ export function berichtHtml(v: Vm): string {
     <div class="dcw-spruch">${v.firma.slogan.map((z: string, i: number) => `<div class="dcw-z${i + 1}">${esc(z)}</div>`).join("")}</div>
   </div>
   <div class="dcw-fuss">
-    <div><span class="dcw-l">Erstellt von</span><p><b>${esc(v.firma.name)}</b><br>${esc(v.firma.strasse)} · ${esc(v.firma.plz_ort)}<br>${esc(v.firma.web)}</p></div>
+    <div><span class="dcw-l">Erstellt von</span><p><b>${esc(v.firma.name)}</b><br>${esc(v.firma.strasse)} · ${esc(v.firma.plz_ort)}<br>${esc(v.firma.web)}</p>${marke?.co_brand ? `<p class="dcw-co">${esc(marke.co_brand)}</p>` : ""}</div>
     <div><span class="dcw-l">Prüfdatum</span><p>${esc(v.datum)}<br>Bericht-Nr. ${esc(v.bericht_nr)}</p></div>
-    <div><span class="dcw-l">Vertraulich</span><p>Nur für den internen Gebrauch der Adressaten bestimmt.</p></div>
+    ${marke
+      ? `<div class="dcw-vertr"><div><span class="dcw-l">Vertraulich</span><p>Nur für den internen Gebrauch der Adressaten bestimmt.</p></div><img class="dcw-rt" src="${esc(v.logo)}" alt="${esc(v.firma.kurzname)}"></div>`
+      : `<div><span class="dcw-l">Vertraulich</span><p>Nur für den internen Gebrauch der Adressaten bestimmt.</p></div>`}
   </div>
 </section>`);
 
@@ -172,8 +206,8 @@ export function berichtHtml(v: Vm): string {
   <div class="inh${v.feststellungen.length > 14 ? " inh--kompakt" : ""}">
     <a class="inh-kap" href="#kap-01"><span class="inh-nr">01</span><span class="inh-t">Zusammenfassung</span><span class="inh-s">${p.P_ZF}</span></a>
     <a class="inh-kap" href="#kap-02"><span class="inh-nr">02</span><span class="inh-t">Empfehlungen</span><span class="inh-s">${p.P_EMP}</span></a>
-    <a class="inh-sub" href="#pentest"><span class="inh-nr"></span><span class="inh-t">${esc(v.texte.pentest_titel)}</span><span class="inh-s">${p.P_PT}</span></a>
-    <a class="inh-kap" href="#kap-03"><span class="inh-nr">03</span><span class="inh-t">Über ${esc(v.firma.kurzname)}</span><span class="inh-s">${p.P_UEBER}</span></a>
+    <a class="inh-sub" href="#${marke ? "angebot" : "pentest"}"><span class="inh-nr"></span><span class="inh-t">${esc(marke ? marke.angebot.titel : v.texte.pentest_titel)}</span><span class="inh-s">${p.P_PT}</span></a>
+    <a class="inh-kap" href="#kap-03"><span class="inh-nr">03</span><span class="inh-t">${esc(kap03)}</span><span class="inh-s">${p.P_UEBER}</span></a>
     <a class="inh-kap" href="#kap-04"><span class="inh-nr">04</span><span class="inh-t">Nächster Schritt</span><span class="inh-s">${p.P_NEXT}</span></a>
     <a class="inh-sub" href="#kap-04"><span class="inh-nr"></span><span class="inh-t">${esc(v.texte.cta_titel)}: Termin direkt aus dem Bericht buchen</span><span class="inh-s">${p.P_NEXT}</span></a>
     <a class="inh-kap" href="#kap-05"><span class="inh-nr">05</span><span class="inh-t">Feststellungen im Einzelnen</span><span class="inh-s">${F_START}</span></a>
@@ -276,7 +310,7 @@ export function berichtHtml(v: Vm): string {
     <div class="s6"><div class="wert">${esc(cap(m.aufwand))}</div><div class="bezug">${bezug(m)}</div></div>
   </div>`).join("")}
 
-  ${pt_emp ? pentestBlock("blk") : ""}
+  ${pt_emp ? kasten("blk") : ""}
   ${fuss(seite)}
 </section>`);
 
@@ -284,7 +318,7 @@ export function berichtHtml(v: Vm): string {
     seite++;
     w(`<section class="page pg">
   ${kopf("Empfehlungen")}
-  ${pentestBlock("")}
+  ${kasten("")}
   ${fuss(seite)}
 </section>`);
   }
@@ -292,8 +326,8 @@ export function berichtHtml(v: Vm): string {
   // ---------------------------------------------------------------- 03 about
   seite++;
   w(`<section class="page pg">
-  ${kopf(`Über ${v.firma.kurzname}`)}
-  <div class="r6 kk" id="kap-03"><div class="nr">03</div><h1>Über ${esc(v.firma.kurzname)}</h1></div>
+  ${kopf(kap03)}
+  <div class="r6 kk" id="kap-03"><div class="nr">03</div><h1>${esc(kap03)}</h1></div>
   <div class="r6 person">
     <div class="s12"><img class="portrait" src="${esc(v.firma.vorstellung.foto_url)}" alt="${esc(v.firma.vorstellung.name)}"></div>
     <div class="s36">
@@ -302,9 +336,17 @@ export function berichtHtml(v: Vm): string {
       ${v.firma.vorstellung.absaetze.map((a: string) => `<p class="lead-s">${esc(a)}</p>`).join("")}
     </div>
   </div>
-  <div class="r6 blk">
+  ${marke
+    ? // Markenfassung: der Absatz zur Zusammenarbeit an der Stelle des Spruchs,
+      // der dort keinen Platz mehr hat und auf dem Deckblatt bleibt (Werner,
+      // 01.11.2026, Variante B).
+      `<div class="r6 blk linie partner">
+    <div class="s12"><span class="label">${esc(marke.partner.label)}</span><img class="partner-logo" src="${esc(marke.logo)}" alt="${esc(marke.logo_alt)}"></div>
+    <p class="s36 lead-s">${esc(marke.partner.text)}</p>
+  </div>`
+    : `<div class="r6 blk">
     <p class="s36 zitat">„${v.firma.slogan.map((z: string, i: number) => `${esc(z)}${i < v.firma.slogan.length - 1 ? "<br>" : ""}`).join("")}“</p>
-  </div>
+  </div>`}
   <div class="r3 drei blk">
     ${v.firma.prinzipien.map((x: Vm) => `<div><h3>${esc(x.titel)}</h3><p>${esc(x.text)}</p></div>`).join("")}
   </div>
@@ -346,13 +388,15 @@ export function berichtHtml(v: Vm): string {
     ${v.firma.kontakte.map((k: Vm) => `<div class="kontakt${k.foto_url ? "" : " ohne"}">
       ${k.foto_url ? `<img src="${esc(k.foto_url)}" alt="${esc(k.name)}">` : ""}
       <div><div class="n">${esc(k.name)}</div><div class="r">${esc(k.rolle)}</div>
-        <div class="c"><a href="mailto:${esc(k.email)}">${esc(k.email)}</a><br><a href="tel:${esc(k.telefon_href)}">${esc(k.telefon)}</a>${k.mobil ? `<br><a href="tel:${esc(k.mobil_href)}">${esc(k.mobil)}</a> (mobil)` : ""}</div></div>
+        <div class="c"><a href="mailto:${esc(k.email)}">${esc(k.email)}</a>${k.telefon ? `<br><a href="tel:${esc(k.telefon_href)}">${esc(k.telefon)}</a>` : ""}${k.mobil ? `<br><a href="tel:${esc(k.mobil_href)}">${esc(k.mobil)}</a> (mobil)` : ""}</div></div>
     </div>`).join("")}
   </div>
   <div class="r6 linie absender unten">
     <div class="s12"><img class="logo-voll" src="${esc(v.logo)}" alt="${esc(v.firma.name)}"></div>
     <div class="s34"><span class="label">Anschrift</span><p>${esc(v.firma.name)}<br>${esc(v.firma.strasse)}<br>${esc(v.firma.plz_ort)}<br><a href="${esc(v.firma.web_url)}">${esc(v.firma.web)}</a></p></div>
-    <div class="s56"><span class="label">Penetrationstest anfragen</span><p><a class="unterstr" href="${esc(v.firma.pentest_url)}">${esc(v.firma.pentest_label)}</a></p></div>
+    <div class="s56">${marke
+      ? `<span class="label">${esc(marke.absender.label)}</span><p><a class="unterstr" href="${esc(marke.absender.url)}">${esc(marke.absender.text)}</a></p>`
+      : `<span class="label">Penetrationstest anfragen</span><p><a class="unterstr" href="${esc(v.firma.pentest_url)}">${esc(v.firma.pentest_label)}</a></p>`}</div>
     <p class="s16 klein pflicht">${esc(v.firma.pflichtangaben.registergericht)} · ${esc(v.firma.pflichtangaben.hrb)} · Geschäftsführer: ${esc(v.firma.pflichtangaben.geschaeftsfuehrer.join(", "))} · USt-IdNr. ${esc(v.firma.pflichtangaben.ust_id)}</p>
   </div>
   ${fuss(seite)}
