@@ -1372,6 +1372,19 @@ body.is-report .site-footer { display: none; }
 .pt-hero { padding: 4.5rem 0 3rem; }
 .pt-sub { font-size: 1.15rem; color: var(--rt-gray); max-width: 46rem; line-height: 1.6; }
 .pt-hero-cta { display: flex; gap: 1rem; margin-top: 1.8rem; flex-wrap: wrap; }
+/* Der Weg zum Sicherheitsbericht: Schrift im Fuchs-Rot (Werner, 01.11.2026). Beim
+   Überfahren wie jeder Zweitknopf schwarz mit weißer Schrift. */
+.btn-secondary.pt-cta-bericht { color: var(--rt-red); }
+.btn-secondary.pt-cta-bericht:hover { color: #fff; }
+@media (max-width: 768px) {
+  /* Drei Knöpfe untereinander, gleich breit. Weniger Innenabstand, damit
+     „Sicherheitsbericht anfordern“ ab 360 px in eine Zeile passt — sonst wäre
+     der mittlere Knopf höher als die anderen. */
+  .pt-hero-cta .btn { width: 100%; padding-inline: 1rem; }
+}
+@media (max-width: 359px) {
+  .pt-hero-cta .btn { padding-inline: 0.5rem; letter-spacing: 0; }
+}
 .pt-section { padding: 3rem 0; }
 .pt-section-alt { background: var(--rt-bg, #f7f7f8); }
 .pt-section p { max-width: 52rem; line-height: 1.6; }
