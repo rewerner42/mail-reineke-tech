@@ -12,7 +12,17 @@ export const reineke: Brand = {
   // In Produktion entscheidet ohnehin env.BRAND; diese Liste ist der
   // Rueckfall fuer die lokale Entwicklung -- sie soll trotzdem stimmen.
   hosts: ["scan.reineke-technik.de", "scan.reineke.tech"],
-  privateAssets: ["/pentest.html", "/pentest.js", "/bericht.html", "/bericht.js"], // Lead-Strecken — nicht auf anderen Brands
+  // Lead-Strecken und Musterbericht — auf anderen Marken 404. Die Sperre
+  // vergleicht exakte Pfade, deshalb steht jede Seite doppelt: Cloudflare
+  // liefert /pentest.html auch unter /pentest aus. Mit nur der .html-Form
+  // zeigte sharp.reineke.tech/pentest die Reineke-Seite (01.11.2026).
+  privateAssets: [
+    "/pentest", "/pentest.html", "/pentest.js",
+    "/bericht", "/bericht.html", "/bericht.js",
+    "/assets/musterbericht.pdf",
+    "/assets/muster-seite-1.webp", "/assets/muster-seite-3.webp",
+    "/assets/muster-seite-8.webp", "/assets/muster-seite-12.webp",
+  ],
   // Analyse laeuft ausschliesslich ueber PostHog und erst NACH aktiver
   // Einwilligung (Opt-in in app.js).
   //
