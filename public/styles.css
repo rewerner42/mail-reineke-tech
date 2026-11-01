@@ -1389,19 +1389,109 @@ body.is-report .site-footer { display: none; }
 .pt-faq details { border-bottom: 1px solid var(--rt-border); padding: 0.9rem 0; }
 .pt-faq summary { font-weight: 700; cursor: pointer; }
 .pt-faq p { margin: 0.7rem 0 0; }
-/* Musterbericht auf der Anforderungsseite (E26): zeigt vor dem Formular, was
-   der Besucher bekommt. Das Bild ist ein Ausschnitt von vier Seiten, der Link
-   führt auf das vollständige PDF. */
-.muster { margin: 1.75rem 0 0; }
-.muster > a { display: block; border-radius: 6px; overflow: hidden; background: var(--rt-bg-soft); }
-.muster img { display: block; width: 100%; height: auto; }
-.muster figcaption { margin-top: .6rem; font-size: .875rem; color: var(--rt-gray); line-height: 1.5; }
-.muster figcaption a { margin-left: .35rem; }
-@media (max-width: 640px) {
-  /* Vier Seiten nebeneinander sind auf dem Telefon nicht lesbar — dann nur der
-     Link. Nur das Bild ausblenden, nicht jeden Link im Block. */
-  .muster > a { display: none; }
-  .muster figcaption { margin-top: 0; }
+/* ─── /bericht: Formular links, rechts Termin und Musterbericht ─────────────────
+   Werner, 01.11.2026: Die Felder sollen oben stehen, der Musterbericht rechts,
+   darüber der direkte Draht. Auf dem Telefon folgt die rechte Spalte dem
+   Formular. minmax(0, …): Breiter Inhalt darf die Spalte nicht über den
+   Bildschirm hinausschieben. */
+.b-layout { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(280px, 1fr); gap: 3.5rem; align-items: start; }
+.b-haupt > p { max-width: none; }
+.b-haupt h2 { margin-bottom: 1.4rem; }
+.b-seite { display: flex; flex-direction: column; gap: 2rem; }
+
+/* Die Domain, für die der Bericht entsteht — groß und eindeutig. Beide Zustände
+   (Anzeige und Eingabe) liegen im selben Rasterfeld übereinander: Der Kasten hat
+   von Anfang an seine Höhe und springt nicht, wenn bericht.js den Modus setzt.
+   Bis dahin bleibt er leer. Umgeschaltet wird nur über visibility — damit sind
+   die verdeckten Teile weder sichtbar noch mit der Tastatur erreichbar. */
+.b-domain {
+  display: grid;
+  margin: 0 0 1.4rem;
+  padding: 1.05rem 1.4rem 1.15rem;
+  background: var(--rt-bg-soft);
+  border-left: 4px solid var(--rt-red);
+}
+.b-domain-fest,
+.b-domain-eingabe { grid-area: 1 / 1; align-self: center; }
+.b-domain:not([data-modus="fest"]) .b-domain-fest,
+.b-domain:not([data-modus="eingabe"]) .b-domain-eingabe,
+.b-domain[data-gesperrt] .b-domain-aendern { visibility: hidden; }
+.b-domain-fest {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.5rem 1.5rem;
+}
+.b-domain-label {
+  display: block;
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--rt-red);
+}
+.b-domain-name {
+  display: block;
+  min-height: 1.2em;
+  font-family: var(--rt-mono);
+  font-weight: 700;
+  color: var(--rt-black);
+  /* Mit der Bildschirmbreite: Auch auf 320 px passt eine übliche Domain in eine
+     Zeile; sehr lange brechen sauber um, statt hinauszuragen. */
+  font-size: clamp(1.05rem, 5.4vw, 1.9rem);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.b-domain-aendern {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--rt-gray);
+  text-decoration: underline;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.b-domain-aendern:hover { color: var(--rt-black); }
+.b-domain-eingabe { display: block; }
+.b-domain-eingabe input {
+  width: 100%;
+  border: 1px solid var(--rt-border);
+  border-radius: 0;
+  background: #fff;
+  padding: 0.8rem 1rem;
+  font-family: var(--rt-mono);
+  font-size: clamp(1.15rem, 2vw, 1.4rem);
+  font-weight: 700;
+  color: var(--rt-black);
+}
+.b-domain-eingabe input::placeholder { color: var(--rt-gray-mid); font-weight: 400; }
+.b-domain-eingabe input:focus { border-color: var(--rt-red); outline: none; box-shadow: 0 0 0 1px var(--rt-red); }
+.b-domain-eingabe input[aria-invalid="true"] { border-color: var(--rt-red); }
+
+/* Musterbericht (E26): vier Seiten im Raster, der Link führt auf das ganze PDF.
+   Auch auf dem Telefon zu sehen — dort unter Formular und Termin. */
+.muster { margin: 0; }
+.muster-seiten { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; text-decoration: none; }
+.muster-seiten img {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: #fff;
+  border: 1px solid var(--rt-border);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
+}
+.muster figcaption { margin-top: 0.8rem; font-size: 0.875rem; color: var(--rt-gray); line-height: 1.5; }
+.muster figcaption a { display: inline-block; margin-top: 0.2rem; font-weight: 700; color: var(--rt-red); }
+
+@media (max-width: 860px) {
+  .b-layout { grid-template-columns: minmax(0, 1fr); gap: 2.75rem; }
+}
+@media (max-width: 480px) {
+  .b-domain { padding: 0.95rem 1.05rem 1rem; }
 }
 
 .pt-scoping { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(240px, 1fr); gap: 2rem; align-items: start; margin-top: 1.5rem; }
@@ -1453,6 +1543,11 @@ body.is-report .site-footer { display: none; }
 
 /* Turnstile-Widget im Scoping-Formular */
 .pt-turnstile { margin: 0.2rem 0 1rem; min-height: 65px; }
+@media (max-width: 344px) {
+  /* Unter 300 px Platz rendern bericht.js und pentest.js das kompakte Widget
+     (150 × 140) — Platz dafür vorab freihalten, sonst springt die Seite. */
+  .pt-turnstile { min-height: 140px; }
+}
 
 /* ─── Kopfzeile auf schmalen Bildschirmen ──────────────────────────────────────
    Marken mit eigenem Logo-Aufbau (brand.headerLogoTag) liefern zusätzlich einen

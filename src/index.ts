@@ -1031,6 +1031,8 @@ function reportRequestOk(throttled: boolean, email: string, domain: string, lead
         `versenden wir nicht automatisch weiter. Ihre Anfrage liegt uns vor: Wir schicken den Bericht ` +
         `für ${domain} persönlich. Wenn es eilt: +49 172 2872390.`
       : `Wir prüfen ${domain} gerade live und schicken das PDF an ${email}. Das dauert ein bis zwei Minuten.`,
+    // Die geprüfte Schreibweise: /bericht zeigt sie nach dem Absenden im Domain-Kasten.
+    domain,
     leadId,
   };
 }

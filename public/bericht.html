@@ -4,7 +4,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#dc0d23" />
-    <!-- Reine Konversionsseite: ergibt nur mit ?d= Sinn und soll nicht ranken. -->
+    <!-- Reine Konversionsseite: erreichbar mit ?d= (aus dem Ergebnis) und ohne
+         (Knopf auf /pentest) — soll nicht ranken. -->
     <meta name="robots" content="noindex, follow" />
     <meta name="description" content="Sicherheitsbericht anfordern — E-Mail-Authentifizierung, DNS-Absicherung und Website-Header Ihrer Domain als PDF." />
     <title>Bericht anfordern · Reineke Technik</title>
@@ -32,45 +33,42 @@
 
     <main class="pt-page">
       <section class="pt-section pt-section-alt" id="anfordern">
-        <div class="container">
-          <p class="section-eyebrow">Sicherheitsbericht</p>
-          <h2>Den vollständigen Bericht anfordern</h2>
+        <!-- Formular links; rechts der direkte Draht und darunter der Musterbericht.
+             Auf dem Telefon folgt die rechte Spalte dem Formular: erst anfordern,
+             dann Termin, dann sehen, wie der Bericht aussieht. -->
+        <div class="container b-layout">
+          <div class="b-haupt">
+            <p class="section-eyebrow">Sicherheitsbericht</p>
+            <h2>Den vollständigen Bericht anfordern</h2>
 
-          <p class="pt-sub" data-b-for hidden>
-            Bericht für <strong class="mono" data-b-domain></strong>
-          </p>
-
-          <p>Der komplette Befund als PDF: E-Mail-Authentifizierung, DNS-Absicherung und
-            Website-Header — jeweils mit Risiko und nächstem Schritt. Ausgewertet wird
-            ausschließlich, was öffentlich abrufbar ist.</p>
-
-          <figure class="muster">
-            <a href="/assets/musterbericht.pdf" target="_blank" rel="noopener">
-              <img src="/assets/musterbericht-vorschau.png" width="1662" height="588" loading="lazy"
-                   alt="Vier Seiten aus einem Musterbericht: Deckblatt, Zusammenfassung mit
-                        Handlungsbedarf und Noten, eine Feststellung im Einzelnen und die
-                        Messwerte im Anhang." />
-            </a>
-            <figcaption>
-              So sieht der Bericht aus — hier für eine erfundene Beispieldomain.
-              <a href="/assets/musterbericht.pdf" download>Musterbericht
-                herunterladen (PDF, 14 Seiten)</a>
-            </figcaption>
-          </figure>
-
-          <div class="pt-scoping">
-            <form class="pt-form" novalidate>
-              <!-- Ohne ?d= tritt dieses Feld an die Stelle der Anzeige oben. -->
-              <!-- Wrapper-div statt hidden am Label: .lead-field setzt display:flex und
-                   wuerde das hidden-Attribut schlagen. -->
-              <div data-b-domain-field hidden>
-                <label class="lead-field">
-                  <span class="lead-label">Domain *</span>
-                  <input type="text" name="domain" autocapitalize="off" autocorrect="off"
-                         spellcheck="false" placeholder="z. B. muster-gmbh.de" />
-                </label>
+            <!-- Die Domain, für die der Bericht entsteht — groß und offen, kein
+                 verstecktes Feld. bericht.js setzt data-modus: "fest" (geprüfte Domain
+                 aus ?d=) oder "eingabe" (ohne ?d= oder nach „Andere Domain“). Beide
+                 Zustände liegen übereinander im selben Platz: Der Kasten springt
+                 nicht, wann immer das Skript läuft. Das Feld gehört über form= zum
+                 Formular, steht aber hier oben. -->
+            <div class="b-domain" data-b-domain-box>
+              <div class="b-domain-fest">
+                <div>
+                  <span class="b-domain-label">Bericht für</span>
+                  <strong class="b-domain-name" data-b-domain></strong>
+                </div>
+                <button type="button" class="b-domain-aendern" data-b-domain-change>Andere Domain</button>
               </div>
+              <label class="b-domain-eingabe">
+                <span class="b-domain-label">Für welche Domain?</span>
+                <input type="text" name="domain" form="b-form" autocapitalize="off" autocorrect="off"
+                       spellcheck="false" inputmode="url" autocomplete="off" placeholder="ihre-firma.de" />
+              </label>
+            </div>
 
+            <p>Der komplette Befund als PDF: E-Mail-Authentifizierung, DNS-Absicherung und
+              Website-Header — jeweils mit Risiko und nächstem Schritt. Ausgewertet wird
+              ausschließlich, was öffentlich abrufbar ist.</p>
+
+            <!-- method="post": Fiele bericht.js aus, schickte der Browser das Formular
+                 sonst per GET — mit Name, E-Mail und Telefon in der Adresszeile. -->
+            <form class="pt-form" id="b-form" method="post" novalidate>
               <div class="pt-form-grid">
                 <label class="lead-field"><span class="lead-label">Name *</span>
                   <input type="text" name="name" required autocomplete="name" /></label>
@@ -107,16 +105,18 @@
             </form>
 
             <div class="pt-success" data-b-success role="status" aria-live="polite" hidden>
-              <h3>Angefordert — der Bericht wird jetzt erstellt.</h3>
+              <h3 tabindex="-1">Angefordert — der Bericht wird jetzt erstellt.</h3>
               <p data-b-success-text>Wir prüfen Ihre Domain gerade live und schicken das PDF an
                 Ihre Adresse. Das dauert ein bis zwei Minuten.</p>
               <p class="lead-note">Adresse vertippt? <button type="button" class="card-export"
                 data-b-again>Noch einmal eingeben</button></p>
             </div>
+          </div>
 
+          <div class="b-seite">
             <aside class="pt-contact">
               <h3>Lieber direkt sprechen?</h3>
-              <p><strong>Werner Reineke</strong><br />Geschäftsführer, Reineke Technik GmbH</p>
+              <p><strong>Werner Reineke</strong><br />Geschäftsführer, Reineke&nbsp;Technik&nbsp;GmbH</p>
               <p>
                 <a class="btn btn-secondary pt-booking"
                    href="https://outlook.office.com/bookwithme/user/99dfe8391d044c208563dd3afbc7439f@reineke-technik.de?anonymous&amp;ismsaljsauthenabled&amp;ep=plink"
@@ -125,8 +125,23 @@
               <p>Tel. <a href="tel:+491722872390">+49 172 2872390</a><br />
                 <a href="mailto:wf.reineke@reineke-technik.de">wf.reineke@reineke-technik.de</a></p>
             </aside>
-          </div>
 
+            <figure class="muster">
+              <a class="muster-seiten" href="/assets/musterbericht.pdf" target="_blank" rel="noopener"
+                 aria-label="Musterbericht öffnen (PDF, 14 Seiten)">
+                <img src="/assets/muster-seite-1.webp" width="800" height="1133" decoding="async" alt="" />
+                <img src="/assets/muster-seite-3.webp" width="800" height="1133" decoding="async" alt="" />
+                <img src="/assets/muster-seite-8.webp" width="800" height="1133" decoding="async" alt="" />
+                <img src="/assets/muster-seite-12.webp" width="800" height="1133" decoding="async" alt="" />
+              </a>
+              <figcaption>
+                So sieht der Bericht aus — hier für eine erfundene Beispieldomain.<br />
+                <a href="/assets/musterbericht.pdf" download>Musterbericht herunterladen (PDF,&nbsp;14&nbsp;Seiten)</a>
+              </figcaption>
+            </figure>
+          </div>
+        </div>
+        <div class="container">
           <p class="pt-legal">Der Bericht ist eine Momentaufnahme öffentlich abrufbarer Daten und
             trifft keine Aussage über interne Systeme.</p>
         </div>
