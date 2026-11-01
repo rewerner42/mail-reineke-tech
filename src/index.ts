@@ -11,6 +11,7 @@ import { analyzeObservatory, fetchGradeDistribution } from "./observatory.js";
 import {
   ampelFor,
   createLead,
+  noteReportSent,
   odooConfigFromEnv,
   recordScannedDomain,
   validateEmail,
@@ -29,6 +30,7 @@ import {
 } from "./leads/notify.js";
 import { MAX_HTML_BYTES, renderReportPdf } from "./pdf/render.js";
 import { buildReportBody } from "./report/build.js";
+import { erzeugeBericht, scanneFuerBericht } from "./report/bericht.js";
 import {
   resolveBrand,
   BRANDS,
@@ -134,6 +136,13 @@ app.use("*", async (c, next) => {
   // Rebuild the response so headers are mutable (ASSETS responses can be immutable).
   let res = new Response(c.res.body, c.res);
   for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.headers.set(k, v);
+  // The report renderer writes the report into a blank page that has no origin
+  // of its own and loads logo, portrait and QR code from /assets/. To that page
+  // every request is cross-origin, so "same-origin" made Chrome drop all three
+  // images and the image guard stopped every report. These files are public.
+  if (url.pathname.startsWith("/assets/")) {
+    res.headers.set("Cross-Origin-Resource-Policy", "cross-origin");
+  }
   res.headers.set("Content-Security-Policy", cspFor(brand));
   // White-label: rewrite served HTML for non-default brands (no-op for default,
   // so sharp/reineke is byte-unchanged). Skips JSON/PDF/asset responses.
@@ -416,14 +425,24 @@ async function notifyPentestLead(
   // fällt er auf die Domain der E-Mail-Adresse zurück.
   const berichtsDomain = n.reportDomain ?? n.domain;
   let pdf: Uint8Array | null = null;
+  // Wird erst in der Promise-Kette unten gesetzt, daher der Cast: Mit `= null`
+  // engte TypeScript den Typ dauerhaft auf null ein.
+  let berichtNr = null as string | null;
   let pdfFehler: string | null = null;
   if (!skipCustomerMail && berichtsDomain) {
     try {
       // Zeitgrenze: Ohne sie könnte ein hängender Scan die Laufzeit sprengen und
       // BEIDE Mails mitreißen. Lieber ohne Anhang melden als gar nicht.
       pdf = await withTimeout(
-        buildReportPdf(env, origin, berichtsDomain, reportBrandFor(brand, n.kind)),
-        PDF_TIMEOUT_MS,
+        nutztBerichtV15(brand)
+          ? // Der v15-Generator bringt seine eigene Frist mit; der Wettlauf hier
+            // ist nur das Netz darunter und liegt deshalb darueber.
+            buildBerichtV15(env, origin, berichtsDomain).then((b) => {
+                berichtNr = b?.nummer ?? null;
+                return b?.pdf ?? null;
+              })
+          : buildReportPdf(env, origin, berichtsDomain, reportBrandFor(brand, n.kind)),
+        PDF_TIMEOUT_MS + 10_000,
       );
       if (!pdf) pdfFehler = "Browser Rendering nicht verfügbar, Report zu groß oder Zeitgrenze erreicht.";
     } catch (err) {
@@ -436,7 +455,12 @@ async function notifyPentestLead(
       ? [
           {
             filename: `${brand.report.filenamePrefix}-${berichtsDomain}.pdf`,
-            content: bufToBase64(pdf.buffer as ArrayBuffer),
+            // Sicht in den Puffer, nicht der ganze Puffer: page.pdf() kann einen
+            // Ausschnitt eines groesseren Speicherblocks liefern, sonst laegen
+            // fremde Bytes im Anhang.
+            content: bufToBase64(
+              pdf.buffer.slice(pdf.byteOffset, pdf.byteOffset + pdf.byteLength) as ArrayBuffer,
+            ),
             content_type: "application/pdf",
           },
         ]
@@ -478,6 +502,19 @@ async function notifyPentestLead(
     attachments: [...(logo ? buildPentestEmail(n, logo).attachments : []), ...berichtAnhang],
   });
   if (!b.ok) console.warn("Resend (Kunde) fehlgeschlagen:", b.error);
+
+  // B16: Die Nummer kommt nach dem Versandversuch in den Verlauf des Leads,
+  // damit sich jede verschickte Nummer einem Empfänger zuordnen lässt — und
+  // eine gescheiterte Kundenmail dort auffällt, nicht nur im Protokoll.
+  const odoo = odooConfigFromEnv(env);
+  if (pdf && berichtNr && berichtsDomain && n.leadId && odoo) {
+    await noteReportSent(odoo, n.leadId, {
+      nummer: berichtNr,
+      domain: berichtsDomain,
+      empfaenger: cfg.customerCopyTo ?? n.email,
+      versandt: b.ok,
+    });
+  }
 }
 
 /** Der Bericht darf die Mails nicht aufhalten — nach dieser Zeit geht es ohne ihn. */
@@ -497,6 +534,44 @@ function withTimeout<T>(p: Promise<T>, ms: number): Promise<T | null> {
 function reportBrandFor(brand: Brand, kind: LeadKind | undefined): Brand {
   if (kind !== "bericht") return brand;
   return { ...brand, report: { ...brand.report, partner: null, reps: undefined } };
+}
+
+/**
+ * Bericht v15 gilt zunächst nur für Reineke.
+ *
+ * Der Katalog ist durchgehend deutsch, die Vorlage auf weißen Grund kalibriert,
+ * Kapitel 03 heißt wörtlich "Über Reineke Technik", und die Pflichtangaben nach
+ * § 35a GmbHG gelten für eine deutsche GmbH — bei Vörcyber, einer LLC, dürfen
+ * sie nicht erscheinen. Die anderen Marken behalten den bisherigen Vierseiter,
+ * bis sie eine eigene Fassung haben. So von Werner entschieden (30.10.2026).
+ */
+function nutztBerichtV15(brand: Brand): boolean {
+  return brand.id === "reineke";
+}
+
+/**
+ * Der Bericht v15: ein Generator für alle drei Wege. Gibt null zurück, wenn kein
+ * Browser verfügbar ist oder die Erzeugung scheitert — der Aufrufer entscheidet,
+ * ob er ohne Anhang weitermacht.
+ */
+async function buildBerichtV15(
+  env: Bindings,
+  origin: string,
+  domain: string,
+): Promise<{ pdf: Uint8Array; nummer: string } | null> {
+  if (!env.BROWSER) return null;
+  const [email, dnssec] = await Promise.all([runEmailChecks(domain, []), analyzeDnssec(domain)]);
+  const { analyze, observatory } = await scanneFuerBericht(domain, email, dnssec);
+  const bericht = await erzeugeBericht(env.BROWSER, {
+    analyze,
+    observatory,
+    origin,
+    odoo: odooConfigFromEnv(env),
+  });
+  if (bericht.nummerAus === "ersatz") {
+    console.warn(`Bericht-Nr. ohne Odoo-Zähler vergeben: ${bericht.nummer}`);
+  }
+  return { pdf: bericht.pdf, nummer: bericht.nummer };
 }
 
 // ─── Bericht als PDF (nur Kundenmail; /api/generate-report baut eigenständig) ─
@@ -956,6 +1031,8 @@ function reportRequestOk(throttled: boolean, email: string, domain: string, lead
         `versenden wir nicht automatisch weiter. Ihre Anfrage liegt uns vor: Wir schicken den Bericht ` +
         `für ${domain} persönlich. Wenn es eilt: +49 172 2872390.`
       : `Wir prüfen ${domain} gerade live und schicken das PDF an ${email}. Das dauert ein bis zwei Minuten.`,
+    // Die geprüfte Schreibweise: /bericht zeigt sie nach dem Absenden im Domain-Kasten.
+    domain,
     leadId,
   };
 }
@@ -1125,6 +1202,45 @@ app.post("/api/generate-report", async (c) => {
   if (!domain) return c.json(INVALID_DOMAIN, 400);
   recordDomainSafe(c, domain);
 
+  const origin = new URL(c.req.url).origin;
+  // Active brand, with the partner card swapped to the picked sales rep (if any).
+  const baseBrand = resolveBrand(c.env, new URL(c.req.url).host);
+  const rep = parseRepInput(body.rep);
+  const brand = rep ? { ...baseBrand, report: { ...baseBrand.report, partner: rep } } : baseBrand;
+
+  // Bericht v15: derselbe Generator, der auch die Mail-Anhänge erzeugt. Die
+  // Vertriebskarte entfällt hier — der Bericht nennt die festen Ansprechpartner
+  // aus den Firmendaten, eine zweite Karte hat die Vorlage nicht.
+  if (nutztBerichtV15(brand)) {
+    try {
+      // Keine aeussere Zeitgrenze: renderDocumentPdf fuehrt eine eigene Frist
+      // ueber den ganzen Lauf und schliesst den Browser in jedem Fall. Ein
+      // Promise.race davor wuerde den Lauf nicht beenden, sondern nur aufhoeren,
+      // auf ihn zu warten — und die Rendering-Sitzung bliebe offen.
+      const bericht = await buildBerichtV15(c.env, origin, domain);
+      if (!bericht) {
+        return c.json(
+          { ok: false, code: "RENDER_FAILED", message: "PDF konnte nicht erstellt werden." },
+          502,
+        );
+      }
+      return new Response(bericht.pdf as BodyInit, {
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="${brand.report.filenamePrefix}-${domain}.pdf"`,
+          "X-Bericht-Nr": bericht.nummer,
+          "Cache-Control": "no-store",
+        },
+      });
+    } catch (err) {
+      console.error("Bericht v15 fehlgeschlagen:", err instanceof Error ? err.message : String(err));
+      return c.json(
+        { ok: false, code: "RENDER_FAILED", message: "PDF konnte nicht erstellt werden." },
+        502,
+      );
+    }
+  }
+
   // Scans serverseitig (autoritativ): E-Mail-Auth + DNSSEC + Website-Header.
   const [email, dnssec, observatory] = await Promise.all([
     runEmailChecks(domain, []),
@@ -1134,11 +1250,6 @@ app.post("/api/generate-report", async (c) => {
   const analyze: AnalysisResponse = { domain, queriedAt: new Date().toISOString(), ...email, dnssec };
 
   // Stylesheet + Logos aus den Assets inlinen — keine externen Fetches im Headless-Browser.
-  const origin = new URL(c.req.url).origin;
-  // Active brand, with the partner card swapped to the picked sales rep (if any).
-  const baseBrand = resolveBrand(c.env, new URL(c.req.url).host);
-  const rep = parseRepInput(body.rep);
-  const brand = rep ? { ...baseBrand, report: { ...baseBrand.report, partner: rep } } : baseBrand;
   const wordmarkMime = brand.report.wordmarkAsset.endsWith(".svg") ? "image/svg+xml" : "image/png";
   const foxMime = brand.report.foxAsset.endsWith(".svg") ? "image/svg+xml" : "image/png";
   let css = "";

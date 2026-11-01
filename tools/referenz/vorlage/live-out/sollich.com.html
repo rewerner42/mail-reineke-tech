@@ -1,0 +1,867 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Sicherheitsbefund sollich.com</title><style>
+  @page { size: A4; margin: 0; }
+  :root {
+    --rot: #DC0C23;
+    --ink: #111111; --ink-2: #2E2E2E; --ink-3: #5A5A5A; --ink-4: #767676;
+    --haar: #D2D2D2; --haar-2: #E6E7E6;
+    --hoch: #DC0C23; --mittel: #B26B00; --gering: #5E6A71; --ok: #2E6B4A; --na: #8A8A8A;
+  }
+  html, body { margin: 0; padding: 0; background: #fff; }
+  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  /* ---------- Seite und Raster ---------- */
+  .pg { position: relative; width: 210mm; height: 297mm; overflow: hidden; box-sizing: border-box;
+        padding: 31mm 15mm 24mm; background: #fff; color: var(--ink);
+        font-family: "Liberation Sans", Arial, Helvetica, sans-serif; font-size: 9.5pt; line-height: 1.45;
+        page-break-after: always; break-after: page; }
+  .pg:last-child { page-break-after: auto; break-after: auto; }
+  .pg *, .pg *::before, .pg *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  .pg a { color: inherit; text-decoration: none; }
+  .pg b, .pg strong { font-weight: 700; }
+  .pg ul, .pg ol { list-style: none; }
+  .pg.spalte { display: flex; flex-direction: column; }
+  .pg.spalte > .unten { margin-top: auto; }
+
+  .r6 { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); column-gap: 5mm; }
+  .r3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 5mm; }
+  .r2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 5mm; }
+  .s1 { grid-column: 1 / 2; } .s2 { grid-column: 2 / 3; } .s3 { grid-column: 3 / 4; }
+  .s4 { grid-column: 4 / 5; } .s5 { grid-column: 5 / 6; } .s6 { grid-column: 6 / 7; }
+  .s12 { grid-column: 1 / 3; } .s34 { grid-column: 3 / 5; } .s56 { grid-column: 5 / 7; }
+  .s36 { grid-column: 3 / 7; } .s35 { grid-column: 3 / 6; } .s16 { grid-column: 1 / 7; }
+  .s46 { grid-column: 4 / 7; }
+
+  /* ---------- Kopf- und Fußzeile ---------- */
+  .kopf { position: absolute; top: 12mm; left: 15mm; right: 15mm; display: grid;
+          grid-template-columns: repeat(6, minmax(0, 1fr)); column-gap: 5mm; align-items: end;
+          padding-bottom: 2.4mm; border-bottom: .2mm solid var(--haar);
+          font-size: 7pt; line-height: 1.2; color: var(--ink-3); }
+  .k-marke { grid-column: 1 / 3; display: flex; align-items: flex-end; gap: 2.2mm; white-space: nowrap; }
+  .fuchs { display: block; flex: none; width: 6mm; height: 5.2mm; overflow: hidden; }
+  .fuchs img { display: block; width: 6mm; height: auto; }
+  .k-marke b { color: var(--ink); letter-spacing: .03em; }
+  .k-domain { grid-column: 3 / 5; overflow-wrap: anywhere; }
+  .k-kap { grid-column: 5 / 7; text-align: right; }
+  .fuss { position: absolute; bottom: 11mm; left: 15mm; right: 15mm; display: grid;
+          grid-template-columns: repeat(6, minmax(0, 1fr)); column-gap: 5mm;
+          font-size: 7pt; line-height: 1.2; color: var(--ink-4); }
+  .fuss .f1 { grid-column: 1 / 3; } .fuss .f2 { grid-column: 3 / 5; }
+  .fuss .f3 { grid-column: 5 / 7; text-align: right; color: var(--ink-3); }
+
+  /* ---------- Typografie ---------- */
+  .kk { align-items: baseline; margin-bottom: 7mm; }
+  .kk.kk-mit { margin-bottom: 3mm; }
+  .vorspann { margin-bottom: 7mm; }
+  .vorspann p { font-size: 10pt; line-height: 1.45; color: var(--ink-3); }
+  .kk .nr { grid-column: 1 / 3; font-size: 22pt; line-height: 1.1; font-weight: 400; color: var(--rot); }
+  .kk h1 { grid-column: 3 / 7; font-size: 22pt; line-height: 1.1; font-weight: 700; letter-spacing: -.005em; }
+  .label { display: block; font-size: 6.8pt; line-height: 1.35; font-weight: 700; letter-spacing: .14em;
+           text-transform: uppercase; color: var(--ink-3); }
+  .lead { font-size: 12pt; line-height: 1.42; color: var(--ink); }
+  .lead-s { font-size: 10.5pt; line-height: 1.45; color: var(--ink-2); }
+  .klein { font-size: 8.5pt; line-height: 1.45; color: var(--ink-3); }
+  .marginalie { margin-top: 3mm; width: 46mm; font-size: 7.5pt; line-height: 1.45; color: var(--ink-4); }
+  .mono { font-family: "DejaVu Sans Mono", Menlo, monospace; font-size: 6.8pt; line-height: 1.5;
+          color: var(--ink-3); overflow-wrap: anywhere; }
+  .blk { margin-top: 9mm; }
+  .linie { border-top: .35mm solid var(--ink); padding-top: 3mm; }
+
+  /* Statusfarben */
+  .good { color: var(--ok); } .warn { color: var(--mittel); } .bad { color: var(--hoch); } .na { color: var(--na); }
+  .prio { display: inline-block; font-size: 6.8pt; line-height: 1.35; font-weight: 700; letter-spacing: .14em;
+          text-transform: uppercase; white-space: nowrap; }
+  .prio::before { content: ""; display: inline-block; width: 1.9mm; height: 1.9mm; margin-right: 1.6mm;
+                  background: currentColor; vertical-align: .05mm; }
+  .prio.hoch { color: var(--hoch); } .prio.mittel { color: var(--mittel); } .prio.gering { color: var(--gering); }
+  .prio.ok { color: var(--ok); } .prio.hinweis { color: var(--mittel); } .prio.mangel { color: var(--hoch); }
+  .prio.good { color: var(--ok); } .prio.warn { color: var(--mittel); } .prio.bad { color: var(--hoch); } .prio.na { color: var(--na); }
+
+  .btn { display: inline-block; background: var(--rot); color: #fff; font-size: 9.5pt; line-height: 1.2; font-weight: 700;
+         letter-spacing: .02em; padding: 3.4mm 6.5mm; white-space: nowrap; }
+  .pg a.btn { color: #fff; }
+  .unterstr { border-bottom: .2mm solid var(--ink); }
+
+  /* ---------- 01 Zusammenfassung ---------- */
+  .lv-kritisch, .lv-hoch { --lv: var(--hoch); } .lv-mittel { --lv: var(--mittel); } .lv-gering { --lv: var(--ok); }
+  .urteil .hb { font-size: 15pt; line-height: 1.2; font-weight: 700; color: var(--ink); margin-bottom: 2mm; }
+  .urteil .zeile { display: flex; align-items: center; column-gap: 6mm; }
+  .urteil .wort { flex: none; font-size: 46pt; line-height: .95; font-weight: 700; letter-spacing: -.02em; color: var(--lv); margin-top: -1mm; }
+  .urteil .heisst { font-size: 11pt; line-height: 1.32; color: var(--ink-3); border-left: .35mm solid var(--haar); padding-left: 4mm; }
+  .urteil .heisst b { display: block; color: var(--ink); }
+  .urteil .hb-hinweis { margin-top: 3mm; padding-top: 2.4mm; border-top: .3mm solid var(--haar); color: var(--ink); }
+  /* Seite 2 trägt jetzt die Zeile „Handlungsbedarf“: Abstände dort etwas enger als im übrigen Bericht */
+  .seite-zf .blk { margin-top: 6.5mm; }
+  .seite-zf .nt .note { font-size: 48pt; margin: 3.2mm 0 2mm; }
+  .seite-zf .skala { margin: 3.5mm 0 3.2mm; }
+  .skala { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: 5mm; margin: 4.5mm 0 4mm; }
+  .skala div { border-top: 1.2mm solid #E4E4E4; padding-top: 1.6mm; font-size: 6.8pt; line-height: 1.3; font-weight: 700;
+               letter-spacing: .14em; text-transform: uppercase; color: var(--ink-4); }
+  .skala div.an { border-top-color: var(--lv); color: var(--ink); }
+  .noten { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 5mm; }
+  .nt { display: grid; grid-row: span 6; grid-template-rows: subgrid; border-top: .35mm solid var(--ink); padding-top: 3mm; }
+  .nt .schutz { font-size: 9pt; line-height: 1.35; color: var(--ink-2); margin-top: .8mm; }
+  .nt .note { font-size: 54pt; line-height: .9; font-weight: 700; letter-spacing: -.03em; margin: 4mm 0 2.6mm; }
+  .note .mod { font-size: .5em; vertical-align: .78em; letter-spacing: 0; margin-left: .03em; }
+  .nt .wort { font-size: 11pt; line-height: 1.25; font-weight: 700; }
+  .nt .satz { font-size: 9pt; line-height: 1.4; color: var(--ink-2); margin-top: 1.2mm; }
+  .nt .meta { font-size: 7pt; line-height: 1.3; color: var(--ink-4); margin-top: 1.8mm; letter-spacing: .02em; }
+  .legende { margin-top: 3mm; font-size: 7pt; line-height: 1.4; color: var(--ink-4); }
+  .legende span + span::before { content: " · "; }
+  /* Inhaltsverzeichnis (Seite 2, v15) */
+  .inh-hinweis { margin: -2mm 0 6mm; }
+  .inh-hinweis p { font-size: 10pt; line-height: 1.45; color: var(--ink-3); }
+  .inh a { display: grid; grid-template-columns: 61.66mm minmax(0, 1fr) 14mm; column-gap: 0; align-items: baseline; }
+  .inh .inh-kap { border-top: .35mm solid var(--ink); padding: 2.6mm 0 2.4mm; margin-top: 2.2mm; }
+  .inh .inh-kap:first-child { margin-top: 0; }
+  .inh .inh-kap .inh-nr { font-size: 15pt; line-height: 1.15; color: var(--rot); }
+  .inh .inh-kap .inh-t { font-size: 12.5pt; line-height: 1.25; font-weight: 700; }
+  .inh .inh-kap .inh-s { font-size: 12.5pt; line-height: 1.25; font-weight: 700; text-align: right; }
+  .inh .inh-sub { border-top: .2mm solid var(--haar-2); padding: 1mm 0 1.1mm; }
+  .inh .inh-kap + .inh-sub { border-top: 0; }
+  .inh .inh-sub .inh-nr { font-size: 7.5pt; line-height: 1.35; font-weight: 700; color: var(--ink-4); padding-left: 0; }
+  .inh .inh-sub .inh-nr .prio { margin-right: 2mm; }
+  .inh .inh-sub .inh-t { font-size: 9pt; line-height: 1.35; color: var(--ink-2); }
+  .inh .inh-sub .inh-s { font-size: 9pt; line-height: 1.35; color: var(--ink-3); text-align: right; }
+  /* ab 15 Feststellungen etwas dichter, damit das Inhaltsverzeichnis auf eine Seite passt */
+  .inh.inh--kompakt .inh-kap { padding: 2mm 0 1.9mm; margin-top: 1.6mm; }
+  .inh.inh--kompakt .inh-sub { padding: .55mm 0 .6mm; }
+  .inh.inh--kompakt .inh-sub .inh-t, .inh.inh--kompakt .inh-sub .inh-s { font-size: 8.5pt; line-height: 1.3; }
+  /* Notenskala „Zeugnis“ (Werners Wahl, 30.10.): kleine Skala A–F unter jeder Note, Legende mit Farbfeldern */
+  .seite-zf .nt { grid-row: span 7; }
+  .nt-mini { display: flex; gap: 1mm; margin-top: 2.2mm; }
+  .nt-mini span { display: block; width: 6.2mm; height: 5.4mm; border: .3mm solid #D4D4D4; color: #A8A8A8; font-size: 7.5pt; line-height: 4.8mm;
+    font-weight: 700; text-align: center; }
+  .nt-mini span.an.good { background: var(--ok); border-color: var(--ok); color: #fff; }
+  .nt-mini span.an.warn { background: var(--mittel); border-color: var(--mittel); color: #fff; }
+  .nt-mini span.an.bad { background: var(--hoch); border-color: var(--hoch); color: #fff; }
+  .nsk2 { margin-top: 3.5mm; display: flex; flex-wrap: wrap; align-items: center; column-gap: 3.4mm; row-gap: 1mm; font-size: 7pt; line-height: 1.35; color: var(--ink-2); }
+  .nsk2 .label { margin: 0 1mm 0 0; }
+  .nsk2 i { display: inline-block; width: 2.4mm; height: 2.4mm; margin-right: 1.3mm; vertical-align: -.2mm; }
+  .nsk2 i.good { background: var(--ok); } .nsk2 i.warn { background: var(--mittel); } .nsk2 i.bad { background: var(--hoch); }
+  .nsk2 b { font-weight: 700; color: var(--ink); }
+  .zaehler .zahl { font-size: 24pt; line-height: 1; font-weight: 700; letter-spacing: -.01em; margin-top: 4.5mm; }
+  .zaehler .klein { display: block; margin-top: 1mm; }
+  .verteilung { margin-top: 3mm; width: 34mm; }
+  .verteilung li { display: flex; justify-content: space-between; align-items: baseline; padding: .9mm 0; border-top: .2mm solid var(--haar-2); }
+  .verteilung li:first-child { border-top: 0; }
+  .verteilung b { font-size: 9pt; }
+  .top3 ol > li { display: grid; grid-template-columns: 13mm minmax(0, 1fr) auto; column-gap: 3mm; align-items: baseline;
+             padding: 2.2mm 0 2.4mm; border-top: .2mm solid var(--haar); }
+  .top3 ol > li:first-child { border-top: 0; padding-top: 0; }
+  .top3 .fnr { font-size: 8pt; font-weight: 700; color: var(--ink-4); }
+  .top3 b { display: block; font-size: 10pt; line-height: 1.3; }
+  .top3 .rechts { text-align: right; }
+  .top3 .seite { display: block; font-size: 7.5pt; line-height: 1.3; color: var(--ink-4); margin-top: 1.2mm; }
+  .top3 .kurz { display: block; font-size: 9pt; line-height: 1.4; color: var(--ink-3); margin-top: .4mm; }
+  .cta { align-items: center; }
+  .cta .label { margin-bottom: 1mm; }
+  .cta b { display: block; font-size: 11pt; line-height: 1.3; }
+  .cta p { font-size: 9pt; line-height: 1.4; color: var(--ink-2); }
+  .cta-knopf { text-align: left; }
+
+  /* ---------- 02 Feststellungen ---------- */
+  .bf { border-top: .35mm solid var(--ink); padding-top: 2.6mm; margin-top: 7mm; }
+  .bf.erst { margin-top: 0; }
+  .bf-kopf { align-items: baseline; }
+  .bf-nr { font-size: 13pt; line-height: 1.25; font-weight: 700; color: var(--ink-4); }
+  .bf h2 { font-size: 13pt; line-height: 1.25; font-weight: 700; }
+  .bf-meta { margin-top: 1mm; align-items: baseline; }
+  .bf-fach { font-size: 8pt; line-height: 1.35; color: var(--ink-3); }
+  .bf-text { margin-top: 4mm; }
+  .bf-text p { font-size: 9pt; line-height: 1.42; color: var(--ink-2); margin-top: 1.1mm; }
+  .bf-text p.wirk { color: var(--ink); font-weight: 700; }
+  .bf-text .label + p + .label { margin-top: 3mm; }
+  .bf-tech { margin-top: 3.2mm; align-items: baseline; }
+  .sek { align-items: baseline; margin-bottom: 4mm; }
+  .sek h2 { font-size: 13pt; line-height: 1.25; font-weight: 700; }
+  .gz { border-top: .2mm solid var(--haar); padding: 2.3mm 0 2.5mm; align-items: baseline; }
+  .gz.erst { border-top: .35mm solid var(--ink); }
+  .gz .fnr { display: block; font-size: 9.5pt; line-height: 1.3; font-weight: 700; color: var(--ink-4); }
+  .gz-meta { display: block; font-size: 7.5pt; line-height: 1.35; color: var(--ink-3); margin-top: .4mm; }
+  .gz b { display: block; font-size: 9.5pt; line-height: 1.3; }
+  .gz .kurz { display: block; font-size: 9pt; line-height: 1.4; color: var(--ink-2); margin-top: .4mm; }
+  .gz .auf { display: block; font-size: 8pt; line-height: 1.35; color: var(--ink-3); margin-top: .6mm; }
+  .gz-fuss { margin-top: 2.5mm; font-size: 7.5pt; color: var(--ink-4); }
+  .positiv-liste { margin-top: 4mm; border-top: .2mm solid var(--haar); }
+  .positiv-liste li { position: relative; padding: 1.7mm 0 1.9mm 5mm; border-bottom: .2mm solid var(--haar-2); font-size: 9.5pt; line-height: 1.4; color: var(--ink-2); }
+  .positiv-liste li::before { content: ""; position: absolute; left: 0; top: 2.85mm; width: 1.9mm; height: 1.9mm; background: var(--ok); }
+  .umgesetzt .zahl { font-size: 24pt; line-height: 1; font-weight: 700; color: var(--ok); margin-top: 4.5mm; }
+  .umgesetzt .klein { display: block; margin-top: 1mm; }
+
+  /* ---------- 03 Empfehlungen ---------- */
+  .kopfzeile { margin-bottom: 2.4mm; align-items: end; }
+  .label.hell { color: var(--ink-4); }
+  .nw { white-space: nowrap; }
+  .mz { border-top: .2mm solid var(--haar); padding: 2.2mm 0 2.4mm; align-items: baseline; }
+  .mz.erst { border-top: .35mm solid var(--ink); }
+  .mz .mnr { font-size: 13pt; line-height: 1.2; font-weight: 700; color: var(--ink); }
+  .mz b { display: block; font-size: 10pt; line-height: 1.3; }
+  .mz p { font-size: 9pt; line-height: 1.36; color: var(--ink-2); margin-top: .5mm; }
+  .mz .wert { font-size: 8.5pt; line-height: 1.4; color: var(--ink); }
+  .mz .bezug { font-size: 8pt; line-height: 1.4; color: var(--ink-3); margin-top: .6mm; }
+  .mz .bezug .seitenref { white-space: nowrap; color: var(--ink-4); }
+  .pentest h2 { font-size: 13pt; line-height: 1.25; font-weight: 700; }
+  .pentest .lead-s { margin-top: 2mm; font-size: 10pt; }
+  .arten { margin-top: 3.5mm; width: 46mm; }
+  .arten li { padding: 1.8mm 0 2mm; border-top: .2mm solid var(--haar); }
+  .arten b { display: block; font-size: 9pt; line-height: 1.3; }
+  .arten span { display: block; font-size: 8.5pt; line-height: 1.4; color: var(--ink-3); margin-top: .3mm; }
+  .schritte { margin-top: 4mm; row-gap: 0; }
+  .schritte li { display: grid; grid-template-columns: 6mm minmax(0, 1fr); padding: 1.8mm 0 2mm; border-top: .2mm solid var(--haar); font-size: 8.5pt; line-height: 1.4; color: var(--ink-2); }
+  .schritte .n { font-weight: 700; color: var(--ink); }
+  .schritte b { display: block; color: var(--ink); font-size: 9pt; line-height: 1.3; margin-bottom: .3mm; }
+  .schritte .n { font-size: 9pt; line-height: 1.3; }
+  .pentest .link { margin-top: 3mm; }
+  .pentest .link a { color: var(--ink); }
+
+  /* ---------- 04 Über Reineke Technik ---------- */
+  .portrait { display: block; width: 100%; height: 66mm; object-fit: cover; object-position: center 22%; filter: grayscale(100%); }
+  .p-name { font-size: 13pt; line-height: 1.25; font-weight: 700; }
+  .p-rolle { font-size: 8.5pt; color: var(--ink-3); margin: .6mm 0 4mm; }
+  .person p + p { margin-top: 2.6mm; }
+  .zitat { font-size: 16pt; line-height: 1.35; font-weight: 400; color: var(--ink); letter-spacing: -.005em; }
+  .zitat::before { content: ""; display: block; width: 12mm; border-top: .8mm solid var(--rot); margin-bottom: 4mm; }
+  .drei > div { border-top: .2mm solid var(--haar); padding-top: 2.6mm; }
+  .drei h3 { font-size: 10pt; line-height: 1.3; font-weight: 700; }
+  .drei p { font-size: 9pt; line-height: 1.42; color: var(--ink-2); margin-top: .8mm; }
+  .v-wert { font-size: 20pt; line-height: 1.1; font-weight: 700; letter-spacing: -.01em; margin: 2.2mm 0 1.6mm; }
+  .v-wert.lang { font-size: 14pt; line-height: 1.25; }
+  .leist { column-count: 2; column-gap: 5mm; }
+  .leist li { position: relative; padding-left: 4mm; font-size: 9.5pt; line-height: 1.4; margin-bottom: 1.4mm; break-inside: avoid; color: var(--ink-2); }
+  .leist li::before { content: "–"; position: absolute; left: 0; color: var(--ink-4); }
+
+  /* ---------- 05 Nächster Schritt ---------- */
+  .cta-gross .lead { font-size: 13pt; }
+  .cta-gross .btn { font-size: 10.5pt; padding: 4mm 8mm; margin-top: 6mm; }
+  .qr img { display: block; width: 32mm; height: 32mm; }
+  .qr .klein { margin-top: 1.6mm; }
+  .ablauf .gz-n { font-size: 30pt; line-height: 1; font-weight: 700; color: var(--ink); margin: 2mm 0 2.5mm; }
+  .kontakt { display: grid; grid-template-columns: 20mm minmax(0, 1fr); column-gap: 4mm; border-top: .2mm solid var(--haar); padding-top: 3mm; }
+  .kontakt.ohne { grid-template-columns: minmax(0, 1fr); }
+  .kontakt img { width: 20mm; height: 24mm; object-fit: cover; object-position: center 20%; filter: grayscale(100%); }
+  .kontakt .n { font-size: 10pt; font-weight: 700; line-height: 1.3; }
+  .kontakt .r { font-size: 8.5pt; color: var(--ink-3); margin-bottom: 1.6mm; }
+  .kontakt .c { font-size: 9pt; line-height: 1.55; }
+  .absender p { font-size: 8.5pt; line-height: 1.5; color: var(--ink-2); margin-top: 1.2mm; }
+  .absender a.unterstr { color: var(--ink); }
+  .absender .pflicht { margin-top: 3mm; padding-top: 2mm; border-top: .2mm solid var(--linie); color: var(--ink-2); }
+  .logo-voll { display: block; width: 15mm; height: auto; margin-top: .6mm; }
+
+  /* ---------- Anhang ---------- */
+  .az { border-top: .2mm solid var(--haar); padding: 1.8mm 0 2mm; align-items: baseline; }
+  .az.erst { border-top: .35mm solid var(--ink); }
+  .az b { font-size: 9pt; }
+  .az .t { font-size: 8.5pt; line-height: 1.4; color: var(--ink-2); }
+  .az .g { font-size: 8pt; line-height: 1.4; color: var(--ink-3); }
+  .az .nb { font-size: 11pt; line-height: 1.1; font-weight: 700; }
+  .az .sc { margin-left: 2mm; }
+  .az .mono.wert { color: var(--ink-2); font-size: 7.2pt; }
+  .az.sub { border-top: .2mm solid var(--haar-2); padding: 1.5mm 0 1.7mm; }
+  .az.sub .t { font-size: 8pt; line-height: 1.38; }
+  .az .eingerueckt { padding-left: 4mm; }
+  .gruppe-kopf { border-top: .35mm solid var(--ink); padding-top: 2.2mm; margin-top: 4mm; }
+  .gruppe-kopf.erst { margin-top: 0; }
+  .gruppe-kopf + .az { border-top: 0; }
+  .az .g.pr { font-size: 7.5pt; }
+</style>
+</head>
+<body>
+
+
+
+
+
+
+
+<section class="page dcw">
+<style>
+  section.page.dcw { position: relative; box-sizing: border-box; width: 210mm; height: 297mm; margin: 0; padding: 0; overflow: hidden;
+    font-family: "Liberation Sans", Arial, Helvetica, sans-serif; page-break-after: always; break-after: page; }
+  .dcw * { box-sizing: border-box; margin: 0; padding: 0; }
+  .dcw .dcw-logo { position: absolute; }
+  .dcw .dcw-logo img { position: absolute; top: 0; left: 0; width: 100%; height: auto; display: block; }
+  .dcw .dcw-logo .dcw-fuchs { clip-path: inset(0 0 18% 0); }
+  .dcw .dcw-logo .dcw-wort { clip-path: inset(82% 0 0 0); }
+
+  section.page.dcw { background: #fff; color: #1d1d1b; }
+  .dcw .dcw-logo { top: 34mm; left: 64.7mm; width: 80.6mm; height: 92.7mm; }
+  .dcw .dcw-spruch { margin-top: 8mm; }
+  .dcw .dcw-spruch::before { content: ""; display: block; width: 18mm; border-top: .9mm solid #DC0C23; margin-bottom: 4mm; }
+  .dcw .dcw-spruch div { font-size: 22pt; line-height: 1.16; font-weight: 700; letter-spacing: -.012em; }
+  .dcw .dcw-z1 { color: #DC0C23; } .dcw .dcw-z2 { color: #1d1d1b; }
+  .dcw .dcw-titel { position: absolute; top: 178mm; left: 15mm; right: 15mm; }
+  .dcw .dcw-kicker { font-size: 8.5pt; line-height: 1.3; font-weight: 700; letter-spacing: .14em; color: #DC0C23; }
+  .dcw .dcw-domain { margin-top: 2.6mm; font-size: 28.5pt; line-height: 1.12; font-weight: 700; letter-spacing: -.012em; overflow-wrap: anywhere; }
+  .dcw.dcw--l .dcw-domain { font-size: 25pt; } .dcw.dcw--xl .dcw-domain { font-size: 21pt; }
+  .dcw .dcw-sub { margin-top: 3.2mm; max-width: 150mm; font-size: 9.75pt; line-height: 1.45; color: #5a5a5a; }
+  .dcw .dcw-fuss { position: absolute; left: 15mm; right: 15mm; top: 254mm; display: grid; grid-template-columns: 1.25fr 1fr 1fr; column-gap: 6mm;
+    border-top: .35mm solid #1d1d1b; padding-top: 3mm; }
+  .dcw .dcw-fuss .dcw-l { display: block; font-size: 6.8pt; line-height: 1.3; font-weight: 700; letter-spacing: .14em; color: #5a5a5a; text-transform: uppercase; margin-bottom: 1.2mm; }
+  .dcw .dcw-fuss p { font-size: 8.5pt; line-height: 1.42; color: #1d1d1b; }
+  .dcw .dcw-fuss b { font-weight: 700; }
+</style>
+  <div class="dcw-logo"><img class="dcw-fuchs" src="file:///Users/werner/dmarc/public/assets/logo.png" alt="Reineke Technik"><img class="dcw-wort" src="file:///Users/werner/dmarc/public/assets/logo.png" alt=""></div>
+  <div class="dcw-titel">
+    <div class="dcw-kicker">SICHERHEITSBEFUND · E-MAIL, DOMAIN UND WEBSITE</div>
+    <div class="dcw-domain">sollich.com</div>
+    <p class="dcw-sub">Unabhängige Prüfung der von außen sichtbaren Sicherheit von sollich.com. Automatisierte Analyse mit scan.reineke.tech.</p>
+    <div class="dcw-spruch"><div class="dcw-z1">Sicherheitslücken schließen,</div><div class="dcw-z2">bevor sie teuer werden.</div></div>
+  </div>
+  <div class="dcw-fuss">
+    <div><span class="dcw-l">Erstellt von</span><p><b>Reineke Technik GmbH</b><br>Geseker Straße 26 · 33154 Salzkotten<br>www.reineke-technik.de</p></div>
+    <div><span class="dcw-l">Prüfdatum</span><p>30. Oktober 2026<br>Bericht-Nr. RT-DS-00000000-0000</p></div>
+    <div><span class="dcw-l">Vertraulich</span><p>Nur für den internen Gebrauch der Adressaten bestimmt.</p></div>
+  </div>
+</section>
+<section class="page pg seite-inhalt">
+  <div class="kopf">
+  <div class="k-marke"><span class="fuchs"><img src="file:///Users/werner/dmarc/public/assets/logo.png" alt=""></span><b>Reineke Technik</b><span>Sicherheitsbefund</span></div>
+  <div class="k-domain">sollich.com</div>
+  <div class="k-kap">Inhalt</div>
+</div>
+  <div class="r6 kk"><div class="nr"></div><h1>Inhalt</h1></div>
+  <div class="r6 inh-hinweis"><p class="s36">Für die Geschäftsführung: Kapitel 01 bis 04. Für Ihre IT: Kapitel 05 und der Anhang.</p></div>
+  <div class="inh">
+    <a class="inh-kap" href="#kap-01"><span class="inh-nr">01</span><span class="inh-t">Zusammenfassung</span><span class="inh-s">3</span></a>
+    <a class="inh-kap" href="#kap-02"><span class="inh-nr">02</span><span class="inh-t">Empfehlungen</span><span class="inh-s">4</span></a>
+    <a class="inh-sub" href="#pentest"><span class="inh-nr"></span><span class="inh-t">Über diesen Befund hinaus: Penetrationstest</span><span class="inh-s">4</span></a>
+    <a class="inh-kap" href="#kap-03"><span class="inh-nr">03</span><span class="inh-t">Über Reineke Technik</span><span class="inh-s">5</span></a>
+    <a class="inh-kap" href="#kap-04"><span class="inh-nr">04</span><span class="inh-t">Nächster Schritt</span><span class="inh-s">6</span></a>
+    <a class="inh-sub" href="#kap-04"><span class="inh-nr"></span><span class="inh-t">Ergebnisbesprechung: Termin direkt aus dem Bericht buchen</span><span class="inh-s">6</span></a>
+    <a class="inh-kap" href="#kap-05"><span class="inh-nr">05</span><span class="inh-t">Feststellungen im Einzelnen</span><span class="inh-s">7</span></a>
+    <a class="inh-sub" href="#F-01"><span class="inh-nr"><span class="prio mittel"></span>F-01</span><span class="inh-t">Adressauskünfte der Domain nicht signiert</span><span class="inh-s">7</span></a>
+    <a class="inh-sub" href="#F-02"><span class="inh-nr"><span class="prio mittel"></span>F-02</span><span class="inh-t">Keine Schutzregel für Skripte</span><span class="inh-s">7</span></a>
+    <a class="inh-sub" href="#F-03"><span class="inh-nr"><span class="prio mittel"></span>F-03</span><span class="inh-t">Verschlüsselung wird nicht erzwungen</span><span class="inh-s">7</span></a>
+    <a class="inh-sub" href="#F-04"><span class="inh-nr"><span class="prio mittel"></span>F-04</span><span class="inh-t">Kein Schutz vor unsichtbarer Einbettung</span><span class="inh-s">8</span></a>
+    <a class="inh-sub" href="#F-05"><span class="inh-nr"><span class="prio gering"></span>F-05</span><span class="inh-t">Gefälschte E-Mails sollen nur aussortiert werden</span><span class="inh-s">9</span></a>
+    <a class="inh-sub" href="#F-06"><span class="inh-nr"><span class="prio gering"></span>F-06</span><span class="inh-t">Digitale E-Mail-Signatur prüfen</span><span class="inh-s">9</span></a>
+    <a class="inh-sub" href="#F-07"><span class="inh-nr"><span class="prio gering"></span>F-07</span><span class="inh-t">Verschlüsselte Zustellung nicht verbindlich</span><span class="inh-s">9</span></a>
+    <a class="inh-sub" href="#F-08"><span class="inh-nr"><span class="prio gering"></span>F-08</span><span class="inh-t">Keine Fehlerberichte zur Verschlüsselung</span><span class="inh-s">9</span></a>
+    <a class="inh-sub" href="#F-09"><span class="inh-nr"><span class="prio gering"></span>F-09</span><span class="inh-t">Fremde Skripte ohne Prüfung auf Veränderungen</span><span class="inh-s">9</span></a>
+    <a class="inh-sub" href="#umgesetzt"><span class="inh-nr"></span><span class="inh-t">Bereits umgesetzt</span><span class="inh-s">9</span></a>
+    <a class="inh-kap" href="#kap-a"><span class="inh-nr">A</span><span class="inh-t">Messwerte</span><span class="inh-s">10</span></a>
+    <a class="inh-kap" href="#kap-b"><span class="inh-nr">B</span><span class="inh-t">Methodik und Bewertung</span><span class="inh-s">12</span></a>
+  </div>
+  <div class="fuss"><span class="f1">Reineke Technik GmbH · Vertraulich</span><span class="f2">Bericht-Nr. RT-DS-00000000-0000</span><span class="f3">Seite 2 von 12</span></div>
+</section>
+
+<section class="page pg seite-zf">
+  <div class="kopf">
+  <div class="k-marke"><span class="fuchs"><img src="file:///Users/werner/dmarc/public/assets/logo.png" alt=""></span><b>Reineke Technik</b><span>Sicherheitsbefund</span></div>
+  <div class="k-domain">sollich.com</div>
+  <div class="k-kap">Zusammenfassung</div>
+</div>
+  <div class="r6 kk" id="kap-01"><div class="nr">01</div><h1>Zusammenfassung</h1></div>
+
+  <div class="r6 urteil lv-hoch">
+    <div class="s12"><span class="label">Gesamturteil</span><p class="marginalie">Ausgewertet wurden ausschließlich öffentlich abrufbare Informationen. Es gab keinen Eingriff in Ihre Systeme, keine Anmeldung und keine nennenswerte Last.</p><p class="marginalie hb-hinweis">Der Handlungsbedarf ist die Gesamtbewertung des Scanners. Er kann höher ausfallen als die Einstufung der einzelnen Feststellungen.</p></div>
+    <div class="s36">
+      <div class="hb">Handlungsbedarf</div>
+      <div class="zeile">
+        <div class="wort">Hoch</div>
+        <div class="heisst">Das heißt:<b>Lücken zeitnah schließen.</b></div>
+      </div>
+      <div class="skala">
+<div>Gering</div><div>Mittel</div><div class="an">Hoch</div><div>Kritisch</div>      </div>
+      <p class="lead">Lücken bei den geprüften Schutzmechanismen sollten zeitnah geschlossen werden, meist mit wenig Aufwand.</p>
+    </div>
+  </div>
+
+  <div class="blk">
+    <div class="noten">
+      <div class="nt">
+        <span class="label">E-Mail · DMARC</span>
+        <div class="schutz">Schutz vor gefälschten Absendern</div>
+        <div class="note good"><span>A</span><span class="mod">+</span></div>
+        <div class="wort good">Sehr gut</div>
+        <div class="nt-mini"><span class="good an">A</span><span class="good">B</span><span class="warn">C</span><span class="bad">D</span><span class="bad">F</span></div>
+        <p class="satz">Gefälschte E-Mails mit Ihrem Absender sollen nur aussortiert werden.</p>
+        <div class="meta">Score 100 · Geprüfter Schutz umgesetzt</div>
+      </div>
+      <div class="nt">
+        <span class="label">Domain · DNSSEC</span>
+        <div class="schutz">Echtheit der Adressauskünfte</div>
+        <div class="note bad"><span>F</span></div>
+        <div class="wort bad">Ungenügend</div>
+        <div class="nt-mini"><span class="good">A</span><span class="good">B</span><span class="warn">C</span><span class="bad">D</span><span class="bad an">F</span></div>
+        <p class="satz">Die Adressauskünfte Ihrer Domain sind nicht gegen Fälschung geschützt.</p>
+        <div class="meta">Score 0 · Wesentlicher Schutz fehlt</div>
+      </div>
+      <div class="nt">
+        <span class="label">Website · HTTP Observatory</span>
+        <div class="schutz">Schutz Ihrer Website-Besucher</div>
+        <div class="note bad"><span>D</span></div>
+        <div class="wort bad">Mangelhaft</div>
+        <div class="nt-mini"><span class="good">A</span><span class="good">B</span><span class="warn">C</span><span class="bad an">D</span><span class="bad">F</span></div>
+        <p class="satz">8 von 12 Tests bestanden. Die Note gewichtet nach Schwere.</p>
+        <div class="meta">Score 30 · Zeitnah beheben</div>
+      </div>
+    </div>
+    <div class="nsk2"><span class="label">Notenskala</span><span><i class="good"></i><b>A+ bis A−</b> sehr gut</span><span><i class="good"></i><b>B+ bis B−</b> gut</span><span><i class="warn"></i><b>C+ bis C−</b> verbesserungswürdig</span><span><i class="bad"></i><b>D+ bis D−</b> mangelhaft</span><span><i class="bad"></i><b>F</b> ungenügend</span></div>
+  </div>
+
+  <div class="r6 blk linie top3">
+    <div class="s12 zaehler">
+      <span class="label">Wesentliche Feststellungen</span>
+      <div class="zahl">9</div>
+      <span class="klein">Feststellungen insgesamt</span>
+      <ul class="verteilung">
+        <li><span class="prio hoch">Hoch</span><b>0</b></li>
+        <li><span class="prio mittel">Mittel</span><b>4</b></li>
+        <li><span class="prio gering">Gering</span><b>5</b></li>
+      </ul>
+    </div>
+    <ol class="s36">
+      <li><span class="fnr">F-01</span><span><a href="#F-01"><b>Adressauskünfte der Domain nicht signiert</b></a><span class="kurz">Mit erheblichem Aufwand ließen sich Besucher und E-Mails auf gefälschte Server umleiten.</span></span><span class="rechts"><span class="prio mittel">Mittel</span><a class="seite" href="#F-01">Seite 7</a></span></li>
+      <li><span class="fnr">F-02</span><span><a href="#F-02"><b>Keine Schutzregel für Skripte</b></a><span class="kurz">Eingeschleuster Programmcode würde auf Ihrer Website nicht blockiert.</span></span><span class="rechts"><span class="prio mittel">Mittel</span><a class="seite" href="#F-02">Seite 7</a></span></li>
+      <li><span class="fnr">F-03</span><span><a href="#F-03"><b>Verschlüsselung wird nicht erzwungen</b></a><span class="kurz">In öffentlichen WLANs könnten Verbindungen zu Ihrer Website abgefangen werden.</span></span><span class="rechts"><span class="prio mittel">Mittel</span><a class="seite" href="#F-03">Seite 7</a></span></li>
+    </ol>
+  </div>
+
+  <div class="r6 blk linie cta">
+    <div class="s12"><span class="label">Nächster Schritt</span><b>Ergebnisbesprechung</b></div>
+    <p class="s34">In 20 Minuten legen wir gemeinsam fest, was zuerst angegangen wird, gern mit Ihrer IT. Kostenfrei und unverbindlich.</p>
+    <div class="s56 cta-knopf"><a class="btn" href="https://bookings.cloud.microsoft/bookwithme/user/99dfe8391d044c208563dd3afbc7439f%40reineke-technik.de?anonymous&amp;ismsaljsauthenabled">Termin wählen</a></div>
+  </div>
+  <div class="fuss"><span class="f1">Reineke Technik GmbH · Vertraulich</span><span class="f2">Bericht-Nr. RT-DS-00000000-0000</span><span class="f3">Seite 3 von 12</span></div>
+</section>
+
+<section class="page pg">
+  <div class="kopf">
+  <div class="k-marke"><span class="fuchs"><img src="file:///Users/werner/dmarc/public/assets/logo.png" alt=""></span><b>Reineke Technik</b><span>Sicherheitsbefund</span></div>
+  <div class="k-domain">sollich.com</div>
+  <div class="k-kap">Empfehlungen</div>
+</div>
+  <div class="r6 kk kk-mit" id="kap-02"><div class="nr">02</div><h1>Empfehlungen</h1></div>
+  <div class="r6 vorspann"><p class="s36">Details zu den Feststellungen: Kapitel 05 ab Seite 7.</p></div>
+  <div class="r6 kopfzeile">
+    <div class="s1"><span class="label">Nr.</span></div>
+    <div class="s2"><span class="label">Dringlichkeit</span></div>
+    <div class="s35"><span class="label">Maßnahme</span></div>
+    <div class="s6"><span class="label">Aufwand</span><span class="label hell">Bezug</span></div>
+  </div>
+  <div class="r6 mz erst" id="M-1">
+    <div class="s1 mnr">M-1</div>
+    <div class="s2"><span class="prio mittel">Mittel</span></div>
+    <div class="s35"><b>Website-Schutzregeln ergänzen und verschärfen</b><p>Betroffen: Content Security Policy, HSTS, X-Frame-Options, Subresource Integrity.</p></div>
+    <div class="s6"><div class="wert">Gering bis mittel</div><div class="bezug"><a class="nw" href="#F-02">F-02</a>, <a class="nw" href="#F-03">F-03</a>, <a class="nw" href="#F-04">F-04</a>, <a class="nw" href="#F-09">F-09</a> <span class="seitenref">· S.&nbsp;7–9</span></div></div>
+  </div>
+  <div class="r6 mz" id="M-2">
+    <div class="s1 mnr">M-2</div>
+    <div class="s2"><span class="prio mittel">Mittel</span></div>
+    <div class="s35"><b>Adressauskünfte signieren (DNSSEC)</b><p>DNSSEC beim DNS-Anbieter aktivieren, DS-Eintrag dort hinterlegen, wo die Domain registriert ist.</p></div>
+    <div class="s6"><div class="wert">Gering</div><div class="bezug"><a class="nw" href="#F-01">F-01</a> <span class="seitenref">· S.&nbsp;7</span></div></div>
+  </div>
+  <div class="r6 mz" id="M-3">
+    <div class="s1 mnr">M-3</div>
+    <div class="s2"><span class="prio gering">Gering</span></div>
+    <div class="s35"><b>E-Mail-Absender absichern</b><p>DMARC-Richtlinie auf „reject“ anheben; DKIM-Schlüssel je Selektor prüfen, nicht mehr genutzte entfernen.</p></div>
+    <div class="s6"><div class="wert">Gering</div><div class="bezug"><a class="nw" href="#F-05">F-05</a>, <a class="nw" href="#F-06">F-06</a> <span class="seitenref">· S.&nbsp;9</span></div></div>
+  </div>
+  <div class="r6 mz" id="M-4">
+    <div class="s1 mnr">M-4</div>
+    <div class="s2"><span class="prio gering">Gering</span></div>
+    <div class="s35"><b>Verschlüsselte E-Mail-Zustellung absichern</b><p>MTA-STS einrichten, damit E-Mails an Sie nur verschlüsselt zugestellt werden dürfen; TLS-RPT einrichten, damit Probleme bei der verschlüsselten Zustellung gemeldet werden.</p></div>
+    <div class="s6"><div class="wert">Gering bis mittel</div><div class="bezug"><a class="nw" href="#F-07">F-07</a>, <a class="nw" href="#F-08">F-08</a> <span class="seitenref">· S.&nbsp;9</span></div></div>
+  </div>
+  <div class="r6 mz" id="M-5">
+    <div class="s1 mnr">M-5</div>
+    <div class="s2"><span class="klein">Abschluss</span></div>
+    <div class="s35"><b>Umsetzung überprüfen</b><p>Nach der Umsetzung prüfen wir kostenfrei erneut. Der neue Befund zeigt, was behoben ist.</p></div>
+    <div class="s6"><div class="wert">Kostenfrei</div><div class="bezug">Alle</div></div>
+  </div>
+
+<div class="r6 blk linie pentest" id="pentest">
+  <div class="s12">
+    <span class="label">Penetrationstest</span>
+    <ul class="arten">
+<li><b>Extern</b><span>Aus dem Internet erreichbare Systeme und Dienste</span></li><li><b>Intern / Active Directory</b><span>Firmennetz, Berechtigungen, Rechteausweitung</span></li><li><b>Webanwendung</b><span>Portale, Shops und Kundenzugänge</span></li>    </ul>
+  </div>
+  <div class="s36">
+    <h2>Über diesen Befund hinaus: Penetrationstest</h2>
+    <p class="lead-s">Dieser Befund zeigt einen Ausschnitt dessen, was von außen sichtbar ist. Ein Penetrationstest klärt, was ein Angreifer erreicht, wenn er Schwachstellen zu einem Angriffspfad verkettet. Sie erhalten priorisierte Maßnahmen und einen Nachweis für Kunden und Prüfer.</p>
+    <ol class="schritte r2">
+<li><span class="n">1</span><span><b>Vorbereitung</b>Ziele, Systeme und Prüftiefe festlegen, Zeitfenster betriebsschonend abstimmen.</span></li><li><span class="n">2</span><span><b>Test</b>Manuell und mit eigenen Werkzeugen, jeder Schritt nachvollziehbar dokumentiert.</span></li><li><span class="n">3</span><span><b>Bericht und Besprechung</b>Priorisierte Feststellungen mit konkreten Behebungsempfehlungen.</span></li><li><span class="n">4</span><span><b>Nachtest</b>Nach Ihrer Nachbesserung prüfen wir die Wirksamkeit erneut.</span></li>    </ol>
+    <p class="klein link">Umfang und Anfrage: <a class="unterstr" href="https://scan.reineke.tech/pentest">scan.reineke.tech/pentest</a></p>
+  </div>
+</div>  <div class="fuss"><span class="f1">Reineke Technik GmbH · Vertraulich</span><span class="f2">Bericht-Nr. RT-DS-00000000-0000</span><span class="f3">Seite 4 von 12</span></div>
+</section>
+
+
+<section class="page pg">
+  <div class="kopf">
+  <div class="k-marke"><span class="fuchs"><img src="file:///Users/werner/dmarc/public/assets/logo.png" alt=""></span><b>Reineke Technik</b><span>Sicherheitsbefund</span></div>
+  <div class="k-domain">sollich.com</div>
+  <div class="k-kap">Über Reineke Technik</div>
+</div>
+  <div class="r6 kk" id="kap-03"><div class="nr">03</div><h1>Über Reineke Technik</h1></div>
+  <div class="r6 person">
+    <div class="s12"><img class="portrait" src="file:///Users/werner/dmarc/public/assets/werner.jpg" alt="Werner Francis Reineke"></div>
+    <div class="s36">
+      <div class="p-name">Werner Francis Reineke</div>
+      <div class="p-rolle">Geschäftsführer, Reineke Technik GmbH</div>
+<p class="lead-s">Reineke Technik prüft die IT-Sicherheit mittelständischer Industrie- und Produktionsunternehmen und unterstützt bei Anforderungen wie NIS-2, ISO 27001 und TISAX.</p><p class="lead-s">Wir haben Netzwerke selbst aufgebaut und betrieben. Diese Praxis fließt in jede Prüfung ein: Wir wissen, wo Angreifer ansetzen und wo im Betriebsalltag Lücken entstehen.</p>    </div>
+  </div>
+  <div class="r6 blk">
+    <p class="s36 zitat">„Sicherheitslücken schließen,<br>bevor sie teuer werden.“</p>
+  </div>
+  <div class="r3 drei blk">
+<div><h3>Unabhängig</h3><p>Wir prüfen Systeme, die wir nicht selbst betreiben, und verkaufen keine Technik, die wir anschließend kontrollieren.</p></div><div><h3>Verständlich</h3><p>Jeder Bericht enthält eine Zusammenfassung für die Geschäftsführung und einen priorisierten Maßnahmenplan.</p></div><div><h3>Nachweisbar</h3><p>Nach der Behebung prüfen wir erneut. So wird Sicherheit gegenüber Kunden und Prüfern belegbar.</p></div>  </div>
+  <div class="r3 drei blk">
+<div><span class="label">Kunden</span><div class="v-wert">47</div><p>Unternehmen seit Gründung, überwiegend Industrie und Zulieferer</p></div><div><span class="label">Fachvorträge</span><div class="v-wert">Live-Hacking</div><p>Referent, u. a. in der Cybersecurity-Vortragsreihe von SHARP</p></div><div><span class="label">Standort</span><div class="v-wert">Salzkotten</div><p>Ostwestfalen-Lippe, vor Ort in NRW</p></div>  </div>
+  <div class="r6 blk linie">
+    <div class="s12"><span class="label">Leistungen</span></div>
+    <ul class="s36 leist"><li>Penetrationstests: extern, intern, Webanwendungen</li><li>ISMS-Aufbau nach ISO 27001</li><li>Externes Sicherheitsmandat (eISB / vCISO)</li><li>NIS-2-Bestandsaufnahme der Sicherheitsmaßnahmen</li><li>TISAX-Begleitung für Zulieferer</li></ul>
+  </div>
+  <div class="fuss"><span class="f1">Reineke Technik GmbH · Vertraulich</span><span class="f2">Bericht-Nr. RT-DS-00000000-0000</span><span class="f3">Seite 5 von 12</span></div>
+</section>
+
+<section class="page pg spalte">
+  <div class="kopf">
+  <div class="k-marke"><span class="fuchs"><img src="file:///Users/werner/dmarc/public/assets/logo.png" alt=""></span><b>Reineke Technik</b><span>Sicherheitsbefund</span></div>
+  <div class="k-domain">sollich.com</div>
+  <div class="k-kap">Nächster Schritt</div>
+</div>
+  <div class="r6 kk" id="kap-04"><div class="nr">04</div><h1>Nächster Schritt</h1></div>
+  <div class="r6 cta-gross">
+    <div class="s12"><span class="label">Ergebnisbesprechung</span><span class="klein">sollich.com</span></div>
+    <div class="s34"><p class="lead">In 20 Minuten legen wir gemeinsam fest, was zuerst angegangen wird, gern mit Ihrer IT. Kostenfrei und unverbindlich.</p><a class="btn" href="https://bookings.cloud.microsoft/bookwithme/user/99dfe8391d044c208563dd3afbc7439f%40reineke-technik.de?anonymous&amp;ismsaljsauthenabled">Termin wählen</a></div>
+    <div class="s56 qr"><a href="https://bookings.cloud.microsoft/bookwithme/user/99dfe8391d044c208563dd3afbc7439f%40reineke-technik.de?anonymous&amp;ismsaljsauthenabled"><img src="file:///Users/werner/dmarc/public/assets/qr-termin.svg" alt="QR-Code zur Terminbuchung"></a><div class="klein">Termin per QR-Code</div></div>
+  </div>
+  <div class="r3 drei ablauf blk">
+<div><span class="label">Schritt</span><div class="gz-n">1</div><h3>Ergebnisbesprechung</h3><p>Feststellungen einordnen, Prioritäten festlegen.</p></div><div><span class="label">Schritt</span><div class="gz-n">2</div><h3>Umsetzung</h3><p>Ihre IT oder Ihr IT-Dienstleister, auf Wunsch mit unserer fachlichen Begleitung.</p></div><div><span class="label">Schritt</span><div class="gz-n">3</div><h3>Kontrolle</h3><p>Wiederholungsprüfung, auf Wunsch Penetrationstest.</p></div>  </div>
+  <div class="r6 blk">
+    <div class="s16"><span class="label" style="margin-bottom:2.5mm">Ansprechpartner</span></div>
+  </div>
+  <div class="r2">
+    <div class="kontakt">
+<img src="file:///Users/werner/dmarc/public/assets/werner.jpg" alt="Werner Francis Reineke">      <div><div class="n">Werner Francis Reineke</div><div class="r">Geschäftsführer</div>
+        <div class="c"><a href="mailto:wf.reineke@reineke-technik.de">wf.reineke@reineke-technik.de</a><br><a href="tel:+491722872390">+49 172 2872390</a></div></div>
+    </div>
+    <div class="kontakt ohne">
+      <div><div class="n">Karl Pieper</div><div class="r">Geschäftsführer</div>
+        <div class="c"><a href="mailto:k.pieper@reineke-technik.de">k.pieper@reineke-technik.de</a><br><a href="tel:+4952599870">+49 5259 9870</a><br><a href="tel:+491725209052">+49 172 5209052</a> (mobil)</div></div>
+    </div>
+  </div>
+  <div class="r6 linie absender unten">
+    <div class="s12"><img class="logo-voll" src="file:///Users/werner/dmarc/public/assets/logo.png" alt="Reineke Technik GmbH"></div>
+    <div class="s34"><span class="label">Anschrift</span><p>Reineke Technik GmbH<br>Geseker Straße 26<br>33154 Salzkotten<br><a href="https://www.reineke-technik.de">www.reineke-technik.de</a></p></div>
+    <div class="s56"><span class="label">Penetrationstest anfragen</span><p><a class="unterstr" href="https://scan.reineke.tech/pentest">scan.reineke.tech/pentest</a></p></div>    <p class="s16 klein pflicht">Amtsgericht Paderborn · HRB 15938 · Geschäftsführer: Werner Francis Reineke, Karl Pieper · USt-IdNr. DE353762579</p>
+  </div>
+  <div class="fuss"><span class="f1">Reineke Technik GmbH · Vertraulich</span><span class="f2">Bericht-Nr. RT-DS-00000000-0000</span><span class="f3">Seite 6 von 12</span></div>
+</section>
+
+<section class="page pg">
+  <div class="kopf">
+  <div class="k-marke"><span class="fuchs"><img src="file:///Users/werner/dmarc/public/assets/logo.png" alt=""></span><b>Reineke Technik</b><span>Sicherheitsbefund</span></div>
+  <div class="k-domain">sollich.com</div>
+  <div class="k-kap">Feststellungen</div>
+</div>
+  <div class="r6 kk kk-mit" id="kap-05"><div class="nr">05</div><h1>Feststellungen im Einzelnen</h1></div>
+  <div class="r6 vorspann"><p class="s36">Zu jeder Feststellung: was wir festgestellt haben, was ein Angreifer damit erreichen kann und was das für Sie bedeutet.</p></div>
+<article class="bf erst" id="F-01">
+  <div class="r6 bf-kopf">
+    <div class="s12 bf-nr">F-01</div>
+    <h2 class="s36">Adressauskünfte der Domain nicht signiert</h2>
+  </div>
+  <div class="r6 bf-meta">
+    <div class="s12"><span class="prio mittel">Mittel</span></div>
+    <div class="s36 bf-fach">Domain · DNSSEC · <a href="#M-2">Maßnahme M-2</a></div>
+  </div>
+  <div class="r6 bf-text">
+    <div class="s12"><span class="label">Feststellung</span><p>Die Adressauskünfte Ihrer Domain (DNS), unter welcher Adresse Website und Mailserver erreichbar sind, tragen keine digitale Signatur (DNSSEC).</p></div>
+    <div class="s34"><span class="label">Angriffsszenario</span><p>Mit erheblichem Aufwand lassen sich Adressauskünfte fälschen und, ohne MTA-STS, E-Mails umleiten. Besucher schützt vor allem erzwungenes HTTPS.</p></div>
+    <div class="s56"><span class="label">Auswirkung für Sie</span><p class="wirk">E-Mails an Sie oder Eingaben Ihrer Besucher könnten abgefangen werden.</p>
+      <span class="label">Aufwand</span><p>Gering. Meist beim DNS-Anbieter einschaltbar, dazu ein Eintrag beim Domain-Anbieter.</p></div>
+  </div>
+  <div class="r6 bf-tech">
+    <div class="s12"><span class="label">Technischer Befund</span></div>
+    <div class="s36 mono">DNSSEC: Zone nicht signiert</div>
+  </div>
+</article><article class="bf" id="F-02">
+  <div class="r6 bf-kopf">
+    <div class="s12 bf-nr">F-02</div>
+    <h2 class="s36">Keine Schutzregel für Skripte</h2>
+  </div>
+  <div class="r6 bf-meta">
+    <div class="s12"><span class="prio mittel">Mittel</span></div>
+    <div class="s36 bf-fach">Website · Content Security Policy · <a href="#M-1">Maßnahme M-1</a></div>
+  </div>
+  <div class="r6 bf-text">
+    <div class="s12"><span class="label">Feststellung</span><p>Die Website legt nicht fest, welcher Programmcode ausgeführt werden darf (Content Security Policy fehlt).</p></div>
+    <div class="s34"><span class="label">Angriffsszenario</span><p>Gelingt es, Code einzuschleusen, etwa über ein Formular oder ein veraltetes Plugin, wird er nicht blockiert. Er kann Eingaben mitlesen oder Besucher umleiten.</p></div>
+    <div class="s56"><span class="label">Auswirkung für Sie</span><p class="wirk">Ihre Website könnte gegen Ihre eigenen Besucher eingesetzt werden.</p>
+      <span class="label">Aufwand</span><p>Mittel. Erfordert Abstimmung mit der Website-Entwicklung.</p></div>
+  </div>
+  <div class="r6 bf-tech">
+    <div class="s12"><span class="label">Technischer Befund</span></div>
+    <div class="s36 mono">Content Security Policy (CSP): −25 Punkte · „Content-Security-Policy-Header nicht implementiert.“</div>
+  </div>
+</article><article class="bf" id="F-03">
+  <div class="r6 bf-kopf">
+    <div class="s12 bf-nr">F-03</div>
+    <h2 class="s36">Verschlüsselung wird nicht erzwungen</h2>
+  </div>
+  <div class="r6 bf-meta">
+    <div class="s12"><span class="prio mittel">Mittel</span></div>
+    <div class="s36 bf-fach">Website · HSTS · <a href="#M-1">Maßnahme M-1</a></div>
+  </div>
+  <div class="r6 bf-text">
+    <div class="s12"><span class="label">Feststellung</span><p>Die Website weist Browser nicht an, ausschließlich verschlüsselt zu verbinden (HSTS).</p></div>
+    <div class="s34"><span class="label">Angriffsszenario</span><p>In öffentlichen WLANs (Hotel, Messe, Bahn) kann der erste Aufruf auf eine unverschlüsselte Verbindung umgeleitet und mitgelesen werden.</p></div>
+    <div class="s56"><span class="label">Auswirkung für Sie</span><p class="wirk">Formulareingaben und Anmeldedaten könnten dort mitgelesen werden.</p>
+      <span class="label">Aufwand</span><p>Gering. Eine Zeile in der Serverkonfiguration.</p></div>
+  </div>
+  <div class="r6 bf-tech">
+    <div class="s12"><span class="label">Technischer Befund</span></div>
+    <div class="s36 mono">HSTS (Strict-Transport-Security): −20 Punkte · „Strict-Transport-Security-Header nicht implementiert.“</div>
+  </div>
+</article>  <div class="fuss"><span class="f1">Reineke Technik GmbH · Vertraulich</span><span class="f2">Bericht-Nr. RT-DS-00000000-0000</span><span class="f3">Seite 7 von 12</span></div>
+</section>
+<section class="page pg">
+  <div class="kopf">
+  <div class="k-marke"><span class="fuchs"><img src="file:///Users/werner/dmarc/public/assets/logo.png" alt=""></span><b>Reineke Technik</b><span>Sicherheitsbefund</span></div>
+  <div class="k-domain">sollich.com</div>
+  <div class="k-kap">Feststellungen</div>
+</div>
+<article class="bf erst" id="F-04">
+  <div class="r6 bf-kopf">
+    <div class="s12 bf-nr">F-04</div>
+    <h2 class="s36">Kein Schutz vor unsichtbarer Einbettung</h2>
+  </div>
+  <div class="r6 bf-meta">
+    <div class="s12"><span class="prio mittel">Mittel</span></div>
+    <div class="s36 bf-fach">Website · X-Frame-Options · <a href="#M-1">Maßnahme M-1</a></div>
+  </div>
+  <div class="r6 bf-text">
+    <div class="s12"><span class="label">Feststellung</span><p>Die Website kann unsichtbar in fremde Webseiten eingebettet werden (X-Frame-Options bzw. frame-ancestors fehlt).</p></div>
+    <div class="s34"><span class="label">Angriffsszenario</span><p>Angreifer könnten Besucher unbemerkt Aktionen auf Ihrer Website auslösen lassen (Clickjacking).</p></div>
+    <div class="s56"><span class="label">Auswirkung für Sie</span><p class="wirk">Vorhandene Formulare oder Konten könnten missbraucht werden.</p>
+      <span class="label">Aufwand</span><p>Gering. Eine Zeile in der Serverkonfiguration.</p></div>
+  </div>
+  <div class="r6 bf-tech">
+    <div class="s12"><span class="label">Technischer Befund</span></div>
+    <div class="s36 mono">X-Frame-Options: −20 Punkte · „X-Frame-Options-Header (XFO) nicht implementiert.“</div>
+  </div>
+</article>  <div class="fuss"><span class="f1">Reineke Technik GmbH · Vertraulich</span><span class="f2">Bericht-Nr. RT-DS-00000000-0000</span><span class="f3">Seite 8 von 12</span></div>
+</section>
+
+<section class="page pg">
+  <div class="kopf">
+  <div class="k-marke"><span class="fuchs"><img src="file:///Users/werner/dmarc/public/assets/logo.png" alt=""></span><b>Reineke Technik</b><span>Sicherheitsbefund</span></div>
+  <div class="k-domain">sollich.com</div>
+  <div class="k-kap">Feststellungen</div>
+</div>
+  <div class="r6 sek"><div class="s12"><span class="prio gering">Gering</span></div><h2 class="s36">Weitere Feststellungen</h2></div>
+  <div class="r6 gz erst" id="F-05">
+    <div class="s12"><span class="fnr">F-05</span><span class="gz-meta">E-Mail · DMARC</span></div>
+    <div class="s36"><b>Gefälschte E-Mails sollen nur aussortiert werden</b><span class="kurz">Gefälschte E-Mails landen im Spam-Ordner, statt abgewiesen zu werden.</span><span class="auf">Aufwand gering: Richtlinie auf „reject“ anheben.</span></div>
+  </div>
+  <div class="r6 gz" id="F-06">
+    <div class="s12"><span class="fnr">F-06</span><span class="gz-meta">E-Mail · DKIM</span></div>
+    <div class="s36"><b>Digitale E-Mail-Signatur prüfen</b><span class="kurz">Die Prüfung bestätigt die E-Mail-Signatur nicht als einwandfrei.</span><span class="auf">Aufwand gering: Länge und Nutzung je Schlüssel prüfen, ungenutzte entfernen.</span></div>
+  </div>
+  <div class="r6 gz" id="F-07">
+    <div class="s12"><span class="fnr">F-07</span><span class="gz-meta">E-Mail · MTA-STS</span></div>
+    <div class="s36"><b>Verschlüsselte Zustellung nicht verbindlich</b><span class="kurz">E-Mails an Sie können auf dem Transportweg unverschlüsselt übertragen werden.</span><span class="auf">Aufwand gering bis mittel: Richtliniendatei mit gültigem Zertifikat und DNS-Eintrag anlegen.</span></div>
+  </div>
+  <div class="r6 gz" id="F-08">
+    <div class="s12"><span class="fnr">F-08</span><span class="gz-meta">E-Mail · TLS-RPT</span></div>
+    <div class="s36"><b>Keine Fehlerberichte zur Verschlüsselung</b><span class="kurz">Sie erfahren nicht, wenn verschlüsselte Zustellung scheitert.</span><span class="auf">Aufwand gering: Ein DNS-Eintrag.</span></div>
+  </div>
+  <div class="r6 gz" id="F-09">
+    <div class="s12"><span class="fnr">F-09</span><span class="gz-meta">Website · Subresource Integrity</span></div>
+    <div class="s36"><b>Fremde Skripte ohne Prüfung auf Veränderungen</b><span class="kurz">Fremder Programmcode wird geladen, ohne zu prüfen, ob er verändert wurde.</span><span class="auf">Aufwand gering: Prüfsummen für externe Skripte ergänzen.</span></div>
+  </div>
+  <div class="r6"><p class="s36 klein gz-fuss">Technische Einzelwerte zu allen Feststellungen in Anhang A, Maßnahmen in Kapitel 02.</p></div>
+<div class="r6 blk linie umgesetzt" id="umgesetzt">
+  <div class="s12"><span class="prio ok">Bereits umgesetzt</span><div class="zahl">3</div><span class="klein">Punkte</span></div>
+  <div class="s36">
+    <p class="lead-s">Ihr DMARC-Eintrag weist Mailserver an, E-Mails mit gefälschtem Absender abzuweisen oder auszusortieren: ein wesentlicher Baustein gegen Rechnungs- und Chef-Betrug.</p>
+    <ul class="positiv-liste"><li>Gefälschte E-Mails sollen aussortiert werden (DMARC „quarantine“)</li><li>Auswertungsberichte angefordert (DMARC)</li><li>Berechtigte Mailserver festgelegt (SPF)</li></ul>
+  </div>
+</div>  <div class="fuss"><span class="f1">Reineke Technik GmbH · Vertraulich</span><span class="f2">Bericht-Nr. RT-DS-00000000-0000</span><span class="f3">Seite 9 von 12</span></div>
+</section>
+
+<section class="page pg">
+  <div class="kopf">
+  <div class="k-marke"><span class="fuchs"><img src="file:///Users/werner/dmarc/public/assets/logo.png" alt=""></span><b>Reineke Technik</b><span>Sicherheitsbefund</span></div>
+  <div class="k-domain">sollich.com</div>
+  <div class="k-kap">Anhang</div>
+</div>
+  <div class="r6 kk" id="kap-a"><div class="nr">A</div><h1>Messwerte</h1></div>
+  <div class="r6 kopfzeile">
+  <div class="s12"><span class="label">Prüfung</span></div>
+  <div class="s3"><span class="label">Ergebnis</span></div>
+  <div class="s46"><span class="label">Messwert</span></div>
+</div>
+  <div class="r6 gruppe-kopf erst"><span class="s16 label">E-Mail</span></div>
+  <div class="r6 az">
+    <div class="s12"><b>DMARC</b></div>
+    <div class="s3"><span class="nb good">A+</span><span class="g sc">Score 100</span></div>
+    <div class="s46 t"><span class="mono wert">v=DMARC1;p=quarantine;pct=100;rua=mailto:Mailbox-DMARC@sollich.com;ruf=mailto:Mailbox-DMARC@sollich.com;ri=84600;fo=1</span><br><span class="g">Richtlinie (p): quarantine · Berichte (rua): angefordert</span></div>
+  </div>
+  <div class="r6 az">
+    <div class="s12"><b>SPF</b></div>
+    <div class="s3"><span class="prio ok">OK</span></div>
+    <div class="s46 t">SPF korrekt (4/10 Lookups).</div>
+  </div>
+  <div class="r6 az">
+    <div class="s12"><b>DKIM</b></div>
+    <div class="s3"><span class="prio hinweis">Hinweis</span></div>
+    <div class="s46 t">1 DKIM-Selektor gefunden</div>
+  </div>
+  <div class="r6 az">
+    <div class="s12"><b>MX (Mailserver)</b></div>
+    <div class="s3"><span class="prio hinweis">Hinweis</span></div>
+    <div class="s46 t">1 MX-Server gefunden</div>
+  </div>
+  <div class="r6 az">
+    <div class="s12"><b>MTA-STS</b></div>
+    <div class="s3"><span class="prio hinweis">Hinweis</span></div>
+    <div class="s46 t">Kein MTA-STS</div>
+  </div>
+  <div class="r6 az">
+    <div class="s12"><b>TLS-RPT</b></div>
+    <div class="s3"><span class="prio hinweis">Hinweis</span></div>
+    <div class="s46 t">Kein TLS-RPT</div>
+  </div>
+  <div class="r6 gruppe-kopf"><span class="s16 label">Domain</span></div>
+  <div class="r6 az">
+    <div class="s12"><b>DNSSEC</b></div>
+    <div class="s3"><span class="nb bad">F</span><span class="g sc">Score 0</span></div>
+    <div class="s46 t">Zone nicht signiert</div>
+  </div>
+  <div class="fuss"><span class="f1">Reineke Technik GmbH · Vertraulich</span><span class="f2">Bericht-Nr. RT-DS-00000000-0000</span><span class="f3">Seite 10 von 12</span></div>
+</section>
+<section class="page pg">
+  <div class="kopf">
+  <div class="k-marke"><span class="fuchs"><img src="file:///Users/werner/dmarc/public/assets/logo.png" alt=""></span><b>Reineke Technik</b><span>Sicherheitsbefund</span></div>
+  <div class="k-domain">sollich.com</div>
+  <div class="k-kap">Anhang</div>
+</div>
+  <div class="r6 sek"><div class="s12"><span class="label">Anhang A</span></div><h2 class="s36">Messwerte, Fortsetzung</h2></div>
+  <div class="r6 kopfzeile">
+  <div class="s12"><span class="label">Prüfung</span></div>
+  <div class="s3"><span class="label">Ergebnis</span></div>
+  <div class="s46"><span class="label">Messwert</span></div>
+</div>
+  <div class="r6 gruppe-kopf erst"><span class="s16 label">Website</span></div>
+<div class="r6 az">
+  <div class="s12"><b>HTTP Observatory</b></div>
+  <div class="s3"><span class="nb bad">D</span><span class="g sc">Score 30</span></div>
+  <div class="s46 t">8 von 12 Tests bestanden. Tests mit Abzug:</div>
+</div>
+<div class="r6 az sub">
+  <div class="s12 t eingerueckt">Content Security Policy (CSP)</div>
+  <div class="s3 t"><b>−25</b></div>
+  <div class="s46 t">Content-Security-Policy-Header nicht implementiert.<br><span class="g">Empfehlung: CSP einführen — siehe MDN-Dokumentation zu Content Security Policy.</span></div>
+</div><div class="r6 az sub">
+  <div class="s12 t eingerueckt">HSTS (Strict-Transport-Security)</div>
+  <div class="s3 t"><b>−20</b></div>
+  <div class="s46 t">Strict-Transport-Security-Header nicht implementiert.<br><span class="g">Empfehlung: HSTS hinzufügen, ggf. zunächst mit kürzeren Zeiträumen (siehe hstspreload.org).</span></div>
+</div><div class="r6 az sub">
+  <div class="s12 t eingerueckt">X-Frame-Options</div>
+  <div class="s3 t"><b>−20</b></div>
+  <div class="s46 t">X-Frame-Options-Header (XFO) nicht implementiert.<br><span class="g">Empfehlung: frame-ancestors per CSP umsetzen.</span></div>
+</div><div class="r6 az sub">
+  <div class="s12 t eingerueckt">Subresource Integrity (SRI)</div>
+  <div class="s3 t"><b>−5</b></div>
+  <div class="s46 t">Subresource Integrity (SRI) nicht implementiert, aber alle externen Skripte werden über HTTPS geladen.<br><span class="g">Empfehlung: SRI für externe Skripte ergänzen.</span></div>
+</div><div class="r6 az sub">
+  <div class="s12 t eingerueckt">Cookies</div>
+  <div class="s3 t"><b>0</b></div>
+  <div class="s46 t">Keine Cookies erkannt.<br><span class="g">Empfehlung: </span></div>
+</div><div class="r6 az sub">
+  <div class="s12 t eingerueckt">coep</div>
+  <div class="s3 t"><b>0</b></div>
+  <div class="s46 t">Cross-Origin-Embedder-Policy header not implemented.<br><span class="g">Empfehlung: Set to require-corp or credentialless.</span></div>
+</div><div class="r6 az sub">
+  <div class="s12 t eingerueckt">coop</div>
+  <div class="s3 t"><b>0</b></div>
+  <div class="s46 t">Cross-Origin-Opener-Policy header not implemented.<br><span class="g">Empfehlung: Set to same-origin, same-origin-allow-popups, or noopener-allow-popups.</span></div>
+</div><div class="r6 az sub">
+  <div class="s12 t eingerueckt">CORS</div>
+  <div class="s3 t"><b>0</b></div>
+  <div class="s46 t">Inhalte sind nicht per Cross-Origin Resource Sharing (CORS) sichtbar.<br><span class="g">Empfehlung: </span></div>
+</div><div class="r6 az sub">
+  <div class="s12 t eingerueckt">Weiterleitung auf HTTPS</div>
+  <div class="s3 t"><b>0</b></div>
+  <div class="s46 t">Erste Weiterleitung geht per HTTPS auf denselben Host, Endziel ist HTTPS.<br><span class="g">Empfehlung: </span></div>
+</div><div class="r6 az sub">
+  <div class="s12 t eingerueckt">Referrer-Policy</div>
+  <div class="s3 t"><b>0</b></div>
+  <div class="s46 t">Referrer-Policy-Header nicht implementiert.<br><span class="g">Empfehlung: Mindestens auf strict-origin-when-cross-origin setzen.</span></div>
+</div><div class="r6 az sub">
+  <div class="s12 t eingerueckt">X-Content-Type-Options</div>
+  <div class="s3 t"><b>0</b></div>
+  <div class="s46 t">X-Content-Type-Options auf nosniff gesetzt.<br><span class="g">Empfehlung: </span></div>
+</div><div class="r6 az sub">
+  <div class="s12 t eingerueckt">Cross-Origin-Resource-Policy</div>
+  <div class="s3 t"><b>0</b></div>
+  <div class="s46 t">Cross-Origin Resource Policy (CORP) nicht implementiert (Standard: cross-origin).<br><span class="g">Empfehlung: </span></div>
+</div>
+  <div class="fuss"><span class="f1">Reineke Technik GmbH · Vertraulich</span><span class="f2">Bericht-Nr. RT-DS-00000000-0000</span><span class="f3">Seite 11 von 12</span></div>
+</section>
+
+<section class="page pg">
+  <div class="kopf">
+  <div class="k-marke"><span class="fuchs"><img src="file:///Users/werner/dmarc/public/assets/logo.png" alt=""></span><b>Reineke Technik</b><span>Sicherheitsbefund</span></div>
+  <div class="k-domain">sollich.com</div>
+  <div class="k-kap">Anhang</div>
+</div>
+  <div class="r6 kk" id="kap-b"><div class="nr">B</div><h1>Methodik und Bewertung</h1></div>
+  <div class="r6">
+    <div class="s12"><span class="label">Vorgehen</span></div>
+    <p class="s36 lead-s">Alle Werte wurden am 30. Oktober 2026 automatisiert mit scan.reineke.tech erhoben, DNS-Abfragen über Cloudflare DNS-over-HTTPS (1.1.1.1). DKIM lässt sich nur über gängige Selektoren prüfen. Die Website-Bewertung nutzt den MDN HTTP Observatory von Mozilla und gilt nur für die Startseite, nicht für Portale oder Subdomains. Ausgewertet wurden nur öffentlich abrufbare Informationen, ohne Anmeldung, Eingriff oder nennenswerte Last. Die Ergebnisse sind eine Momentaufnahme; auf Anfrage prüfen wir kostenfrei erneut.</p>
+  </div>
+  <div class="blk">
+    <div class="r6 az erst">
+      <div class="s12"><b>E-Mail</b><br><span class="g pr">DMARC, SPF, DKIM, MX, MTA-STS, TLS-RPT</span></div>
+      <div class="s36 t">DMARC legt fest, wie Mailserver mit E-Mails umgehen sollen, die Ihre Absenderadresse nur vortäuschen: „reject“ weist ab, „quarantine“ sortiert aus, „none“ beobachtet nur. SPF und DKIM liefern die Prüfgrundlage.</div>
+    </div>
+    <div class="r6 az">
+      <div class="s12"><b>Domain</b><br><span class="g pr">DNSSEC</span></div>
+      <div class="s36 t">DNSSEC signiert die Adressauskünfte Ihrer Domain. Prüfende DNS-Server erkennen so Fälschungen, die E-Mails oder Besucher umleiten könnten.</div>
+    </div>
+    <div class="r6 az">
+      <div class="s12"><b>Website</b><br><span class="g pr">MDN HTTP Observatory</span></div>
+      <div class="s36 t">Der HTTP Observatory von Mozilla prüft die Schutzregeln Ihrer Website, etwa CSP und HSTS. Die Note ergibt sich aus gewichteten Punktabzügen.</div>
+    </div>
+  </div>
+  <div class="r6 blk" style="margin-bottom:2.5mm"><div class="s16"><span class="label">Notenskala</span></div></div>
+  <div class="r6 az erst">
+    <div class="s12"><span class="nb good">A+ / A / A−</span></div>
+    <div class="s34"><span class="prio good">Sehr gut</span></div>
+    <div class="s56 t">Geprüfter Schutz umgesetzt</div>
+  </div>
+  <div class="r6 az">
+    <div class="s12"><span class="nb good">B+ / B / B−</span></div>
+    <div class="s34"><span class="prio good">Gut</span></div>
+    <div class="s56 t">Geringfügige Verbesserungen möglich</div>
+  </div>
+  <div class="r6 az">
+    <div class="s12"><span class="nb warn">C+ / C / C−</span></div>
+    <div class="s34"><span class="prio warn">Verbesserungswürdig</span></div>
+    <div class="s56 t">Bei nächster Gelegenheit angehen</div>
+  </div>
+  <div class="r6 az">
+    <div class="s12"><span class="nb bad">D+ / D / D−</span></div>
+    <div class="s34"><span class="prio bad">Mangelhaft</span></div>
+    <div class="s56 t">Zeitnah beheben</div>
+  </div>
+  <div class="r6 az">
+    <div class="s12"><span class="nb bad">F</span></div>
+    <div class="s34"><span class="prio bad">Ungenügend</span></div>
+    <div class="s56 t">Wesentlicher Schutz fehlt</div>
+  </div>
+  <div class="r6 blk"><p class="s36 klein">Vertraulich – bestimmt für den Inhaber der geprüften Domain und dessen IT-Dienstleister.</p></div>
+  <div class="fuss"><span class="f1">Reineke Technik GmbH · Vertraulich</span><span class="f2">Bericht-Nr. RT-DS-00000000-0000</span><span class="f3">Seite 12 von 12</span></div>
+</section>
+
+</body>
+</html>

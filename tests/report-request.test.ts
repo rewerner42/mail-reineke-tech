@@ -30,11 +30,25 @@ describe("parseReportRequest", () => {
     expect(r.fields.emailDomain).toBe("dienstleister.de");
   });
 
-  it("normalises a pasted URL to a bare domain", () => {
+  // Werner, 01.11.2026: Der Bericht gilt der Domain ohne „www.“ — sonst sucht die
+  // E-Mail-Prüfung unter _dmarc.www.… und der Bericht würde zu Unrecht rot.
+  it("normalises a pasted URL to a bare domain without www.", () => {
     const r = parseReportRequest({ ...OK, domain: "https://WWW.Muster-GmbH.de/pfad?x=1" });
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.fields.reportDomain).toBe("www.muster-gmbh.de");
+    expect(r.fields.reportDomain).toBe("muster-gmbh.de");
+  });
+
+  it("drops www. only where a domain is left, and keeps other subdomains", () => {
+    const domainFuer = (domain: string) => {
+      const r = parseReportRequest({ ...OK, domain });
+      return r.ok ? r.fields.reportDomain : r.code;
+    };
+    expect(domainFuer("www.muster-gmbh.de")).toBe("muster-gmbh.de");
+    expect(domainFuer("www.muster.co.uk")).toBe("muster.co.uk");
+    expect(domainFuer("www.de")).toBe("www.de");
+    expect(domainFuer("mail.muster-gmbh.de")).toBe("mail.muster-gmbh.de");
+    expect(domainFuer("wwwmuster.de")).toBe("wwwmuster.de");
   });
 
   // Freiwilligkeit: Alles ausser echtem true gilt als NICHT erteilt — und darf

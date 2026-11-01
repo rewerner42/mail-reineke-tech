@@ -201,7 +201,7 @@ interface JsonRpcResponse<T> {
   error?: { message?: string; data?: { message?: string } };
 }
 
-async function jsonRpc<T>(
+export async function jsonRpc<T>(
   url: string,
   service: string,
   method: string,
@@ -431,7 +431,7 @@ const SCANNED_MODEL = "x_reineke_scanned_domain";
 // Cache the authenticated uid per isolate to avoid re-logging-in on every scan.
 let cachedUid: number | null = null;
 
-async function authUid(
+export async function authUid(
   cfg: OdooConfig,
   fetchImpl: typeof fetch,
   signal: AbortSignal,
@@ -481,6 +481,42 @@ export async function recordScannedDomain(
     }
   } catch {
     // best-effort — domain logging must never affect the scan itself
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// ─── Bericht-Nr. im Verlauf des Leads (B16) ───────────────────────────────────
+// Jede Nummer, die mit einem Bericht verschickt werden sollte, soll sich einem
+// Empfänger zuordnen lassen. Deshalb kommt sie nach dem Versandversuch als
+// Notiz in den Verlauf des Leads — auch wenn die Mail an den Interessenten
+// scheitert, denn vergeben ist sie dann trotzdem. Best-effort wie die
+// Anreicherung: Eine fehlende Notiz darf am Versand nichts mehr ändern.
+export async function noteReportSent(
+  cfg: OdooConfig,
+  leadId: number,
+  input: { nummer: string; domain: string; empfaenger: string; versandt: boolean },
+  opts: { fetchImpl?: typeof fetch; timeoutMs?: number } = {},
+): Promise<void> {
+  const fetchImpl = opts.fetchImpl ?? fetch;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), opts.timeoutMs ?? 10000);
+  try {
+    const uid = await authUid(cfg, fetchImpl, controller.signal);
+    if (!uid) return;
+    const body = input.versandt
+      ? `Sicherheitsbefund ${input.nummer} für ${input.domain} an ${input.empfaenger} versandt.`
+      : `Sicherheitsbefund ${input.nummer} für ${input.domain} erzeugt, Versand an ${input.empfaenger} fehlgeschlagen.`;
+    await jsonRpc(
+      cfg.url,
+      "object",
+      "execute_kw",
+      [cfg.db, uid, cfg.apiKey, "crm.lead", "message_post", [[leadId]], { body }],
+      fetchImpl,
+      controller.signal,
+    );
+  } catch {
+    // best-effort — the report has been sent either way
   } finally {
     clearTimeout(timer);
   }

@@ -1,0 +1,72 @@
+{
+  "_hinweis": "Synthetischer Grenzfall, kein echter Scan. Handlungsbedarf gering, aber eine Feststellung hoch eingestuft: prüft den erklärenden Satz für einen Handlungsbedarf unter der höchsten Einstufung (B11).",
+  "domain": "test-gering-mit-hoch.example",
+  "scan_date": "2026-10-28",
+  "level": "gering",
+  "dmarc": {
+    "grade": "C",
+    "score": 55,
+    "record": "v=DMARC1; p=none; rua=mailto:dmarc@test-gering-mit-hoch.example",
+    "policy": "none",
+    "rua": true
+  },
+  "dnssec": {
+    "grade": "A",
+    "score": 100,
+    "signed": true
+  },
+  "observatory": {
+    "available": true,
+    "grade": "B",
+    "score": 70,
+    "passed": 9,
+    "total": 12,
+    "tests": [
+      {
+        "id": "sri",
+        "variant": "https",
+        "modifier": -5,
+        "result_text": "Subresource Integrity (SRI) not implemented, but all external scripts are loaded over HTTPS.",
+        "recommendation": "Add SRI to external scripts."
+      },
+      {
+        "id": "xcto",
+        "variant": "missing",
+        "modifier": -5,
+        "result_text": "X-Content-Type-Options-Header nicht implementiert.",
+        "recommendation": "Auf nosniff setzen."
+      },
+      {
+        "id": "referrer",
+        "variant": "missing",
+        "modifier": -5,
+        "result_text": "Referrer-Policy header not implemented.",
+        "recommendation": "Set to strict-origin-when-cross-origin at a minimum."
+      }
+    ]
+  },
+  "mail": {
+    "spf": {
+      "status": "hinweis",
+      "text": "SPF vorhanden, Verbesserungen möglich."
+    },
+    "dkim": {
+      "status": "hinweis",
+      "text": "2 DKIM-Selektoren gefunden",
+      "selectors": 2
+    },
+    "mx": {
+      "status": "hinweis",
+      "text": "1 MX-Server gefunden",
+      "count": 1
+    },
+    "mta_sts": {
+      "status": "hinweis",
+      "text": "Kein MTA-STS"
+    },
+    "tls_rpt": {
+      "status": "hinweis",
+      "text": "Kein TLS-RPT"
+    }
+  }
+}

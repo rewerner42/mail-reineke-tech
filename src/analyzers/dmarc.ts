@@ -191,7 +191,8 @@ export async function analyzeDmarc(
         issues.push({
           severity: "pass",
           code: "DMARC_POLICY_REJECT",
-          message: "Strikteste Policy \"reject\" — ungültige Mails werden abgewiesen.",
+          message:
+            "Strikteste Policy \u201ereject\u201c: Empfänger werden angewiesen, ungültige Mails abzuweisen.",
         });
         break;
       default:

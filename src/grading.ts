@@ -20,7 +20,14 @@ export function scoreToGrade(score: number): string {
   return "F";
 }
 
-/** Map a letter grade to our severity scale. A → pass, B/C → warn, D/E/F → fail. */
+/**
+ * Map a letter grade to our severity scale. A → pass, B/C → warn, D/E/F → fail,
+ * missing → info: a check that could not be run has no verdict.
+ *
+ * The report's overall Handlungsbedarf uses a different rule, see gradeSeverity()
+ * in report/build.ts — there a missing grade counts as a failure. The two are
+ * answering different questions; keep them apart.
+ */
 export function gradeToSeverity(grade: string | null | undefined): Severity {
   if (!grade) return "info";
   const letter = grade.trim().charAt(0).toUpperCase();

@@ -1,0 +1,50 @@
+{
+  "_hinweis": "Synthetischer Grenzfall für die Überlaufprüfung, kein echter Scan. Alles in Ordnung: keine Feststellung, Website A+.",
+  "domain": "test-ohne-befund.example",
+  "scan_date": "2026-10-28",
+  "level": "gering",
+  "dmarc": {
+    "grade": "A+",
+    "score": 100,
+    "record": "v=DMARC1; p=reject; rua=mailto:dmarc@test-ohne-befund.example",
+    "policy": "reject",
+    "rua": true
+  },
+  "dnssec": {
+    "grade": "A+",
+    "score": 100,
+    "signed": true
+  },
+  "observatory": {
+    "available": true,
+    "grade": "A+",
+    "score": 105,
+    "passed": 10,
+    "total": 10,
+    "tests": []
+  },
+  "mail": {
+    "spf": {
+      "status": "ok",
+      "text": "SPF korrekt (4/10 Lookups)."
+    },
+    "dkim": {
+      "status": "ok",
+      "text": "2 DKIM-Selektoren gefunden",
+      "selectors": 2
+    },
+    "mx": {
+      "status": "ok",
+      "text": "2 MX-Server gefunden",
+      "count": 2
+    },
+    "mta_sts": {
+      "status": "ok",
+      "text": "MTA-STS aktiv (mode: enforce)"
+    },
+    "tls_rpt": {
+      "status": "ok",
+      "text": "TLS-RPT aktiv"
+    }
+  }
+}
