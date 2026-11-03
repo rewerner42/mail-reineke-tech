@@ -1,0 +1,436 @@
+{
+  "domain": "test-ohne-befund.example",
+  "datum": "28. Oktober 2026",
+  "datum_iso": "2026-10-28",
+  "bericht_nr": "RT-DS-20261028-01",
+  "level": {
+    "key": "gering",
+    "label": "Gering",
+    "satz": "Die geprüften Schutzmechanismen sind weitgehend umgesetzt. Ob Ihre Systeme auch einem gezielten Angriff standhalten, klärt ein Penetrationstest.",
+    "hinweis": null
+  },
+  "bereiche": [
+    {
+      "key": "email",
+      "label": "E-Mail",
+      "pruefung": "DMARC",
+      "schutzziel": "Schutz vor gefälschten Absendern",
+      "note": "A+",
+      "klasse": "good",
+      "wort": "Sehr gut",
+      "bedeutung": "Geprüfter Schutz umgesetzt",
+      "score": 100,
+      "satz": "Gefälschte E-Mails mit Ihrem Absender sollen abgewiesen werden.",
+      "detail": "v=DMARC1; p=reject; rua=mailto:dmarc@test-ohne-befund.example",
+      "anzahl_feststellungen": 0,
+      "note_hinweis": null
+    },
+    {
+      "key": "domain",
+      "label": "Domain",
+      "pruefung": "DNSSEC",
+      "schutzziel": "Echtheit der Adressauskünfte",
+      "note": "A+",
+      "klasse": "good",
+      "wort": "Sehr gut",
+      "bedeutung": "Geprüfter Schutz umgesetzt",
+      "score": 100,
+      "satz": "Die Adressauskünfte Ihrer Domain sind digital signiert.",
+      "detail": "Zone signiert",
+      "anzahl_feststellungen": 0,
+      "note_hinweis": null
+    },
+    {
+      "key": "website",
+      "label": "Website",
+      "pruefung": "HTTP Observatory",
+      "schutzziel": "Schutz Ihrer Website-Besucher",
+      "note": "A+",
+      "klasse": "good",
+      "wort": "Sehr gut",
+      "bedeutung": "Geprüfter Schutz umgesetzt",
+      "score": 105,
+      "satz": "Alle 10 Sicherheitstests bestanden.",
+      "detail": "10 von 10 Tests bestanden",
+      "anzahl_feststellungen": 0,
+      "note_hinweis": null
+    }
+  ],
+  "feststellungen": [],
+  "nach_prio": {
+    "hoch": [],
+    "mittel": [],
+    "gering": []
+  },
+  "anzahl": {
+    "hoch": 0,
+    "mittel": 0,
+    "gering": 0,
+    "gesamt": 0
+  },
+  "top": [],
+  "positiv": [
+    {
+      "bereich": "email",
+      "text": "Gefälschte E-Mails sollen abgewiesen werden (DMARC „reject“)"
+    },
+    {
+      "bereich": "email",
+      "text": "Auswertungsberichte angefordert (DMARC)"
+    },
+    {
+      "bereich": "email",
+      "text": "Berechtigte Mailserver festgelegt (SPF)"
+    },
+    {
+      "bereich": "email",
+      "text": "Signaturschlüssel veröffentlicht (2 DKIM-Selektoren gefunden)"
+    },
+    {
+      "bereich": "email",
+      "text": "Mailserver eingetragen (2 MX-Server gefunden)"
+    },
+    {
+      "bereich": "email",
+      "text": "Richtlinie für verschlüsselte Zustellung veröffentlicht (MTA-STS)"
+    },
+    {
+      "bereich": "email",
+      "text": "Fehlerberichte zur verschlüsselten Zustellung angefordert (TLS-RPT)"
+    },
+    {
+      "bereich": "domain",
+      "text": "Adressauskünfte digital signiert (DNSSEC)"
+    }
+  ],
+  "positiv_einleitung": "Ihr DMARC-Eintrag weist Mailserver an, E-Mails mit gefälschtem Absender abzuweisen oder auszusortieren: ein wesentlicher Baustein gegen Rechnungs- und Chef-Betrug.",
+  "massnahmen": [
+    {
+      "key": "M_RETEST",
+      "titel": "Umsetzung überprüfen",
+      "text": "Wir wiederholen die Prüfung auf Wunsch kostenfrei, etwa nach Änderungen an Website oder Mailsystem.",
+      "aufwand": "kostenfrei",
+      "zustaendig": null,
+      "bezug": [],
+      "bezug_text": "–",
+      "prio": null,
+      "nr": "M-1"
+    }
+  ],
+  "offene_punkte": [],
+  "technik": {
+    "dmarc": {
+      "note": "A+",
+      "score": 100,
+      "record": "v=DMARC1; p=reject; rua=mailto:dmarc@test-ohne-befund.example",
+      "policy": "reject",
+      "rua": true
+    },
+    "dnssec": {
+      "note": "A+",
+      "score": 100,
+      "signed": true,
+      "zustand_text": "Zone signiert"
+    },
+    "observatory": {
+      "available": true,
+      "note": "A+",
+      "score": 105,
+      "passed": 10,
+      "total": 10,
+      "tests": []
+    },
+    "mail": [
+      {
+        "key": "spf",
+        "label": "SPF",
+        "status": "ok",
+        "status_label": "OK",
+        "text": "SPF korrekt (4/10 Lookups)."
+      },
+      {
+        "key": "dkim",
+        "label": "DKIM",
+        "status": "ok",
+        "status_label": "OK",
+        "text": "2 DKIM-Selektoren gefunden"
+      },
+      {
+        "key": "mx",
+        "label": "MX (Mailserver)",
+        "status": "ok",
+        "status_label": "OK",
+        "text": "2 MX-Server gefunden"
+      },
+      {
+        "key": "mta_sts",
+        "label": "MTA-STS",
+        "status": "ok",
+        "status_label": "OK",
+        "text": "MTA-STS aktiv (mode: enforce)"
+      },
+      {
+        "key": "tls_rpt",
+        "label": "TLS-RPT",
+        "status": "ok",
+        "status_label": "OK",
+        "text": "TLS-RPT aktiv"
+      }
+    ]
+  },
+  "rohdaten": [
+    "DMARC    A+  Score 100  v=DMARC1; p=reject; rua=mailto:dmarc@test-ohne-befund.example",
+    "DNSSEC   A+  Score 100  Zone signiert",
+    "Website  A+  Score 105  HTTP Observatory: 10/10 Tests bestanden",
+    "SPF      OK             SPF korrekt (4/10 Lookups).",
+    "DKIM     OK             2 DKIM-Selektoren gefunden",
+    "MX       OK             2 MX-Server gefunden",
+    "MTA-STS  OK             MTA-STS aktiv (mode: enforce)",
+    "TLS-RPT  OK             TLS-RPT aktiv"
+  ],
+  "noten": [
+    {
+      "noten": [
+        "A+",
+        "A",
+        "A-"
+      ],
+      "klasse": "good",
+      "wort": "Sehr gut",
+      "bedeutung": "Geprüfter Schutz umgesetzt"
+    },
+    {
+      "noten": [
+        "B+",
+        "B",
+        "B-"
+      ],
+      "klasse": "good",
+      "wort": "Gut",
+      "bedeutung": "Geringfügige Verbesserungen möglich"
+    },
+    {
+      "noten": [
+        "C+",
+        "C",
+        "C-"
+      ],
+      "klasse": "warn",
+      "wort": "Verbesserungswürdig",
+      "bedeutung": "Bei nächster Gelegenheit angehen"
+    },
+    {
+      "noten": [
+        "D+",
+        "D",
+        "D-"
+      ],
+      "klasse": "bad",
+      "wort": "Mangelhaft",
+      "bedeutung": "Zeitnah beheben"
+    },
+    {
+      "noten": [
+        "F"
+      ],
+      "klasse": "bad",
+      "wort": "Ungenügend",
+      "bedeutung": "Wesentlicher Schutz fehlt"
+    }
+  ],
+  "texte": {
+    "methode_kurz": "Ausgewertet wurden ausschließlich öffentlich abrufbare Informationen. Es gab keinen Eingriff in Ihre Systeme, keine Anmeldung und keine nennenswerte Last.",
+    "methode_lang": "Alle Werte wurden am 28. Oktober 2026 automatisiert mit scan.reineke-technik.de erhoben, DNS-Abfragen über Cloudflare DNS-over-HTTPS (1.1.1.1). DKIM lässt sich nur über gängige Selektoren prüfen. Die Website-Bewertung nutzt den MDN HTTP Observatory von Mozilla und gilt nur für die Startseite, nicht für Portale oder Subdomains. Ausgewertet wurden nur öffentlich abrufbare Informationen, ohne Anmeldung, Eingriff oder nennenswerte Last. Die Ergebnisse sind eine Momentaufnahme; auf Anfrage prüfen wir kostenfrei erneut.",
+    "methodik": [
+      {
+        "bereich": "E-Mail",
+        "pruefung": "DMARC, SPF, DKIM, MX, MTA-STS, TLS-RPT",
+        "text": "DMARC legt fest, wie Mailserver mit E-Mails umgehen sollen, die Ihre Absenderadresse nur vortäuschen: „reject“ weist ab, „quarantine“ sortiert aus, „none“ beobachtet nur. SPF und DKIM liefern die Prüfgrundlage."
+      },
+      {
+        "bereich": "Domain",
+        "pruefung": "DNSSEC",
+        "text": "DNSSEC signiert die Adressauskünfte Ihrer Domain. Prüfende DNS-Server erkennen so Fälschungen, die E-Mails oder Besucher umleiten könnten."
+      },
+      {
+        "bereich": "Website",
+        "pruefung": "MDN HTTP Observatory",
+        "text": "Der HTTP Observatory von Mozilla prüft die Schutzregeln Ihrer Website, etwa CSP und HSTS. Die Note ergibt sich aus gewichteten Punktabzügen."
+      }
+    ],
+    "zusammenfassung": {
+      "kritisch": "Lücken bei den geprüften Schutzmechanismen sollten vorrangig geschlossen werden, meist mit wenig Aufwand.",
+      "hoch": "Lücken bei den geprüften Schutzmechanismen sollten zeitnah geschlossen werden, meist mit wenig Aufwand.",
+      "mittel": "Die Grundlagen der geprüften Schutzmechanismen sind vorhanden; einige Punkte sollten bei nächster Gelegenheit verbessert werden.",
+      "gering": "Die geprüften Schutzmechanismen sind weitgehend umgesetzt. Ob Ihre Systeme auch einem gezielten Angriff standhalten, klärt ein Penetrationstest."
+    },
+    "handlungsbedarf_hinweis": {
+      "hoeher": "Der Handlungsbedarf ist die Gesamtbewertung des Scanners. Er kann höher ausfallen als die Einstufung der einzelnen Feststellungen.",
+      "niedriger": "Der Handlungsbedarf ist die Gesamtbewertung des Scanners. Er kann niedriger ausfallen als die Einstufung einzelner Feststellungen."
+    },
+    "pentest_titel": "Über diesen Befund hinaus: Penetrationstest",
+    "pentest_text": "Dieser Befund zeigt einen Ausschnitt dessen, was von außen sichtbar ist. Ein Penetrationstest klärt, was ein Angreifer erreicht, wenn er Schwachstellen zu einem Angriffspfad verkettet. Sie erhalten priorisierte Maßnahmen und einen Nachweis für Kunden und Prüfer.",
+    "pentest_ablauf": [
+      {
+        "titel": "Vorbereitung",
+        "text": "Ziele, Systeme und Prüftiefe festlegen, Zeitfenster betriebsschonend abstimmen."
+      },
+      {
+        "titel": "Test",
+        "text": "Manuell und mit eigenen Werkzeugen, jeder Schritt nachvollziehbar dokumentiert."
+      },
+      {
+        "titel": "Bericht und Besprechung",
+        "text": "Priorisierte Feststellungen mit konkreten Behebungsempfehlungen."
+      },
+      {
+        "titel": "Nachtest",
+        "text": "Nach Ihrer Nachbesserung prüfen wir die Wirksamkeit erneut."
+      }
+    ],
+    "cta_titel": "Ergebnisbesprechung",
+    "cta_text": "In den bewerteten Bereichen ist test-ohne-befund.example gut aufgestellt. In 20 Minuten besprechen wir, was eine Analyse von außen nicht sehen kann und wie Sie Ihr Sicherheitsniveau gegenüber Kunden und Prüfern belegen. Kostenfrei und unverbindlich.",
+    "cta_button": "Termin wählen",
+    "ablauf": [],
+    "vertraulich": "Vertraulich – bestimmt für den Inhaber der geprüften Domain und dessen IT-Dienstleister.",
+    "umfang_kurz": "Automatisierte Momentaufnahme vom 28. Oktober 2026. Bewertet wurden ausschließlich öffentlich sichtbare Einstellungen von E-Mail, Domain und Website, nicht die Sicherheit Ihrer IT insgesamt.",
+    "begleitwort": "Vielen Dank für Ihr Interesse. Dieser Befund zeigt, wie test-ohne-befund.example von außen für einen Angreifer aussieht. Geprüft wurden am 28. Oktober 2026 ausschließlich öffentlich abrufbare Informationen, ohne Eingriff in Ihre Systeme.",
+    "next_text": "In den bewerteten Bereichen ist test-ohne-befund.example gut aufgestellt. In 20 Minuten besprechen wir, was eine Analyse von außen nicht sehen kann und wie Sie Ihr Sicherheitsniveau gegenüber Kunden und Prüfern belegen. Kostenfrei und unverbindlich.",
+    "cta_massnahmen": null,
+    "nachpruefung": null,
+    "lesehinweis": "Jede Feststellung beschreibt, was wir gefunden haben, was ein Angreifer damit tun könnte, was das für Sie bedeutet und wie aufwendig die Behebung ist. Darunter steht für Ihre IT die technische Detailzeile. Alle Messwerte finden Sie im technischen Anhang.",
+    "offen_einleitung": "Folgende Punkte kann die automatische Prüfung nicht abschließend beurteilen. Wir klären sie gern im Gespräch:",
+    "offen_label": "Offene Punkte",
+    "offen_website": "Wie es um die Schutzregeln Ihrer Website steht",
+    "karte_labels": {
+      "sachverhalt": "Sachverhalt",
+      "angriff": "Was passieren kann",
+      "auswirkung": "Folgen für Sie",
+      "aufwand": "Aufwand"
+    },
+    "zusammenfassung_labels": {
+      "handlungsbedarf": "Handlungsbedarf insgesamt",
+      "feststellungen": "Einzelne Feststellungen nach Risiko",
+      "risiko": "Risiko",
+      "zustaendig": "Üblicherweise zuständig"
+    }
+  },
+  "firma": {
+    "_hinweis": "Feste Firmendaten und Vertrauenssignale. Werden nicht vom Scan erzeugt und bleiben in allen Varianten gleich.",
+    "name": "Reineke Technik GmbH",
+    "kurzname": "Reineke Technik",
+    "strasse": "Geseker Straße 26",
+    "plz_ort": "33154 Salzkotten",
+    "web": "www.reineke-technik.de",
+    "web_url": "https://www.reineke-technik.de",
+    "scan_host": "scan.reineke-technik.de",
+    "booking_url": "https://bookings.cloud.microsoft/bookwithme/user/99dfe8391d044c208563dd3afbc7439f%40reineke-technik.de?anonymous&ismsaljsauthenabled",
+    "pentest_url": "https://scan.reineke-technik.de/pentest",
+    "pentest_label": "scan.reineke-technik.de/pentest",
+    "kontakte": [
+      {
+        "name": "Werner Francis Reineke",
+        "rolle": "Geschäftsführer",
+        "email": "wf.reineke@reineke-technik.de",
+        "telefon": "+49 172 2872390",
+        "telefon_href": "+491722872390",
+        "foto": "werner.jpg",
+        "mobil": null,
+        "mobil_href": null,
+        "foto_url": "ASSETS_URL/werner.jpg"
+      },
+      {
+        "name": "Karl Pieper",
+        "rolle": "Geschäftsführer",
+        "email": "k.pieper@reineke-technik.de",
+        "telefon": "+49 5259 9870",
+        "telefon_href": "+4952599870",
+        "mobil": "+49 172 5209052",
+        "mobil_href": "+491725209052",
+        "foto": null,
+        "foto_url": null
+      }
+    ],
+    "vorstellung": {
+      "name": "Werner Francis Reineke",
+      "rolle": "Geschäftsführer, Reineke Technik GmbH",
+      "foto": "werner.jpg",
+      "absaetze": [
+        "Reineke Technik prüft die IT-Sicherheit mittelständischer Industrie- und Produktionsunternehmen und unterstützt bei Anforderungen wie NIS-2, ISO 27001 und TISAX.",
+        "Wir haben Netzwerke selbst aufgebaut und betrieben. Diese Praxis fließt in jede Prüfung ein: Wir wissen, wo Angreifer ansetzen und wo im Betriebsalltag Lücken entstehen."
+      ],
+      "foto_url": "ASSETS_URL/werner.jpg"
+    },
+    "zitat": "Wer ein System selbst betreibt, kann es nicht unabhängig prüfen. Wie bei Buchhaltung und Wirtschaftsprüfung gehören Betrieb und Prüfung in getrennte Hände.",
+    "_zitat_hinweis": "Ab v15 ist zitat der von Werner freigegebene Satz (D23, 30.10.2026). Auf Seite 03 steht derzeit sein Spruch aus slogan, so von ihm am 30.10. entschieden; das Zitat ist damit freigegeben, aber nicht auf der Seite.",
+    "slogan": [
+      "Sicherheitslücken schließen,",
+      "bevor sie teuer werden."
+    ],
+    "prinzipien": [
+      {
+        "titel": "Unabhängig",
+        "text": "Wir prüfen Systeme, die wir nicht selbst betreiben, und verkaufen keine Technik, die wir anschließend kontrollieren."
+      },
+      {
+        "titel": "Verständlich",
+        "text": "Jeder Bericht enthält eine Zusammenfassung für die Geschäftsführung und einen priorisierten Maßnahmenplan."
+      },
+      {
+        "titel": "Nachweisbar",
+        "text": "Nach der Behebung prüfen wir erneut. So wird Sicherheit gegenüber Kunden und Prüfern belegbar."
+      }
+    ],
+    "leistungen": [
+      "Penetrationstests: extern, intern, Webanwendungen",
+      "ISMS-Aufbau nach ISO 27001",
+      "Externes Sicherheitsmandat (eISB / vCISO)",
+      "NIS-2-Bestandsaufnahme der Sicherheitsmaßnahmen",
+      "TISAX-Begleitung für Zulieferer"
+    ],
+    "vertrauen": [
+      {
+        "label": "Kunden",
+        "wert": "47",
+        "text": "Unternehmen seit Gründung, überwiegend Industrie und Zulieferer"
+      },
+      {
+        "label": "Fachvorträge",
+        "wert": "Live-Hacking",
+        "text": "Referent, u. a. in der Cybersecurity-Vortragsreihe von SHARP"
+      },
+      {
+        "label": "Standort",
+        "wert": "Salzkotten",
+        "text": "Ostwestfalen-Lippe, vor Ort in NRW"
+      }
+    ],
+    "pentest_arten": [
+      {
+        "titel": "Extern",
+        "text": "Aus dem Internet erreichbare Systeme und Dienste"
+      },
+      {
+        "titel": "Intern / Active Directory",
+        "text": "Firmennetz, Berechtigungen, Rechteausweitung"
+      },
+      {
+        "titel": "Webanwendung",
+        "text": "Portale, Shops und Kundenzugänge"
+      }
+    ],
+    "zitat_quelle": "Werner Reineke",
+    "pflichtangaben": {
+      "registergericht": "Amtsgericht Paderborn",
+      "hrb": "HRB 15938",
+      "geschaeftsfuehrer": [
+        "Werner Francis Reineke",
+        "Karl Pieper"
+      ],
+      "ust_id": "DE353762579"
+    }
+  },
+  "assets": "ASSETS_URL",
+  "logo": "ASSETS_URL/logo.png",
+  "qr_termin": "ASSETS_URL/qr-termin.svg"
+}

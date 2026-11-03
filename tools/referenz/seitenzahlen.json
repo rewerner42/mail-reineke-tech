@@ -1,0 +1,14 @@
+{
+  "_hinweis": "Soll-Seitenzahlen der Referenzdatensätze. Der Bericht schätzt Seitenumbrüche aus Zeichenzahlen, deshalb verschiebt jede Katalogänderung die Seitenzahlen. Nach einer Änderung: npm run bericht:pruefen, Werte prüfen, hier festschreiben. Stand: nach der zweiten Prüfung der Katalogtexte durch Sprache, Technik und Verständlichkeit (30.10.2026).",
+  "socialselling-academy.com": 12,
+  "budde.de": 12,
+  "sharp.eu": 10,
+  "steuerkanzlei-lauterbach.com": 12,
+  "test-ohne-befund.example": 9,
+  "maschinenbau-mustermann-beispiel.example": 14,
+  "test-18-feststellungen.example": 15,
+  "test-nur-gering.example": 9,
+  "test-8-webtests.example": 15,
+  "test-9-webtests.example": 15,
+  "test-gering-mit-hoch.example": 10
+}

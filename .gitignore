@@ -14,3 +14,9 @@ worker-configuration.d.ts
 .mailer-sec
 .resend
 .posthog
+
+# Rendered report proofs from the layout check (tools/referenz/pruefen.sh)
+tools/referenz/vorlage/out/
+tools/referenz/vorlage/synth-out/
+tools/referenz/vorlage/muster-out/
+tools/referenz/vorlage/marke-out/

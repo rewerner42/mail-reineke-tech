@@ -1,0 +1,99 @@
+{
+  "_hinweis": "Feste Firmendaten und Vertrauenssignale. Werden nicht vom Scan erzeugt und bleiben in allen Varianten gleich.",
+  "name": "Reineke Technik GmbH",
+  "kurzname": "Reineke Technik",
+  "strasse": "Geseker Straße 26",
+  "plz_ort": "33154 Salzkotten",
+  "web": "www.reineke-technik.de",
+  "web_url": "https://www.reineke-technik.de",
+  "scan_host": "scan.reineke-technik.de",
+  "booking_url": "https://bookings.cloud.microsoft/bookwithme/user/99dfe8391d044c208563dd3afbc7439f%40reineke-technik.de?anonymous&ismsaljsauthenabled",
+  "pentest_url": "https://scan.reineke-technik.de/pentest",
+  "pentest_label": "scan.reineke-technik.de/pentest",
+  "kontakte": [
+    {
+      "name": "Werner Francis Reineke",
+      "rolle": "Geschäftsführer",
+      "email": "wf.reineke@reineke-technik.de",
+      "telefon": "+49 172 2872390",
+      "telefon_href": "+491722872390",
+      "foto": "werner.jpg",
+      "mobil": null,
+      "mobil_href": null
+    },
+    {
+      "name": "Karl Pieper",
+      "rolle": "Geschäftsführer",
+      "email": "k.pieper@reineke-technik.de",
+      "telefon": "+49 5259 9870",
+      "telefon_href": "+4952599870",
+      "mobil": "+49 172 5209052",
+      "mobil_href": "+491725209052",
+      "foto": null
+    }
+  ],
+  "vorstellung": {
+    "name": "Werner Francis Reineke",
+    "rolle": "Geschäftsführer, Reineke Technik GmbH",
+    "foto": "werner.jpg",
+    "absaetze": [
+      "Reineke Technik prüft die IT-Sicherheit mittelständischer Industrie- und Produktionsunternehmen und unterstützt bei Anforderungen wie NIS-2, ISO 27001 und TISAX.",
+      "Wir haben Netzwerke selbst aufgebaut und betrieben. Diese Praxis fließt in jede Prüfung ein: Wir wissen, wo Angreifer ansetzen und wo im Betriebsalltag Lücken entstehen."
+    ]
+  },
+  "zitat": "Ein Systemhaus kann nicht prüfen, was es selbst betreibt. Belastbare Sicherheit braucht einen unabhängigen Blick von außen.",
+  "_zitat_hinweis": "zitat nutzen nur die Varianten der Runde 1 (v00–v10). Werner möchte es nicht mehr verwenden (30.10.2026). Ab v13 steht stattdessen sein Spruch aus slogan.",
+  "slogan": ["Sicherheitslücken schließen,", "bevor sie teuer werden."],
+  "prinzipien": [
+    {
+      "titel": "Unabhängig",
+      "text": "Wir prüfen Systeme, die wir nicht selbst betreiben, und verkaufen keine Technik, die wir anschließend kontrollieren."
+    },
+    {
+      "titel": "Verständlich",
+      "text": "Jeder Bericht enthält eine Zusammenfassung für die Geschäftsführung und einen priorisierten Maßnahmenplan."
+    },
+    {
+      "titel": "Nachweisbar",
+      "text": "Nach der Behebung prüfen wir erneut. So wird Sicherheit gegenüber Kunden und Prüfern belegbar."
+    }
+  ],
+  "leistungen": [
+    "Penetrationstests: extern, intern, Webanwendungen",
+    "ISMS-Aufbau nach ISO 27001",
+    "Externes Sicherheitsmandat (eISB / vCISO)",
+    "NIS-2-Betroffenheitsanalyse",
+    "TISAX-Begleitung für Zulieferer"
+  ],
+  "vertrauen": [
+    {
+      "label": "Kunden",
+      "wert": "47",
+      "text": "Unternehmen seit Gründung, überwiegend Industrie und Zulieferer"
+    },
+    {
+      "label": "Fachvorträge",
+      "wert": "Live-Hacking",
+      "text": "Referent, u. a. in der Cybersecurity-Vortragsreihe von SHARP"
+    },
+    {
+      "label": "Standort",
+      "wert": "Salzkotten",
+      "text": "Ostwestfalen-Lippe, vor Ort in NRW"
+    }
+  ],
+  "pentest_arten": [
+    {
+      "titel": "Extern",
+      "text": "Aus dem Internet erreichbare Systeme und Dienste"
+    },
+    {
+      "titel": "Intern / Active Directory",
+      "text": "Firmennetz, Berechtigungen, Rechteausweitung"
+    },
+    {
+      "titel": "Webanwendung",
+      "text": "Portale, Shops und Kundenzugänge"
+    }
+  ]
+}

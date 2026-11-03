@@ -122,7 +122,7 @@ export function classifyDnssec(s: DnssecSignals): DnssecClassification {
     message:
       "Zone ist nicht DNSSEC-signiert — kein Schutz gegen DNS-Spoofing und Cache-Poisoning.",
     recommendation:
-      "DNSSEC schützt vor DNS-Spoofing und Cache-Poisoning. Bei Cloudflare mit einem Klick aktivierbar (DNS → Settings → DNSSEC); danach den DS-Record bei der Registrar-Domain hinterlegen.",
+      "DNSSEC schützt vor DNS-Spoofing und Cache-Poisoning. In der Regel beim DNS-Anbieter aktivierbar, danach den DS-Eintrag beim Registrar hinterlegen.",
     score: 0,
     data: {
       secure: false,

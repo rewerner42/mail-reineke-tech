@@ -1,0 +1,42 @@
+{
+  "_quelle": "Reineke-Befund-socialselling-academy.com.pdf (Generator scan.reineke-technik.de, 22.10.2026)",
+  "domain": "socialselling-academy.com",
+  "scan_date": "2026-10-22",
+  "level": "hoch",
+  "dmarc": {
+    "grade": "A+", "score": 100,
+    "record": "v=DMARC1; p=reject; rua=mailto:marko.ivic@socialselling-academy.com",
+    "policy": "reject", "rua": true
+  },
+  "dnssec": { "grade": "F", "score": 0, "signed": false },
+  "observatory": {
+    "available": true, "grade": "F", "score": 0, "passed": 6, "total": 12,
+    "tests": [
+      { "id": "sri", "variant": "http", "modifier": -50,
+        "result_text": "Subresource Integrity (SRI) not implemented, and external scripts are loaded over HTTP or they use protocol-relative URLs via src=\"//...\".",
+        "recommendation": "Load external scripts over HTTPS, and add SRI to them." },
+      { "id": "cookies", "variant": "no-httponly", "modifier": -30,
+        "result_text": "Session cookie set without using the HttpOnly flag.",
+        "recommendation": "Use HttpOnly" },
+      { "id": "csp", "variant": "unsafe", "modifier": -20,
+        "result_text": "Content Security Policy (CSP) unsicher implementiert — enthält 'unsafe-inline' oder data: in script-src bzw. zu weit gefasste Quellen.",
+        "recommendation": "'unsafe-inline' und data: aus script-src entfernen sowie object-src/script-src einschränken." },
+      { "id": "hsts", "variant": "missing", "modifier": -20,
+        "result_text": "Strict-Transport-Security-Header nicht implementiert.",
+        "recommendation": "HSTS hinzufügen, ggf. zunächst mit kürzeren Zeiträumen (siehe hstspreload.org)." },
+      { "id": "xfo", "variant": "missing", "modifier": -20,
+        "result_text": "X-Frame-Options-Header (XFO) nicht implementiert.",
+        "recommendation": "frame-ancestors per CSP umsetzen." },
+      { "id": "xcto", "variant": "missing", "modifier": -5,
+        "result_text": "X-Content-Type-Options-Header nicht implementiert.",
+        "recommendation": "Auf nosniff setzen." }
+    ]
+  },
+  "mail": {
+    "spf": { "status": "ok", "text": "SPF korrekt (6/10 Lookups)." },
+    "dkim": { "status": "ok", "text": "1 DKIM-Selektor gefunden", "selectors": 1 },
+    "mx": { "status": "ok", "text": "5 MX-Server gefunden", "count": 5 },
+    "mta_sts": { "status": "hinweis", "text": "Kein MTA-STS" },
+    "tls_rpt": { "status": "hinweis", "text": "Kein TLS-RPT" }
+  }
+}

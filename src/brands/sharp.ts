@@ -33,7 +33,7 @@ const NICO: BrandContact = {
 export const sharp: Brand = {
   id: "sharp",
   hosts: ["sharp.reineke.tech", "localhost"],
-  privateAssets: ["/assets/sharp-logo.png"], // Sharp co-brand asset — not for other brands
+  privateAssets: ["/assets/sharp-logo.png", "/assets/sharp-logo.svg"], // Sharp co-brand assets — not for other brands
   // Leadfeeder/Dealfront am 2026-08-03 vollständig entfernt; Umami-Site liegt
   // seit demselben Tag bei scan.reineke.tech (Site-Limit).
   analytics: { umamiId: null },
@@ -93,11 +93,66 @@ export const sharp: Brand = {
     foxAsset: "/assets/reineke-official.svg",
     showFox: true,
     wordmarkAlt: "sharp",
-    offerHeading: "Unser Angebot — Reineke Technik &amp; Sharp Business Systems Deutschland",
+    // Sharp zuerst, Reineke als Fachpartner dahinter (Werner, 01.11.2026).
+    offerHeading: "Unser Angebot — Sharp Business Systems Deutschland &amp; Reineke Technik",
     offerLeadIn:
-      "Gemeinsam bringen wir Ihre Domains kontrolliert und nachvollziehbar auf ein durchgesetztes Schutzniveau — die technische Umsetzung durch Reineke Technik, persönliche Betreuung über den Direktvertrieb von Sharp Business Systems, durchgängig DSGVO-konform und deutschsprachig:",
+      "Gemeinsam bringen wir Ihre Domains kontrolliert und nachvollziehbar auf ein durchgesetztes Schutzniveau — persönliche Betreuung über den Direktvertrieb von Sharp Business Systems, die technische Umsetzung durch Reineke Technik, deutschsprachig:",
     coBrandLine: "in Zusammenarbeit mit Sharp Business Systems Deutschland GmbH",
     filenamePrefix: "Sharp-Befund",
+    // Sharp-Fassung des Berichts v15, Inhalte von Werner am 01.11.2026 entschieden:
+    // SHARP oben, Reineke unten; Sharp-Angebot statt Pentest; eigener Zähler.
+    v15: {
+      nummer: {
+        kuerzel: "SH-DS",
+        code: "sharp.bericht",
+        name: "Sicherheitsbefund Sharp — Bericht-Nr.",
+      },
+      logo: "sharp-logo.svg",
+      logoAlt: "Sharp",
+      kapitel03: "Über Sharp und Reineke Technik",
+      partner: {
+        label: "Partner",
+        // Reineke arbeitet als Fachpartner für Sharp: Sharp steht vorn, Reineke
+        // als Spezialist dahinter (Werners Vorgabe, Fassung B).
+        text:
+          "Sharp Business Systems Deutschland GmbH betreut Sie als Anbieter und fester Ansprechpartner. " +
+          "Die fachliche Arbeit übernimmt Reineke Technik als Sicherheitspartner von Sharp, von der Prüfung " +
+          "bis zur technischen Umsetzung. So verbinden Sie die Betreuung eines etablierten Anbieters mit der " +
+          "Erfahrung von Spezialisten.",
+      },
+      angebot: {
+        label: "Angebot",
+        rollen: [
+          { titel: "Sharp Business Systems", text: "Persönliche Betreuung über den Direktvertrieb" },
+          { titel: "Reineke Technik", text: "Prüfung und technische Umsetzung" },
+        ],
+        // Die vier Punkte des Vierseiters (src/report/build.ts, offerBlock), in
+        // der Sprache von v15: Kapitel 01–04 sind für die Geschäftsführung.
+        punkte: [
+          {
+            titel: "DMARC-Einführung und -Härtung",
+            text: "Schritt für Schritt bis zur Abweisung gefälschter Absender, mit Auswertung der Berichte.",
+          },
+          {
+            titel: "DNSSEC-Aktivierung",
+            text: "Adressauskünfte Ihrer Domain signieren und beim Registrar hinterlegen.",
+          },
+          {
+            titel: "Website-Härtung",
+            text: "Schutzregeln Ihrer Website sauber setzen.",
+          },
+          {
+            titel: "Laufendes Monitoring",
+            text: "Regelmäßige Prüfung mit verständlichen Berichten, jederzeit kostenfrei nachprüfbar unter sharp.reineke.tech.",
+          },
+        ],
+      },
+      absender: {
+        label: "Analyse kostenfrei wiederholen",
+        url: "https://sharp.reineke.tech",
+        text: "sharp.reineke.tech",
+      },
+    },
     palette: {
       red: "#dc0d23",
       redDark: "#8a060e",

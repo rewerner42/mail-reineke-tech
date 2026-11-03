@@ -1,4 +1,4 @@
-import { queryTxt } from "../dns.js";
+import { DnsUnresolvable, queryTxt } from "../dns.js";
 import type { CheckIssue, CheckResult, DkimRecord } from "../types.js";
 
 /**
@@ -26,6 +26,8 @@ const COMMON_SELECTORS = [
   "mailjet", // Mailjet
   "amazonses", // Amazon SES
   "protonmail", // Proton Mail
+  "s1-ionos", // IONOS — widespread among German small businesses
+  "s2-ionos",
 ];
 
 export function parseDkim(selector: string, raw: string): DkimRecord | null {
@@ -80,10 +82,16 @@ function estimateKeySize(p: string): number | undefined {
   return undefined;
 }
 
+/**
+ * Probes one selector. Returns the record, null when the selector simply has no
+ * DKIM key, or "unaufloesbar" when the resolver could not answer at all — a zone
+ * with a broken DNSSEC signature answers SERVFAIL for everything, and reporting
+ * that as "no DKIM selector found" would state something never measured.
+ */
 async function probeSelector(
   domain: string,
   selector: string,
-): Promise<DkimRecord | null> {
+): Promise<DkimRecord | null | "unaufloesbar"> {
   const name = `${selector}._domainkey.${domain}`;
   try {
     const txts = await queryTxt(name);
@@ -94,8 +102,9 @@ async function probeSelector(
         return parsed;
       }
     }
-  } catch {
-    // ignored - selector probe failure is fine
+  } catch (err) {
+    if (err instanceof DnsUnresolvable) return "unaufloesbar";
+    // otherwise ignored — a single selector probe failing is expected
   }
   return null;
 }
@@ -108,9 +117,28 @@ export async function analyzeDkim(
   const results = await Promise.all(
     selectors.map((s) => probeSelector(domain, s)),
   );
-  const found = results.filter((r): r is DkimRecord => r !== null);
+  const found = results.filter((r): r is DkimRecord => r !== null && r !== "unaufloesbar");
 
   const issues: CheckIssue[] = [];
+
+  // Every probe came back unresolvable and none found a key: the zone itself
+  // cannot be read, so nothing is known about DKIM either way.
+  if (!found.length && results.every((r) => r === "unaufloesbar")) {
+    return {
+      status: "info",
+      summary: "DKIM-Abfrage fehlgeschlagen",
+      issues: [
+        {
+          severity: "info",
+          code: "DKIM_QUERY_FAILED",
+          message: `Die DNS-Abfragen für ${domain} ließen sich nicht auflösen — ob DKIM eingerichtet ist, konnte nicht geprüft werden.`,
+          recommendation:
+            "Häufigste Ursache ist eine fehlerhafte DNSSEC-Signatur der Zone. Prüfung nach deren Behebung wiederholen.",
+        },
+      ],
+      data: [],
+    };
+  }
 
   if (found.length === 0) {
     return {

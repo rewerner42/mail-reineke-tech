@@ -1,0 +1,48 @@
+{#- Deckblatt v15 (Stand 30.10.2026): „A hell“ aus v14 mit Werners Änderungen vom 30.10.
+    – Logo 30 % größer (Breite 62 -> 80,6 mm) und tiefer (oben 26 -> 34 mm), weiter zentriert.
+    – Werners Spruch steht nicht mehr unter dem Logo, sondern zwischen Titelblock und Absenderzeile.
+    Titelblock und Spruch stehen in einem gemeinsamen Fluss, damit ein längerer Untertitel den Spruch nach unten schiebt
+    statt ihn zu überdecken.
+    Nachjustiert (Werner, 30.10.): Titelblock und Spruch kleiner (Domain 28,5 pt wie im Original, Spruch 22 pt) und tiefer
+    (Titelblock ab 178 mm), damit zum Logo mehr Abstand bleibt; Titelblock und Spruch eng zusammen (8 mm). Rot überall #DC0C23 wie im Logo. -#}
+{% set _dl = domain|length %}
+<section class="page dcw{% if _dl > 34 %} dcw--xl{% elif _dl > 26 %} dcw--l{% endif %}">
+<style>
+  section.page.dcw { position: relative; box-sizing: border-box; width: 210mm; height: 297mm; margin: 0; padding: 0; overflow: hidden;
+    font-family: "Liberation Sans", Arial, Helvetica, sans-serif; page-break-after: always; break-after: page; }
+  .dcw * { box-sizing: border-box; margin: 0; padding: 0; }
+  .dcw .dcw-logo { position: absolute; }
+  .dcw .dcw-logo img { position: absolute; top: 0; left: 0; width: 100%; height: auto; display: block; }
+  .dcw .dcw-logo .dcw-fuchs { clip-path: inset(0 0 18% 0); }
+  .dcw .dcw-logo .dcw-wort { clip-path: inset(82% 0 0 0); }
+
+  section.page.dcw { background: #fff; color: #1d1d1b; }
+  .dcw .dcw-logo { top: 34mm; left: 64.7mm; width: 80.6mm; height: 92.7mm; }
+  .dcw .dcw-spruch { margin-top: 8mm; }
+  .dcw .dcw-spruch::before { content: ""; display: block; width: 18mm; border-top: .9mm solid #DC0C23; margin-bottom: 4mm; }
+  .dcw .dcw-spruch div { font-size: 22pt; line-height: 1.16; font-weight: 700; letter-spacing: -.012em; }
+  .dcw .dcw-z1 { color: #DC0C23; } .dcw .dcw-z2 { color: #1d1d1b; }
+  .dcw .dcw-titel { position: absolute; top: 178mm; left: 15mm; right: 15mm; }
+  .dcw .dcw-kicker { font-size: 8.5pt; line-height: 1.3; font-weight: 700; letter-spacing: .14em; color: #DC0C23; }
+  .dcw .dcw-domain { margin-top: 2.6mm; font-size: 28.5pt; line-height: 1.12; font-weight: 700; letter-spacing: -.012em; overflow-wrap: anywhere; }
+  .dcw.dcw--l .dcw-domain { font-size: 25pt; } .dcw.dcw--xl .dcw-domain { font-size: 21pt; }
+  .dcw .dcw-sub { margin-top: 3.2mm; max-width: 150mm; font-size: 9.75pt; line-height: 1.45; color: #5a5a5a; }
+  .dcw .dcw-fuss { position: absolute; left: 15mm; right: 15mm; top: 254mm; display: grid; grid-template-columns: 1.25fr 1fr 1fr; column-gap: 6mm;
+    border-top: .35mm solid #1d1d1b; padding-top: 3mm; }
+  .dcw .dcw-fuss .dcw-l { display: block; font-size: 6.8pt; line-height: 1.3; font-weight: 700; letter-spacing: .14em; color: #5a5a5a; text-transform: uppercase; margin-bottom: 1.2mm; }
+  .dcw .dcw-fuss p { font-size: 8.5pt; line-height: 1.42; color: #1d1d1b; }
+  .dcw .dcw-fuss b { font-weight: 700; }
+</style>
+  <div class="dcw-logo"><img class="dcw-fuchs" src="{{ logo }}" alt="Reineke Technik"><img class="dcw-wort" src="{{ logo }}" alt=""></div>
+  <div class="dcw-titel">
+    <div class="dcw-kicker">SICHERHEITSBEFUND · E-MAIL, DOMAIN UND WEBSITE</div>
+    <div class="dcw-domain">{{ domain }}</div>
+    <p class="dcw-sub">Unabhängige Prüfung der von außen sichtbaren Sicherheit von {{ domain }}. Automatisierte Analyse mit {{ firma.scan_host }}.</p>
+    <div class="dcw-spruch">{% for z in firma.slogan %}<div class="dcw-z{{ loop.index }}">{{ z }}</div>{% endfor %}</div>
+  </div>
+  <div class="dcw-fuss">
+    <div><span class="dcw-l">Erstellt von</span><p><b>{{ firma.name }}</b><br>{{ firma.strasse }} · {{ firma.plz_ort }}<br>{{ firma.web }}</p></div>
+    <div><span class="dcw-l">Prüfdatum</span><p>{{ datum }}<br>Bericht-Nr. {{ bericht_nr }}</p></div>
+    <div><span class="dcw-l">Vertraulich</span><p>Nur für den internen Gebrauch der Adressaten bestimmt.</p></div>
+  </div>
+</section>

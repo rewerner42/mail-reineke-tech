@@ -13,7 +13,10 @@
     "cf-typegen": "wrangler types",
     "deploy:reineke": "wrangler deploy --env reineke",
     "deploy:sharp": "wrangler deploy --env sharp",
-    "dev:reineke": "wrangler dev --env reineke"
+    "dev:reineke": "wrangler dev --env reineke",
+    "bericht:viewmodelle": "tsx tools/viewmodelle.ts",
+    "bericht:pruefen": "bash tools/referenz/pruefen.sh",
+    "bericht:pruefen:marke": "bash tools/referenz/marke-pruefen.sh"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250121.0",

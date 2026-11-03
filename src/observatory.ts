@@ -110,6 +110,7 @@ function parseTests(tests: Record<string, ApiTest> | undefined): ObservatoryTest
       return {
         name: t.name ?? "",
         title: (t.name && TEST_TITLES_DE[t.name]) ?? t.title ?? t.name ?? "",
+        result: t.result ?? null,
         pass: t.pass ?? null,
         scoreModifier: t.score_modifier ?? 0,
         reason,

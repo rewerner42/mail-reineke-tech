@@ -46,6 +46,35 @@ const TYPE_CODES: Record<DnsRecordType, number> = {
   DS: 43,
 };
 
+/** DNS RCODEs we act on. SERVFAIL is the one that must not look like "no record". */
+const SERVFAIL = 2;
+
+/**
+ * Thrown when the resolver could not answer at all, as opposed to answering
+ * "nothing published".
+ *
+ * Cloudflare's resolver validates DNSSEC, so a zone with a broken signature
+ * answers SERVFAIL for every record type. Treating that as an empty answer would
+ * make the report state "no SPF record published", "no DMARC record published"
+ * and so on about a domain where nothing could be read at all — definite
+ * statements about something that was never measured.
+ *
+ * analyzeDnssec deliberately does NOT go through these helpers: there a SERVFAIL
+ * next to a DS record at the parent is the very signal it is looking for.
+ */
+export class DnsUnresolvable extends Error {
+  constructor(name: string, type: DnsRecordType, status: number) {
+    super(`DNS-Abfrage für ${name} ${type} nicht auflösbar (RCODE ${status})`);
+    this.name = "DnsUnresolvable";
+  }
+}
+
+/** Raises when the resolver failed; returns the response otherwise. */
+function pruefeAufloesbar(res: DohResponse, name: string, type: DnsRecordType): DohResponse {
+  if (res.Status === SERVFAIL) throw new DnsUnresolvable(name, type, res.Status);
+  return res;
+}
+
 export async function dohQuery(
   name: string,
   type: DnsRecordType,
@@ -82,7 +111,7 @@ export async function dohQuery(
  * DoH JSON puts each TXT string in quotes; long records are split.
  */
 export async function queryTxt(name: string): Promise<string[]> {
-  const res = await dohQuery(name, "TXT");
+  const res = pruefeAufloesbar(await dohQuery(name, "TXT"), name, "TXT");
   if (res.Status !== 0 || !res.Answer) return [];
   return res.Answer
     .filter((a) => a.type === TYPE_CODES.TXT)
@@ -121,7 +150,7 @@ export function parseTxtData(data: string): string {
 export async function queryMx(
   name: string,
 ): Promise<Array<{ preference: number; exchange: string }>> {
-  const res = await dohQuery(name, "MX");
+  const res = pruefeAufloesbar(await dohQuery(name, "MX"), name, "MX");
   if (res.Status !== 0 || !res.Answer) return [];
   return res.Answer
     .filter((a) => a.type === TYPE_CODES.MX)
@@ -134,6 +163,9 @@ export async function queryMx(
     });
 }
 
+// queryA/queryAaaa deliberately keep the old behaviour: a mail server whose own
+// address cannot be resolved really is undeliverable, so "no address" is the
+// right finding there, not "not assessable".
 export async function queryA(name: string): Promise<string[]> {
   const res = await dohQuery(name, "A");
   if (res.Status !== 0 || !res.Answer) return [];
