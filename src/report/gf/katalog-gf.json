@@ -1,0 +1,272 @@
+{
+  "_hinweis": "Entwurf: Texte der Geschäftsführer-Fassung des Sicherheitschecks (Feedback Marketing/Nancy, 12.11.2026). Klartext ohne Fachbegriffe; die technischen Einzelbefunde stehen weiter in katalog.json und gehen in den technischen Anhang. Platzhalter: {domain}, {datum}, {anzahl_wort}, {nr}, {gesamt}, {name}, {seite}, {nummern}, {umfang_kurz}, {autor}, {firma}, {zahl}, {risiken}, {staerken}.",
+
+  "ampel": {
+    "rot": { "wort": "Handlungsbedarf" },
+    "gelb": { "wort": "Verbesserungs­bedarf" },
+    "gruen": { "wort": "Gut geschützt" },
+    "grau": { "wort": "Nicht prüfbar" }
+  },
+
+  "zahlwoerter": ["null", "eins", "zwei", "drei", "vier", "fünf", "sechs", "sieben", "acht", "neun", "zehn", "elf", "zwölf"],
+
+  "deckblatt": {
+    "kicker": "Persönlicher Sicherheitscheck",
+    "nutzen": "Wie Ihr Unternehmen von außen für Angreifer aussieht – und was Sie jetzt tun sollten.",
+    "lesezeit": "Lesezeit: etwa 3 Minuten",
+    "ergebnis": "Ihr Ergebnis:",
+    "erstellt": "Erstellt am {datum} von {autor}, {firma}",
+    "vertraulich": "Vertraulich. Bestimmt für den Inhaber von {domain} und dessen IT-Dienstleister."
+  },
+
+  "fuss": "Sicherheitscheck für {domain}",
+
+  "zusammenfassung": {
+    "label": "Ihr Sicherheitsstatus",
+    "titel": {
+      "risiken_staerken": "{risiken}, {staerken}.",
+      "nur_risiken": "{risiken}.",
+      "keine_risiken": "Keine Risiken gefunden."
+    },
+    "risiko": { "eins": "ein Risiko", "mehr": "{zahl} Risiken" },
+    "staerke": { "eins": "eine Stärke", "mehr": "{zahl} Stärken" },
+    "satz": {
+      "rot": "Die Lücken sind typisch und meist mit überschaubarem Aufwand zu schließen – am besten, bevor sie teuer werden.",
+      "gelb": "Die Grundlagen stehen. Einige Punkte sollten Sie bei nächster Gelegenheit nachbessern.",
+      "gruen": "In den geprüften Bereichen ist {domain} gut aufgestellt. Was ein Blick von außen nicht sieht, klären wir gern im Gespräch.",
+      "grau": "Ein Teil der Prüfung war nicht möglich. Was offen ist, klären wir gern im Gespräch."
+    },
+    "geprueft": "Das haben wir für {domain} geprüft",
+    "verweis": "Risiko {nr}, Seite {seite}",
+    "verweis_massnahmen": "Siehe Seite {seite}",
+    "cta_titel": "Ergebnis besprechen?",
+    "cta_text": "20 Minuten, kostenfrei und unverbindlich – gern mit Ihrer IT."
+  },
+
+  "risiko": {
+    "kopf": "Risiko {nr} von {gesamt}: {name}",
+    "bedeutung": "Was das für Sie bedeutet",
+    "tun": "Was zu tun ist",
+    "wer": "Wer",
+    "aufwand": "Aufwand",
+    "fundstellen": {
+      "eins": "Gefunden: ein Einzelpunkt. Für Ihre IT im technischen Anhang: {nummern}.",
+      "mehr": "Gefunden: {anzahl_wort} Einzelpunkte. Für Ihre IT im technischen Anhang: {nummern}."
+    }
+  },
+
+  "gruppen_reihenfolge": ["M_MAIL_AUTH", "M_WEB", "M_DNSSEC", "M_MAIL_TRANSPORT", "M_MX"],
+
+  "gruppen": {
+    "M_MAIL_AUTH": {
+      "name": "E-Mail-Absender",
+      "immer": true,
+      "frage": "Kann jemand E-Mails in Ihrem Namen fälschen?",
+      "antwort": {
+        "gruen": "Nein. Gefälschte E-Mails mit Ihrem Absender werden abgewiesen.",
+        "gelb": "Kaum. Der Schutz steht, lässt sich aber noch schärfen.",
+        "rot": "Ja. Ihre Domain ist nicht wirksam gegen gefälschte Absender geschützt.",
+        "grau": "Konnte nicht geprüft werden."
+      },
+      "seite": {
+        "rot": {
+          "titel": "Betrüger können E-Mails in Ihrem Namen verschicken.",
+          "lead": "Mailserver können nicht sicher erkennen, ob eine E-Mail mit Ihrem Absender wirklich von Ihnen stammt. Genau diese Lücke nutzen Rechnungs- und Chef-Betrug.",
+          "bedeutung": [
+            "Kunden erhalten scheinbar echte Rechnungen von Ihnen, mit fremder Kontoverbindung.",
+            "Mitarbeitende erhalten Zahlungsanweisungen, scheinbar von der Geschäftsführung.",
+            "Ihre echten E-Mails landen häufiger im Spam."
+          ]
+        },
+        "gelb": {
+          "titel": "Ihr Schutz gegen gefälschte Absender ist noch nicht vollständig.",
+          "lead": "Die Grundlagen stehen. Einzelne Einstellungen fehlen noch, damit Mailserver gefälschte E-Mails mit Ihrem Absender konsequent abweisen.",
+          "bedeutung": [
+            "Einzelne gefälschte E-Mails könnten Ihre Kunden weiterhin erreichen.",
+            "Missbrauch Ihrer Adresse bleibt womöglich unbemerkt."
+          ]
+        }
+      },
+      "massnahme": { "rot": "Absenderschutz einrichten", "gelb": "Absenderschutz vervollständigen" },
+      "tun": {
+        "rot": "Eine Absenderregel (DMARC) einrichten, gestützt auf SPF und DKIM, und schrittweise verschärfen.",
+        "gelb": "Die vorhandenen Einträge für DMARC, SPF und DKIM vervollständigen."
+      },
+      "beibehalten": "Ihr Schutz gegen gefälschte Absender",
+      "zustaendig": "Ihre IT oder Ihr IT-Dienstleister"
+    },
+
+    "M_WEB": {
+      "name": "Website",
+      "immer": true,
+      "frage": "Sind die Besucher Ihrer Website geschützt?",
+      "antwort": {
+        "gruen": "Ja. Die geprüften Schutzregeln sind gesetzt.",
+        "gelb": "Teilweise. {detail}",
+        "rot": "Nur unzureichend. {detail}",
+        "grau": "Konnte nicht automatisch geprüft werden."
+      },
+      "detail": {
+        "eins": "Eine Schutzregel fehlt oder ist zu schwach.",
+        "mehr": "{anzahl_wort} Schutzregeln fehlen oder sind zu schwach."
+      },
+      "seite": {
+        "rot": {
+          "titel": "Ihre Website schützt ihre Besucher nur unzureichend.",
+          "lead": "Browser schützen Besucher vor vielen Angriffen – vorausgesetzt, die Website gibt ihnen die passenden Schutzregeln mit. Bei Ihrer Website fehlen solche Regeln oder sind zu schwach.",
+          "bedeutung": [
+            "Eingaben in Ihre Formulare könnten mitgelesen werden.",
+            "Ihre Website könnte benutzt werden, um Ihre Besucher zu täuschen.",
+            "Cyberversicherer und große Kunden prüfen solche Einstellungen oft automatisch von außen."
+          ]
+        },
+        "gelb": {
+          "titel": "Bei Ihrer Website fehlen einzelne Schutzregeln.",
+          "lead": "Ihre Website nutzt nicht alle Schutzmechanismen, die Browser für ihre Besucher bereithalten.",
+          "bedeutung": [
+            "Angriffe auf Ihre Besucher werden leichter, als sie sein müssten.",
+            "Cyberversicherer und große Kunden prüfen solche Einstellungen oft automatisch von außen."
+          ]
+        }
+      },
+      "massnahme": { "rot": "Website-Schutzregeln ergänzen", "gelb": "Website-Schutzregeln ergänzen" },
+      "tun": {
+        "rot": "Die fehlenden Schutzregeln in der Konfiguration des Webservers ergänzen.",
+        "gelb": "Die fehlenden Schutzregeln in der Konfiguration des Webservers ergänzen."
+      },
+      "beibehalten": "Die Schutzregeln Ihrer Website",
+      "zustaendig": "Ihre Webagentur oder Ihr Hosting-Anbieter"
+    },
+
+    "M_DNSSEC": {
+      "name": "Domain",
+      "immer": true,
+      "frage": "Sind die Adressauskünfte Ihrer Domain fälschungssicher?",
+      "antwort": {
+        "gruen": "Ja. Die Adressauskünfte sind digital signiert.",
+        "gelb": "Nein. Die Adressauskünfte tragen keine digitale Signatur.",
+        "rot": "Nein. Die Signatur ist eingerichtet, wird aber zurückgewiesen.",
+        "grau": "Konnte nicht geprüft werden."
+      },
+      "seite": {
+        "gelb": {
+          "titel": "Die Adressauskünfte Ihrer Domain sind nicht fälschungssicher.",
+          "lead": "Bevor ein Browser Ihre Website öffnet oder ein Mailserver Ihnen eine E-Mail zustellt, fragt er ab, wohin die Verbindung gehen soll. Ohne digitale Signatur (DNSSEC) lässt sich diese Auskunft fälschen, wenn auch mit erheblichem Aufwand.",
+          "bedeutung": [
+            "Besucher und E-Mails könnten auf fremde Server umgeleitet werden.",
+            "Ein solcher Angriff ist aufwendig, für Betroffene aber kaum zu erkennen."
+          ]
+        },
+        "rot": {
+          "titel": "Die Signatur Ihrer Adressauskünfte ist fehlerhaft.",
+          "lead": "DNSSEC ist eingerichtet, die Prüfung schlägt aber fehl. Prüfende Server verweigern dann die Auskunft – für deren Nutzer ist Ihre Domain nicht erreichbar.",
+          "bedeutung": [
+            "Website und E-Mail-Empfang können für viele Nutzer ausfallen."
+          ]
+        }
+      },
+      "massnahme": { "gelb": "Adressauskünfte signieren (DNSSEC)", "rot": "Signatur der Adressauskünfte reparieren" },
+      "tun": {
+        "gelb": "DNSSEC beim DNS-Anbieter einschalten und den zugehörigen Eintrag beim Domain-Anbieter hinterlegen.",
+        "rot": "Die Signatur beim DNS-Anbieter erneuern oder den Eintrag beim Domain-Anbieter korrigieren."
+      },
+      "beibehalten": "Die Signatur Ihrer Adressauskünfte",
+      "zustaendig": "Ihr DNS- und Ihr Domain-Anbieter"
+    },
+
+    "M_MAIL_TRANSPORT": {
+      "name": "E-Mail-Zustellung",
+      "immer": true,
+      "frage": "Kommen E-Mails verschlüsselt bei Ihnen an?",
+      "antwort": {
+        "gruen": "Ja. Die verschlüsselte Zustellung ist verbindlich festgelegt.",
+        "gelb": "Nicht garantiert. Verschlüsselung ist möglich, aber nicht verbindlich.",
+        "rot": "Nicht garantiert. Verschlüsselung ist möglich, aber nicht verbindlich.",
+        "grau": "Konnte nicht geprüft werden."
+      },
+      "seite": {
+        "gelb": {
+          "titel": "E-Mails an Sie werden nicht garantiert verschlüsselt zugestellt.",
+          "lead": "Mailserver verschlüsseln meist freiwillig. Wer sich in den Übertragungsweg einklinkt, kann die Verschlüsselung unterdrücken, ohne dass es jemand bemerkt.",
+          "bedeutung": [
+            "Vertrauliche E-Mails an Sie könnten unterwegs mitgelesen werden.",
+            "Störungen bei der verschlüsselten Zustellung fallen niemandem auf."
+          ]
+        }
+      },
+      "massnahme": { "gelb": "Verschlüsselte Zustellung festlegen" },
+      "tun": {
+        "gelb": "Die verschlüsselte Zustellung verbindlich festlegen (MTA-STS) und Fehlerberichte anfordern (TLS-RPT)."
+      },
+      "beibehalten": "Die verbindlich verschlüsselte E-Mail-Zustellung",
+      "zustaendig": "Ihre IT oder Ihr IT-Dienstleister"
+    },
+
+    "M_MX": {
+      "name": "E-Mail-Empfang",
+      "immer": false,
+      "frage": "Erreichen E-Mails Sie zuverlässig?",
+      "antwort": {
+        "gruen": "Ja. Die eingetragenen Mailserver sind erreichbar.",
+        "gelb": "Eingeschränkt. Ein Mailserver-Eintrag ist fehlerhaft.",
+        "rot": "Gefährdet. Ein eingetragener Mailserver ist nicht erreichbar.",
+        "grau": "Konnte nicht geprüft werden."
+      },
+      "seite": {
+        "rot": {
+          "titel": "E-Mails an Sie können verloren gehen.",
+          "lead": "Für Ihre Domain ist ein Mailserver eingetragen, zu dem keine Adresse hinterlegt ist. Absender können ihn nicht erreichen.",
+          "bedeutung": [
+            "E-Mails von Kunden und Lieferanten können verspätet oder gar nicht ankommen."
+          ]
+        }
+      },
+      "massnahme": { "rot": "Mailserver-Eintrag korrigieren" },
+      "tun": { "rot": "Den fehlerhaften Mailserver-Eintrag korrigieren oder entfernen." },
+      "beibehalten": "Ihr E-Mail-Empfang",
+      "zustaendig": "Ihre IT oder Ihr IT-Dienstleister"
+    }
+  },
+
+  "vorstellung": {
+    "label": "Ihr Ansprechpartner",
+    "zeilen": [
+      { "label": "Wer ich bin", "text": "Zertifizierter Ethical Hacker (CEH). Ich habe Netzwerke selbst aufgebaut und betrieben." },
+      { "label": "Was wir tun", "text": "Wir prüfen die IT-Sicherheit mittelständischer Industrie- und Produktionsunternehmen und begleiten bei NIS-2, ISO 27001 und TISAX." },
+      { "label": "Warum ich", "text": "Ich weiß, wo Angreifer ansetzen und wo im Alltag Lücken entstehen. Und ich erkläre es so, dass Sie entscheiden können." }
+    ],
+    "fakten": [
+      { "stark": "47 Unternehmen", "text": "betreut seit Gründung, überwiegend Industrie und Zulieferer" },
+      { "stark": "Live-Hacking", "text": "als Referent, u. a. in der Cybersecurity-Vortragsreihe von SHARP" },
+      { "stark": "Vor Ort in NRW", "text": "aus Salzkotten in Ostwestfalen-Lippe" }
+    ]
+  },
+
+  "massnahmen": {
+    "titel": "So schließen Sie die Lücken",
+    "lead": "Die Maßnahmen in der Reihenfolge, die wir empfehlen.",
+    "ohne": "Derzeit gibt es nichts nachzubessern.",
+    "beibehalten": "Beibehalten:",
+    "nachpruefen_titel": "Kostenfrei nachprüfen lassen",
+    "nachpruefen": "Wir prüfen erneut. Sie sehen dann schwarz auf weiß, was behoben ist.",
+    "nachpruefen_wer": "Reineke Technik",
+    "nachpruefen_aufwand": "Kostenfrei",
+    "it_label": "Für Ihre IT",
+    "it": "Alle Einzelbefunde und Messwerte stehen im technischen Anhang. Er liegt diesem Bericht als eigenes PDF bei.",
+    "umfang_label": "Was dieser Check nicht sieht",
+    "umfang": "{umfang_kurz} Wie weit ein Angreifer tatsächlich käme, zeigt ein Penetrationstest."
+  },
+
+  "abschluss": {
+    "titel": "Lassen Sie uns Ihre Ergebnisse gemeinsam besprechen.",
+    "lead": "In 20 Minuten gehen wir Ihre Ergebnisse im Detail durch, gern zusammen mit Ihrer IT. Kostenfrei und unverbindlich.",
+    "punkte_label": "Im Gespräch klären wir,",
+    "punkte": [
+      "welche Lücke Sie zuerst schließen und wer was übernimmt,",
+      "wie Sie Ihre Sicherheit gegenüber Kunden und Prüfern belegen,",
+      "was ein Blick von außen nicht sieht und wie man es prüft."
+    ],
+    "button": "Termin wählen",
+    "qr": "Oder QR-Code scannen"
+  }
+}
